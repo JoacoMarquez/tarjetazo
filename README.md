@@ -84,6 +84,35 @@ final. Ni el sitemap ni las páginas de categoría listan todo por separado, as�
 que se unen las dos fuentes de URLs. Una página suele contener varios beneficios
 (distinto porcentaje según el tier de la tarjeta): cada uno es una fila.
 
+## Geocoding
+
+Los bancos no publican direcciones: de 88 páginas de BROU, una sola las trae. Así que
+las sucursales salen de OpenStreetMap para las cadenas que un beneficio nombra
+(`packages/scrapers/src/geo/cadenas.ts`), y el geocodificador queda listo para cuando
+una fuente sí publique la dirección.
+
+```bash
+pnpm --filter @tarjetazo/scrapers geo osm          # sucursales de cadenas desde OSM
+pnpm --filter @tarjetazo/scrapers geo pendientes   # geocodifica las que tienen dirección sin punto
+pnpm --filter @tarjetazo/scrapers geo localidades  # localidades del país, para el buscador de zona
+```
+
+`direcciones.ide.uy` es el geocodificador principal: resuelve en dos pasos
+(`candidates` interpreta el texto libre, `find` devuelve el punto) y su `reverse`
+completa el departamento de los locales de OSM, que rara vez traen `addr:state`.
+Nominatim queda de fallback, con su límite de 1 req/s. Todo pasa por `geocode_cache`,
+que cachea también los fallos para no reintentarlos cada corrida.
+
+Dos cosas aprendidas peleando con Overpass, por si hay que tocarlo:
+
+- Las consultas con regex sobre todo el país expiran; con `area(3600287072)` (Uruguay)
+  y nombres exactos tardan segundos. Por eso `cadenas.ts` lista nombres literales.
+- Con `bbox` en vez de área entra ruido argentino: una prueba devolvió una estación de
+  tren de Buenos Aires llamada "Devoto".
+- Los mirrors públicos a veces responden 200 con cero elementos por bases
+  desincronizadas. Se acepta el primer resultado con contenido y se da la consulta por
+  vacía solo si todos coinciden.
+
 ## Diseño
 
 Tokens de marca en `apps/web/src/app/globals.css`: paleta cielo / menta / sol (más coral
