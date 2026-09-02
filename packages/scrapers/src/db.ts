@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { origenSupabase } from "@tarjetazo/core";
 
 /**
  * El pipeline escribe con la service role key, que saltea RLS. Solo corre en
@@ -10,29 +11,9 @@ export function crearCliente(): SupabaseClient {
   if (!url || !key) {
     throw new Error("Faltan SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY");
   }
-  return createClient(origenDe(url), key, { auth: { persistSession: false } });
+  return createClient(origenSupabase(url), key, { auth: { persistSession: false } });
 }
 
-/**
- * El dashboard muestra varias URLs y es fácil copiar la equivocada: el cliente
- * quiere el origen pelado, así que descartamos el path (`/rest/v1/`) y avisamos
- * si lo que vino no es la API del proyecto.
- */
-function origenDe(url: string): string {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new Error(`SUPABASE_URL no es una URL válida: ${url}`);
-  }
-  if (!parsed.hostname.endsWith(".supabase.co") && parsed.hostname !== "localhost") {
-    throw new Error(
-      `SUPABASE_URL apunta a ${parsed.hostname}; se espera https://<ref>.supabase.co ` +
-        "(Project Settings → Data API → Project URL), no la URL del dashboard",
-    );
-  }
-  return parsed.origin;
-}
 
 export async function hashesGuardados(
   db: SupabaseClient,

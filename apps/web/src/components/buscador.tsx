@@ -17,14 +17,17 @@ export function Buscador({
 }) {
   const [q, setQ] = useState("");
   const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
+  const [buscando, setBuscando] = useState(false);
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (q.trim().length < 2) {
       setResultados([]);
+      setAbierto(false);
       return;
     }
+    setBuscando(true);
     const control = new AbortController();
     // Esperamos a que deje de tipear: una consulta por tecla no sirve a nadie.
     const t = setTimeout(async () => {
@@ -37,6 +40,8 @@ export function Buscador({
         setAbierto(true);
       } catch {
         // Búsqueda cancelada o caída: dejamos lo que había.
+      } finally {
+        setBuscando(false);
       }
     }, 250);
     return () => {
@@ -64,6 +69,11 @@ export function Buscador({
         aria-label="Buscar comercio"
         className="border-linea bg-card focus-visible:ring-ring h-10 w-full rounded-md border pl-9 pr-3 text-sm outline-none focus-visible:ring-2"
       />
+      {abierto && resultados.length === 0 && !buscando && q.trim().length >= 2 && (
+        <div className="border-linea bg-card text-humo absolute z-1000 mt-1 w-full rounded-md border px-3 py-2.5 text-sm shadow-lg">
+          Ningún comercio con ese nombre te da beneficios con los filtros puestos.
+        </div>
+      )}
       {abierto && resultados.length > 0 && (
         <ul className="border-linea bg-card absolute z-1000 mt-1 w-full overflow-hidden rounded-md border shadow-lg">
           {resultados.map((r) => (

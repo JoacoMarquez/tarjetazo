@@ -81,7 +81,9 @@ export function FiltrosBarra({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
+      {/* En mobile los filtros se desplazan de a uno en vez de apilarse: si
+          envuelven, el header se come media pantalla. */}
+      <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0 [&>*]:shrink-0">
         <Button variant={tieneTarjetas ? "secondary" : "default"} size="sm" onClick={onAbrirTarjetas}>
           <CreditCard />
           {tieneTarjetas
@@ -156,13 +158,13 @@ export function FiltrosBarra({
           </button>
         )}
 
-        <span className="text-humo ml-auto text-sm">
+        <span className="text-humo ml-auto whitespace-nowrap text-sm">
           <span className="num font-semibold">{total}</span>{" "}
           {total === 1 ? "beneficio" : "beneficios"}
         </span>
       </div>
 
-      <ul className="flex flex-wrap gap-1.5">
+      <ul className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0 [&>li]:shrink-0">
         {TIPOS.map((t) => {
           const activo = filtros.tipos.includes(t.valor);
           return (

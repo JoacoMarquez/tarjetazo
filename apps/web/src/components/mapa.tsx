@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -30,22 +30,102 @@ function icono(p: PuntoMapa): L.DivIcon {
   });
 }
 
-function AvisarMovimiento({ onMover }: { onMover: (b: Bbox) => void }) {
-  const mapa = useMapEvents({
-    moveend: () => avisar(),
-    zoomend: () => avisar(),
+/**
+ * Los clusters de react-leaflet-cluster vienen con su propio CSS, que sin
+ * importar los deja invisibles. Los dibujamos nosotros y de paso quedan con la
+ * marca, igual que los pines sueltos.
+ */
+function iconoCluster(cluster: { getChildCount: () => number }): L.DivIcon {
+  const n = cluster.getChildCount();
+  const tamano = n < 10 ? 32 : n < 50 ? 38 : 44;
+  return L.divIcon({
+    className: "",
+    html: `<span class="num flex items-center justify-center rounded-pill border-2 border-white bg-[var(--cielo-ink)] text-xs font-bold text-white shadow-md" style="width:${tamano}px;height:${tamano}px">${n}</span>`,
+    iconSize: [tamano, tamano],
+    iconAnchor: [tamano / 2, tamano / 2],
   });
-  const avisar = useCallback(() => {
-    const b = mapa.getBounds();
-    onMover({
+}
+
+function AvisarMovimiento({ onMover }: { onMover: (b: Bbox) => void }) {
+  // El callback cambia de identidad en cada render del padre. Si lo pusiéramos
+  // como dependencia del efecto, avisar → render → nuevo callback → avisar
+  // sería un bucle infinito de consultas.
+  const ultimo = useRef(onMover);
+  ultimo.current = onMover;
+
+  const avisar = useCallback((m: L.Map) => {
+    const b = m.getBounds();
+    ultimo.current({
       sur: b.getSouth(),
       oeste: b.getWest(),
       norte: b.getNorth(),
       este: b.getEast(),
     });
-  }, [mapa, onMover]);
-  useEffect(avisar, [avisar]);
+  }, []);
+
+  const mapa = useMapEvents({
+    moveend: () => avisar(mapa),
+    zoomend: () => avisar(mapa),
+  });
+
+  // Una sola vez al montar, para la primera carga de puntos.
+  useEffect(() => {
+    avisar(mapa);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return null;
+}
+
+/** Mientras el mapa está montado, seguimos los cambios de tamaño del panel. */
+function AjustarAlContenedor() {
+  const mapa = useMap();
+  useEffect(() => {
+    const observador = new ResizeObserver(() => mapa.invalidateSize());
+    observador.observe(mapa.getContainer());
+    return () => observador.disconnect();
+  }, [mapa]);
+  return null;
+}
+
+/**
+ * Leaflet mide el contenedor al crearse y no vuelve a hacerlo solo. Si nace
+ * dentro de un panel que todavía mide cero —el layout flex antes del primer
+ * pintado, o la vista de mapa que en mobile arranca oculta— dibuja los tiles y
+ * los pines sobre un mapa más chico que el que se ve, y ni `invalidateSize` lo
+ * recupera bien: reposiciona el panel en vez de recalcular. Por eso esperamos a
+ * tener medida real antes de crearlo.
+ */
+function useMedido() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [medido, setMedido] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Caso normal (escritorio): el panel ya tiene tamaño al montar. Se mide
+    // directo, y no con requestAnimationFrame, que no corre si la pestaña está
+    // en segundo plano.
+    const { width, height } = el.getBoundingClientRect();
+    if (width > 0 && height > 0) {
+      setMedido(true);
+      return;
+    }
+
+    // Si todavía mide cero es la vista de mapa de mobile, que arranca oculta.
+    // Se espera con IntersectionObserver y no con ResizeObserver: un elemento
+    // con display:none no genera observaciones de tamaño ni al hacerse visible.
+    const observador = new IntersectionObserver(([entrada]) => {
+      if (!entrada?.isIntersecting) return;
+      const { width, height } = el.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        setMedido(true);
+        observador.disconnect();
+      }
+    });
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, []);
+  return { ref, medido };
 }
 
 function IrA({ punto }: { punto: [number, number] | null }) {
@@ -69,8 +149,7 @@ export default function Mapa({
   onMover: (b: Bbox) => void;
   irA: [number, number] | null;
 }) {
-  const [listo, setListo] = useState(false);
-  useEffect(() => setListo(true), []);
+  const { ref, medido } = useMedido();
 
   const marcadores = useMemo(
     () =>
@@ -97,10 +176,9 @@ export default function Mapa({
     [puntos],
   );
 
-  if (!listo) return <div className="bg-papel size-full" />;
-
   return (
-    <div className="relative size-full">
+    <div ref={ref} className="bg-papel relative size-full">
+      {medido && (
       <MapContainer
         center={CENTRO}
         zoom={13}
@@ -110,18 +188,28 @@ export default function Mapa({
         // hoja del mobile y los popovers queden por encima.
         style={{ zIndex: 0 }}
       >
+        {/* CARTO pasó a pedir API key en sus basemaps, así que usamos los
+            tiles estándar de OpenStreetMap, que no la piden. */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
         />
+        <AjustarAlContenedor />
         <AvisarMovimiento onMover={onMover} />
         <IrA punto={irA} />
-        <MarkerClusterGroup chunkedLoading maxClusterRadius={50}>
+        <MarkerClusterGroup
+          chunkedLoading
+          maxClusterRadius={50}
+          iconCreateFunction={iconoCluster}
+          showCoverageOnHover={false}
+        >
           {marcadores}
         </MarkerClusterGroup>
       </MapContainer>
+      )}
 
-      {(recortado || cargando) && (
+      {medido && (recortado || cargando) && (
         <p className="border-linea bg-card/95 text-humo absolute left-1/2 top-3 z-1000 -translate-x-1/2 rounded-pill border px-3 py-1.5 text-xs shadow-sm">
           {cargando ? "Buscando locales…" : "Hay más locales de los que entran: acercá el mapa"}
         </p>

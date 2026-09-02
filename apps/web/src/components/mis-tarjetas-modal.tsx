@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronLeft, Lock } from "lucide-react";
 import { FUENTES, PRODUCTOS } from "@tarjetazo/core";
 import { Button } from "@/components/ui/button";
@@ -34,14 +34,14 @@ export function MisTarjetasModal({
   const [bancos, setBancos] = useState<string[]>(tarjetas.bancos);
   const [productos, setProductos] = useState<string[]>(tarjetas.productos);
 
-  function abrir(v: boolean) {
-    if (v) {
-      setBancos(tarjetas.bancos);
-      setProductos(tarjetas.productos);
-      setPaso(1);
-    }
-    onAbrir(v);
-  }
+  // El estado del modal se inicializa una vez, y para entonces las tarjetas
+  // guardadas todavía no se leyeron. Lo sincronizamos cada vez que se abre.
+  useEffect(() => {
+    if (!abierto) return;
+    setBancos(tarjetas.bancos);
+    setProductos(tarjetas.productos);
+    setPaso(1);
+  }, [abierto, tarjetas]);
 
   function guardar() {
     // Los productos de un banco que se destildó no tienen por qué quedar.
@@ -55,7 +55,7 @@ export function MisTarjetasModal({
   const productosDeMisBancos = PRODUCTOS.filter((p) => bancos.includes(p.fuente_id));
 
   return (
-    <Dialog open={abierto} onOpenChange={abrir}>
+    <Dialog open={abierto} onOpenChange={onAbrir}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">

@@ -12,6 +12,7 @@ import { FiltrosBarra } from "@/components/filtros-barra";
 import { MisTarjetasModal } from "@/components/mis-tarjetas-modal";
 import { useMisTarjetas } from "@/lib/mis-tarjetas";
 import { escribirFiltros, leerFiltros, type Filtros } from "@/lib/filtros";
+import { cn } from "@/lib/utils";
 import type { BeneficioListado, Bbox, PuntoMapa } from "@/lib/consultas";
 
 // Leaflet toca `window` al importarse, así que solo puede cargarse en el cliente.
@@ -48,7 +49,6 @@ function Pantalla() {
   const [puntos, setPuntos] = useState<PuntoMapa[]>([]);
   const [recortado, setRecortado] = useState(false);
   const [cargandoMapa, setCargandoMapa] = useState(false);
-  const [bbox, setBbox] = useState<Bbox | null>(null);
   const [irA, setIrA] = useState<[number, number] | null>(null);
   const [vista, setVista] = useState<"lista" | "mapa">("lista");
 
@@ -104,12 +104,13 @@ function Pantalla() {
     if (ultimoBbox.current) pedirPuntos(ultimoBbox.current);
   }, [pedirPuntos]);
 
-  function moverMapa(b: Bbox) {
-    ultimoBbox.current = b;
-    setBbox(b);
-    pedirPuntos(b);
-  }
-  void bbox;
+  const moverMapa = useCallback(
+    (b: Bbox) => {
+      ultimoBbox.current = b;
+      pedirPuntos(b);
+    },
+    [pedirPuntos],
+  );
 
   const misProductos = new Set(filtros.productos);
   const misBancos = new Set(filtros.bancos);
@@ -199,19 +200,29 @@ function Pantalla() {
         </div>
       </header>
 
-      {/* Escritorio: lista y mapa lado a lado. */}
-      <main className="hidden min-h-0 flex-1 md:flex">
-        <section className="w-[420px] shrink-0 overflow-y-auto p-4 lg:w-[480px]">{lista}</section>
-        <section className="min-w-0 flex-1">{mapa}</section>
-      </main>
+      {/*
+        Un solo mapa para las dos disposiciones: montarlo dos veces crearía dos
+        instancias de Leaflet, con el doble de tiles y de consultas.
+        En escritorio va al lado de la lista; en mobile se alterna con un botón.
+      */}
+      <main className="relative flex min-h-0 flex-1">
+        <section
+          className={cn(
+            "w-full shrink-0 overflow-y-auto p-4 md:block md:w-[420px] lg:w-[480px]",
+            vista === "lista" ? "block" : "hidden",
+          )}
+        >
+          {lista}
+        </section>
+        <section
+          className={cn("min-w-0 flex-1 md:block", vista === "mapa" ? "block" : "hidden")}
+        >
+          {mapa}
+        </section>
 
-      {/* Mobile: una vista por vez, con un botón para alternar. */}
-      <main className="relative min-h-0 flex-1 md:hidden">
-        <div className={vista === "mapa" ? "size-full" : "hidden"}>{mapa}</div>
-        <div className={vista === "lista" ? "h-full overflow-y-auto p-4" : "hidden"}>{lista}</div>
         <Button
           size="sm"
-          className="absolute bottom-4 left-1/2 z-1000 -translate-x-1/2 shadow-lg"
+          className="absolute bottom-4 left-1/2 z-1000 -translate-x-1/2 shadow-lg md:hidden"
           onClick={() => setVista(vista === "lista" ? "mapa" : "lista")}
         >
           {vista === "lista" ? <MapIcon /> : <List />}
