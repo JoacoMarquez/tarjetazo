@@ -55,6 +55,7 @@ function cadenaDe(tags: Record<string, string>): string | null {
 
 async function preguntar(query: string): Promise<Elemento[]> {
   let ultimoError = "";
+  let vacios = 0;
   for (let intento = 0; intento < OVERPASS.length * 2; intento++) {
     const url = OVERPASS[intento % OVERPASS.length]!;
     try {
@@ -74,12 +75,18 @@ async function preguntar(query: string): Promise<Elemento[]> {
         ultimoError = `${new URL(url).host}: ${datos.remark}`;
         continue;
       }
-      return datos.elements ?? [];
+      // Un mirror puede responder 200 con cero elementos aunque el dato exista
+      // (bases desincronizadas). Aceptamos el primer resultado con contenido y
+      // solo damos la consulta por vacía si todos coinciden en eso.
+      const elementos = datos.elements ?? [];
+      if (elementos.length > 0) return elementos;
+      vacios++;
     } catch (e) {
       ultimoError = `${new URL(url).host}: ${String(e)}`;
       await new Promise((r) => setTimeout(r, 5000 * (intento + 1)));
     }
   }
+  if (vacios >= OVERPASS.length) return [];
   throw new Error(`Overpass no respondió: ${ultimoError}`);
 }
 

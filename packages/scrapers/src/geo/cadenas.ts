@@ -5,6 +5,11 @@
  *
  * `nombres` y `marcas` se comparan exactos contra los tags `name` y `brand`:
  * las consultas con regex sobre todo el país expiran en Overpass.
+ *
+ * Acá va solo la cadena que el beneficio nombra. Los comercios genéricos que
+ * publica BROU ("Farmacias", "Restaurantes adheridos") no se resuelven a una
+ * cadena concreta: mapear "Farmacias" a Farmashop sería inventar que el
+ * beneficio aplica ahí.
  */
 export interface Cadena {
   comercio_key: string;
@@ -23,5 +28,4 @@ export const CADENAS: readonly Cadena[] = [
   { comercio_key: "estaciones-ancap", nombres: ["Ancap", "ANCAP"], marcas: ["Ancap", "ANCAP"] },
   { comercio_key: "grupocine", nombres: ["Grupocine", "Grupo Cine"] },
   { comercio_key: "life-cinemas", nombres: ["Life Cinemas"] },
-  { comercio_key: "farmacias", nombres: ["Farmashop", "Farmacia San Roque"] },
 ] as const;
