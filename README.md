@@ -44,12 +44,45 @@ supabase link --project-ref <ref>
 supabase db push
 ```
 
-Dos migraciones: `20260902120000_init.sql` (esquema) y `20260902120100_catalogo.sql`
-(rubros, fuentes y productos; idempotente, se puede reaplicar). El esquema define las tablas `fuente`,
+Migraciones en `supabase/migrations/`: el esquema, el catálogo (rubros, fuentes y
+productos; idempotente), los productos reales de BROU y el caché de páginas crudas.
+El esquema define las tablas `fuente`,
 `producto`, `categoria`, `comercio`, `sucursal` (geography Point 4326), `beneficio` y la
 cola `beneficio_revision`, más la función `sucursales_cercanas()` para el mapa y triggers
 que recalculan los derivados de `comercio`. Lectura pública vía RLS; escribe solo el
 pipeline con la service role key.
+
+## Scrapers
+
+Un módulo por fuente en `packages/scrapers/src/fuentes/`. El pipeline es
+`descubrir URLs → bajar → texto plano → normalizar con Claude → validar Zod → upsert`.
+
+```bash
+pnpm --filter @tarjetazo/scrapers scrape brou --limite=3
+```
+
+`--solo-fetch` baja y cachea las páginas sin llamar a Claude (útil para probar el
+descubrimiento sin gastar tokens). Necesita `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY` y `ANTHROPIC_API_KEY` en el entorno.
+
+Cada página se guarda en `pagina_cruda` con un hash: si en la corrida siguiente el
+hash no cambió, no se vuelve a normalizar y no cuesta nada. Lo que la fuente dejó
+de publicar se marca `estado_revision = 'descartado'` en vez de borrarse. Los
+tramos que no validan, o cuyas tarjetas no supimos mapear, van a
+`beneficio_revision`. Cada corrida queda registrada en `corrida`.
+
+Corre solo con el workflow `.github/workflows/scrapers.yml` (cron diario a las
+06:00 de Uruguay), que además mantiene despierto el proyecto de Supabase Free.
+Secrets del repo: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`.
+
+### Notas sobre BROU
+
+Todo el sitio es server-rendered, así que no hace falta Playwright. El mismo
+beneficio se publica bajo varias categorías (`/gastronomia/expocafe` y
+`/destacados/expocafe` son la misma página), por eso la identidad es el slug
+final. Ni el sitemap ni las páginas de categoría listan todo por separado, así
+que se unen las dos fuentes de URLs. Una página suele contener varios beneficios
+(distinto porcentaje según el tier de la tarjeta): cada uno es una fila.
 
 ## Diseño
 

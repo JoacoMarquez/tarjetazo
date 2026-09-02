@@ -21,7 +21,7 @@ export const Slug = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "debe ser kebab-case sin acentos");
 
 const fechaISO = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "formato YYYY-MM-DD");
-const url = z.string().url();
+const url = z.url();
 
 export const FuenteSchema = z.object({
   id: Slug,
@@ -61,7 +61,7 @@ export const ComercioSchema = z.object({
 });
 
 export const SucursalSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.uuid().optional(),
   comercio_key: Slug,
   direccion: z.string().min(4),
   localidad: z.string().min(2).nullable().default(null),
@@ -70,55 +70,76 @@ export const SucursalSchema = z.object({
   lng: z.number().min(-58.6).max(-53.0).nullable().default(null),
 });
 
-export const BeneficioSchema = z
-  .object({
-    id: z.string().min(4),
-    fuente_id: Slug,
-    comercio_key: Slug,
-    titulo: z.string().min(4).max(160),
-    /** Texto tal cual lo publica la fuente ("25% de descuento, tope $1.500"). */
-    descuento_raw: z.string().min(1),
-    porcentaje: z.number().min(0).max(100).nullable().default(null),
-    cuotas: z.number().int().min(0).max(36).nullable().default(null),
-    tipo: TipoBeneficio,
-    /** Vacío = todos los días. */
-    dias_semana: z.array(DiaSemana).default([]),
-    vigencia_desde: fechaISO.nullable().default(null),
-    vigencia_hasta: fechaISO.nullable().default(null),
-    /** Vacío = todo el país. */
-    departamentos: z.array(Departamento).default([]),
-    /** Vacío = todos los productos de la fuente. */
-    productos_elegibles: z.array(Slug).default([]),
-    tope_monto: z.number().nonnegative().nullable().default(null),
-    tope_periodo: TopePeriodo.nullable().default(null),
-    canal: Canal.default("presencial"),
-    mecanica: z.array(Mecanica).default([]),
-    acumulable: z.boolean().nullable().default(null),
-    compra_minima: z.number().nonnegative().nullable().default(null),
-    requiere_activacion: z.boolean().default(false),
-    legales_raw: z.string().nullable().default(null),
-    como_usarlo: z.array(z.string().min(3)).default([]),
-    url_fuente: url,
-    fetched_at: z.string().datetime(),
-    estado_revision: EstadoRevision.default("ok"),
-  })
-  .superRefine((b, ctx) => {
-    if (b.tipo === "porcentaje" && b.porcentaje === null) {
-      ctx.addIssue({ code: "custom", path: ["porcentaje"], message: "un beneficio de tipo porcentaje necesita porcentaje" });
-    }
-    if (b.tipo === "cuotas" && b.cuotas === null) {
-      ctx.addIssue({ code: "custom", path: ["cuotas"], message: "un beneficio de tipo cuotas necesita cuotas" });
-    }
-    if (b.tope_monto !== null && b.tope_periodo === null) {
-      ctx.addIssue({ code: "custom", path: ["tope_periodo"], message: "si hay tope_monto hace falta tope_periodo" });
-    }
-    if (b.vigencia_desde && b.vigencia_hasta && b.vigencia_hasta < b.vigencia_desde) {
-      ctx.addIssue({ code: "custom", path: ["vigencia_hasta"], message: "vigencia_hasta es anterior a vigencia_desde" });
-    }
-  });
+const BeneficioBase = z.object({
+  id: z.string().min(4),
+  fuente_id: Slug,
+  comercio_key: Slug,
+  titulo: z.string().min(4).max(160),
+  /** Texto tal cual lo publica la fuente ("25% de descuento, tope $1.500"). */
+  descuento_raw: z.string().min(1),
+  porcentaje: z.number().min(0).max(100).nullable().default(null),
+  cuotas: z.number().int().min(0).max(36).nullable().default(null),
+  tipo: TipoBeneficio,
+  /** Vacío = todos los días. */
+  dias_semana: z.array(DiaSemana).default([]),
+  vigencia_desde: fechaISO.nullable().default(null),
+  vigencia_hasta: fechaISO.nullable().default(null),
+  /** Vacío = todo el país. */
+  departamentos: z.array(Departamento).default([]),
+  /** Vacío = todos los productos de la fuente. */
+  productos_elegibles: z.array(Slug).default([]),
+  tope_monto: z.number().nonnegative().nullable().default(null),
+  tope_periodo: TopePeriodo.nullable().default(null),
+  canal: Canal.default("presencial"),
+  mecanica: z.array(Mecanica).default([]),
+  acumulable: z.boolean().nullable().default(null),
+  compra_minima: z.number().nonnegative().nullable().default(null),
+  requiere_activacion: z.boolean().default(false),
+  legales_raw: z.string().nullable().default(null),
+  como_usarlo: z.array(z.string().min(3)).default([]),
+  url_fuente: url,
+  fetched_at: z.iso.datetime(),
+  estado_revision: EstadoRevision.default("ok"),
+});
+
+/** Validaciones que cruzan campos, encima del objeto base. */
+export const BeneficioSchema = BeneficioBase.superRefine((b, ctx) => {
+  if (b.tipo === "porcentaje" && b.porcentaje === null) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["porcentaje"],
+      message: "un beneficio de tipo porcentaje necesita porcentaje",
+    });
+  }
+  if (b.tipo === "cuotas" && b.cuotas === null) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["cuotas"],
+      message: "un beneficio de tipo cuotas necesita cuotas",
+    });
+  }
+  if (b.tope_monto !== null && b.tope_periodo === null) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["tope_periodo"],
+      message: "si hay tope_monto hace falta tope_periodo",
+    });
+  }
+  if (
+    b.vigencia_desde &&
+    b.vigencia_hasta &&
+    b.vigencia_hasta < b.vigencia_desde
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["vigencia_hasta"],
+      message: "vigencia_hasta es anterior a vigencia_desde",
+    });
+  }
+});
 
 /** Lo que devuelve el normalizador de Claude antes de que el pipeline agregue metadatos. */
-export const BeneficioNormalizadoSchema = BeneficioSchema.innerType().omit({
+export const BeneficioNormalizadoSchema = BeneficioBase.omit({
   id: true,
   fuente_id: true,
   fetched_at: true,

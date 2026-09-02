@@ -11,12 +11,17 @@ export const FUENTES: readonly Fuente[] = [
 ] as const;
 
 export const PRODUCTOS: readonly Producto[] = [
-  // BROU
-  { id: "brou-debito", fuente_id: "brou", nombre: "Débito BROU", instrumento: "debito", red: "visa", tier: null },
-  { id: "brou-visa", fuente_id: "brou", nombre: "Visa BROU", instrumento: "credito", red: "visa", tier: null },
-  { id: "brou-visa-gold", fuente_id: "brou", nombre: "Visa Gold BROU", instrumento: "credito", red: "visa", tier: "gold" },
-  { id: "brou-mastercard", fuente_id: "brou", nombre: "Mastercard BROU", instrumento: "credito", red: "mastercard", tier: null },
-  { id: "brou-mastercard-black", fuente_id: "brou", nombre: "Mastercard Black BROU", instrumento: "credito", red: "mastercard", tier: "black" },
+  // BROU — nombres tal como los publica beneficios.brou.com.uy
+  { id: "brou-visa-debito", fuente_id: "brou", nombre: "BROU Visa Débito", instrumento: "debito", red: "visa", tier: null },
+  { id: "brou-visa", fuente_id: "brou", nombre: "BROU Visa", instrumento: "credito", red: "visa", tier: null },
+  { id: "brou-visa-platinum", fuente_id: "brou", nombre: "BROU Visa Platinum", instrumento: "credito", red: "visa", tier: "platinum" },
+  { id: "brou-visa-black", fuente_id: "brou", nombre: "BROU Visa Black", instrumento: "credito", red: "visa", tier: "black" },
+  { id: "brou-recompensa-debito", fuente_id: "brou", nombre: "BROU Recompensa Mastercard Débito", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "brou-recompensa", fuente_id: "brou", nombre: "BROU Recompensa Mastercard", instrumento: "credito", red: "mastercard", tier: null },
+  { id: "brou-recompensa-platinum", fuente_id: "brou", nombre: "BROU Recompensa Mastercard Platinum", instrumento: "credito", red: "mastercard", tier: "platinum" },
+  { id: "brou-recompensa-black", fuente_id: "brou", nombre: "BROU Recompensa Mastercard Black", instrumento: "credito", red: "mastercard", tier: "black" },
+  { id: "brou-mi-brou", fuente_id: "brou", nombre: "MI BROU Tarjeta Joven", instrumento: "prepaga", red: "propia", tier: null },
+  { id: "brou-tuapp", fuente_id: "brou", nombre: "TuApp", instrumento: "saldo", red: "propia", tier: null },
 
   // Santander
   { id: "santander-debito", fuente_id: "santander", nombre: "Débito Santander", instrumento: "debito", red: "mastercard", tier: null },

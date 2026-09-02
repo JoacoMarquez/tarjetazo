@@ -1,0 +1,58 @@
+name: Scrapers
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 en Uruguay. Diario, como fija docs/03-spec.md.
+    # De paso mantiene despierto el proyecto de Supabase Free.
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      fuente:
+        description: Fuente a correr
+        type: choice
+        options: [brou]
+        default: brou
+      limite:
+        description: Máximo de páginas a normalizar (vacío = todas)
+        type: string
+
+concurrency:
+  group: scrapers
+  cancel-in-progress: false
+
+jobs:
+  correr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Correr scraper
+        working-directory: packages/scrapers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          pnpm scrape "${{ inputs.fuente || 'brou' }}" \
+            ${{ inputs.limite && format('--limite={0}', inputs.limite) || '' }} \
+            | tee "$RUNNER_TEMP/reporte.txt"
+
+      - name: Reporte
+        if: always()
+        run: |
+          {
+            echo '### Corrida de scrapers'
+            echo '```'
+            cat "$RUNNER_TEMP/reporte.txt" 2>/dev/null || echo 'sin reporte (la corrida falló antes de terminar)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
