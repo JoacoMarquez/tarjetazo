@@ -1,5 +1,7 @@
--- Seed de catálogo (hito 1). Espejo de packages/core/src/categorias.ts y fuentes.ts:
--- si cambiás uno, cambiá el otro.
+-- Catálogo base (hito 1): rubros, fuentes y productos.
+-- Va como migración y no como seed porque son datos de referencia que necesita
+-- cualquier entorno. Es idempotente (upsert), así que se puede reaplicar.
+-- Espejo de packages/core/src/categorias.ts y fuentes.ts: si cambiás uno, cambiá el otro.
 
 insert into categoria (slug, label, orden, en_home) values
   ('supermercados',      'Supermercados',            1,  true),

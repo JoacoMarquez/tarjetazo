@@ -34,7 +34,7 @@ Con la [CLI de Supabase](https://supabase.com/docs/guides/local-development):
 
 ```bash
 supabase start                          # Postgres + PostGIS local
-supabase db reset                       # aplica migrations/ y seed.sql
+supabase db reset                       # aplica todas las migraciones
 ```
 
 Contra el proyecto hosteado (Supabase Free):
@@ -42,10 +42,10 @@ Contra el proyecto hosteado (Supabase Free):
 ```bash
 supabase link --project-ref <ref>
 supabase db push
-psql "$DATABASE_URL" -f supabase/seed.sql
 ```
 
-El esquema vive en `supabase/migrations/20260902120000_init.sql`: tablas `fuente`,
+Dos migraciones: `20260902120000_init.sql` (esquema) y `20260902120100_catalogo.sql`
+(rubros, fuentes y productos; idempotente, se puede reaplicar). El esquema define las tablas `fuente`,
 `producto`, `categoria`, `comercio`, `sucursal` (geography Point 4326), `beneficio` y la
 cola `beneficio_revision`, más la función `sucursales_cercanas()` para el mapa y triggers
 que recalculan los derivados de `comercio`. Lectura pública vía RLS; escribe solo el
