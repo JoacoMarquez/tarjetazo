@@ -1,0 +1,159 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ==========================================================================
+   Tarjetazo — tokens de marca
+   Paleta cielo → menta → sol, con coral para avisos. Cada color de marca tiene
+   tres variantes: -s (fondo suave), -ln (línea/borde), -ink (texto sobre -s).
+   ========================================================================== */
+:root {
+  /* marca */
+  --cielo: #0f6fd6;
+  --cielo-s: #e8f1fd;
+  --cielo-ln: #b9d5f6;
+  --cielo-ink: #0a4c95;
+
+  --menta: #0fae9c;
+  --menta-s: #e4f7f4;
+  --menta-ln: #a9e3db;
+  --menta-ink: #0a7267;
+
+  --sol: #f7b500;
+  --sol-s: #fff5da;
+  --sol-ln: #f6dda0;
+  --sol-ink: #8a6300;
+
+  --coral: #e8503a;
+  --coral-s: #fdecea;
+  --coral-ln: #f6c2b9;
+  --coral-ink: #9c2f1e;
+
+  /* superficies y texto */
+  --hueso: #fbfaf6;
+  --papel: #f2efe7;
+  --tinta: #14202c;
+  --humo: #6b7683;
+  --linea: #e4e0d6;
+
+  /* estados */
+  --chip-bg: var(--papel);
+  --chip-bd: var(--linea);
+  --chip-tx: var(--humo);
+  --hoy-bg: var(--menta-s);
+  --ok-bg: var(--menta-s);
+  --expired: #a7a196;
+  --muted: var(--humo);
+
+  /* gradiente de marca */
+  --grad-marca: linear-gradient(100deg, var(--cielo) 0%, var(--menta) 55%, var(--sol) 100%);
+
+  /* radios */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+
+  /* ---- vars semánticas de shadcn/ui, mapeadas a la marca ---- */
+  --background: var(--hueso);
+  --foreground: var(--tinta);
+  --card: #ffffff;
+  --card-foreground: var(--tinta);
+  --popover: #ffffff;
+  --popover-foreground: var(--tinta);
+  --primary: var(--cielo);
+  --primary-foreground: #ffffff;
+  --secondary: var(--papel);
+  --secondary-foreground: var(--tinta);
+  --accent: var(--menta-s);
+  --accent-foreground: var(--menta-ink);
+  --destructive: var(--coral);
+  --destructive-foreground: #ffffff;
+  --muted-foreground: var(--humo);
+  --border: var(--linea);
+  --input: var(--linea);
+  --ring: var(--cielo);
+  --radius: var(--radius-md);
+}
+
+@theme inline {
+  --color-cielo: var(--cielo);
+  --color-cielo-s: var(--cielo-s);
+  --color-cielo-ln: var(--cielo-ln);
+  --color-cielo-ink: var(--cielo-ink);
+  --color-menta: var(--menta);
+  --color-menta-s: var(--menta-s);
+  --color-menta-ln: var(--menta-ln);
+  --color-menta-ink: var(--menta-ink);
+  --color-sol: var(--sol);
+  --color-sol-s: var(--sol-s);
+  --color-sol-ln: var(--sol-ln);
+  --color-sol-ink: var(--sol-ink);
+  --color-coral: var(--coral);
+  --color-coral-s: var(--coral-s);
+  --color-coral-ln: var(--coral-ln);
+  --color-coral-ink: var(--coral-ink);
+
+  --color-hueso: var(--hueso);
+  --color-papel: var(--papel);
+  --color-tinta: var(--tinta);
+  --color-humo: var(--humo);
+  --color-linea: var(--linea);
+  --color-expired: var(--expired);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted: var(--papel);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-num: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-bold tracking-tight;
+  }
+}
+
+@utility num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+@utility bg-marca {
+  background-image: var(--grad-marca);
+}

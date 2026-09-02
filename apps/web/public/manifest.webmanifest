@@ -1,0 +1,11 @@
+{
+  "name": "Tarjetazo",
+  "short_name": "Tarjetazo",
+  "description": "Descuentos y cuotas con tus tarjetas en Uruguay.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbfaf6",
+  "theme_color": "#0f6fd6",
+  "lang": "es-UY",
+  "icons": []
+}
