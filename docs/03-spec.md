@@ -33,7 +33,7 @@ Cobertura: todo el país en datos; geocoding y QA en Montevideo, Canelones y Mal
 - **Mis tarjetas**: modal 2 pasos (fuente → productos opcionales), estado en localStorage, compartible por URL `?bancos=brou,santander`.
 - **Comercio** `/comercio/[key]`: "hoy te conviene", beneficios por fuente, sucursales cercanas. **Beneficio** `/comercio/[key]/[fuente]`: ficha completa + cómo usarlo + letra chica + link a fuente oficial.
 - **Comparador**: elegís rubros de gasto → ranking de fuentes por beneficios que te dan, links salientes con tracking (futura afiliación).
-- Marca propia: misma estructura de tokens que manguito (base, -s, -ln, -ink, radios, display font + font para números) con paleta y tipografías distintas. Logos oficiales de bancos con disclaimer y baja a pedido.
+- Marca propia: misma estructura de tokens que manguito (base, -s, -ln, -ink, radios, display font + font para números) con paleta y tipografías distintas. **Aprobada 2026-09-02**: cielo `#0f6fd6` / menta `#0fae9c` / sol `#f7b500` + coral `#e8503a` para avisos, superficies hueso `#fbfaf6` / papel `#f2efe7`, texto tinta `#14202c` / humo `#6b7683`, línea `#e4e0d6`, gradiente cielo→menta→sol; tipografías Outfit (display), Inter (texto), Archivo tabular para números. Implementado en `apps/web/src/app/globals.css`. Logos oficiales de bancos con disclaimer y baja a pedido.
 - Tono rioplatense (vos). Mobile first, bottom nav, PWA manifest.
 
 ## Stack
