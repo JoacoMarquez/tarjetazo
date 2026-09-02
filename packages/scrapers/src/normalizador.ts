@@ -80,22 +80,41 @@ Categorías disponibles: ${CATEGORIAS.map((c) => `${c.slug} (${c.label})`).join(
  * específico a más general (para que "recompensa mastercard black" no caiga en
  * "recompensa mastercard").
  */
-const ALIAS: Record<string, [RegExp, string][]> = {
+/** Todos los productos de una fuente que usan cierto instrumento. */
+function porInstrumento(fuenteId: string, ...instrumentos: string[]): string[] {
+  return PRODUCTOS.filter(
+    (p) => p.fuente_id === fuenteId && instrumentos.includes(p.instrumento),
+  ).map((p) => p.id);
+}
+
+/**
+ * Reglas por fuente, de más específica a más general. Una regla puede resolver
+ * a varios productos: las páginas a veces dicen "tarjetas de crédito BROU" sin
+ * nombrar ninguna, y eso son todas las de crédito.
+ */
+const ALIAS: Record<string, [RegExp, string[]][]> = {
   // BROU nombra la misma tarjeta de dos formas según la página: "BROU
   // Recompensa Mastercard Black" y, más corto, "Mastercard Black".
   brou: [
-    [/mastercard.*black|black.*mastercard|recompensa.*black/, "brou-recompensa-black"],
-    [/mastercard.*platinum|recompensa.*platinum/, "brou-recompensa-platinum"],
-    [/mastercard.*(oro|gold)|recompensa.*(oro|gold)/, "brou-recompensa-gold"],
-    [/mastercard.*debito|debito.*mastercard|recompensa.*debito/, "brou-recompensa-debito"],
-    [/mastercard|recompensa/, "brou-recompensa"],
-    [/visa.*black/, "brou-visa-black"],
-    [/visa.*platinum/, "brou-visa-platinum"],
-    [/visa.*(oro|gold)/, "brou-visa-gold"],
-    [/visa.*debito|debito.*visa/, "brou-visa-debito"],
-    [/visa/, "brou-visa"],
-    [/mi ?brou/, "brou-mi-brou"],
-    [/tuapp|tu app/, "brou-tuapp"],
+    [/mastercard.*black|black.*mastercard|recompensa.*black/, ["brou-recompensa-black"]],
+    [/mastercard.*platinum|recompensa.*platinum/, ["brou-recompensa-platinum"]],
+    [/mastercard.*(oro|gold)|recompensa.*(oro|gold)/, ["brou-recompensa-gold"]],
+    [/mastercard.*debito|debito.*mastercard|recompensa.*debito/, ["brou-recompensa-debito"]],
+    [/mastercard|recompensa/, ["brou-recompensa"]],
+    [/visa.*black/, ["brou-visa-black"]],
+    [/visa.*platinum/, ["brou-visa-platinum"]],
+    [/visa.*(oro|gold)/, ["brou-visa-gold"]],
+    [/visa.*debito|debito.*visa/, ["brou-visa-debito"]],
+    [/visa/, ["brou-visa"]],
+    [/mi ?brou|tarjeta joven/, ["brou-mi-brou"]],
+    [/tuapp|tu app/, ["brou-tuapp"]],
+    // Las corporativas son otra línea de producto y no están en el catálogo:
+    // mejor a revisión que mapearlas a las de consumo. Lista vacía = no mapea.
+    [/corporativ/, []],
+    // Menciones genéricas, sin nombrar una tarjeta en particular.
+    [/credito/, porInstrumento("brou", "credito")],
+    [/debito/, porInstrumento("brou", "debito")],
+    [/prepaga/, porInstrumento("brou", "prepaga")],
   ],
 };
 
@@ -118,11 +137,10 @@ export function mapearProductos(
 
   for (const nombre of nombres) {
     const t = normalizarTexto(nombre);
-    const encontrados = reglas.filter(([re]) => re.test(t)).map(([, id]) => id);
-    // Nos quedamos con el primer match de cada familia (las reglas van de más
-    // específica a más general y comparten prefijo).
-    const elegido = encontrados[0];
-    if (elegido && idsValidos.has(elegido)) ids.add(elegido);
+    // La primera regla que matchea gana: van de más específica a más general.
+    const regla = reglas.find(([re]) => re.test(t));
+    const encontrados = (regla?.[1] ?? []).filter((id) => idsValidos.has(id));
+    if (encontrados.length > 0) for (const id of encontrados) ids.add(id);
     else desconocidos.push(nombre);
   }
   return { ids: [...ids], desconocidos };

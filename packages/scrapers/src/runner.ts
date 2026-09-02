@@ -83,7 +83,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
 
       const extraido = await normalizar(crudo, claude);
 
-      if (extraido.comercio) {
+      // Solo creamos el comercio si la página dejó al menos un beneficio: si
+      // no, quedaría un comercio vacío en la web (pasa con las páginas de
+      // shoppings, que listan locales sin describir ningún beneficio).
+      if (extraido.comercio && extraido.beneficios.length > 0) {
         await asegurarComercio(db, extraido.comercio);
       }
 
