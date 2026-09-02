@@ -1,4 +1,5 @@
 import { bajarTexto } from "../http.js";
+import { slugificar } from "../slug.js";
 import { htmlATexto, recortarBrou } from "../texto.js";
 import type { Crudo } from "../tipos.js";
 
@@ -49,7 +50,9 @@ function pathsDeHtml(html: string): string[] {
  * que el slug final es la identidad: es el `external_id` de la fuente.
  */
 export function slugDePath(path: string): string {
-  return path.split("/").filter(Boolean).at(-1)!;
+  // BROU mezcla mayúsculas y guiones bajos ("BeneficioAUF",
+  // "confiteria_carrera_2026"); lo normalizamos para que los ids sean parejos.
+  return slugificar(path.split("/").filter(Boolean).at(-1)!);
 }
 
 async function descubrirPaths(): Promise<string[]> {

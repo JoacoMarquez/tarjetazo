@@ -70,7 +70,7 @@ Reglas:
 - Las fechas del texto vienen en DD/MM/AAAA; devolvelas como AAAA-MM-DD.
 - Los montos son en pesos uruguayos salvo que diga USD. Sacá los separadores de miles.
 - En \`productos\` copiá el nombre de cada tarjeta como aparece en la página, sin normalizar, y listalas por separado: "tarjetas de crédito y débito BROU VISA" son dos entradas ("BROU VISA crédito", "BROU VISA débito").
-- Si la página no describe un beneficio concreto (es institucional, un sorteo, un listado), poné es_beneficio=false y dejá tramos vacío.
+- Si la página no describe un beneficio en un comercio concreto, poné es_beneficio=false y dejá tramos vacío. Eso incluye páginas institucionales, sorteos, listados y las características de la tarjeta en sí (compras en el exterior, seguros, asistencia al viajero): no son comercios.
 
 Categorías disponibles: ${CATEGORIAS.map((c) => `${c.slug} (${c.label})`).join(", ")}.`;
 
@@ -81,14 +81,18 @@ Categorías disponibles: ${CATEGORIAS.map((c) => `${c.slug} (${c.label})`).join(
  * "recompensa mastercard").
  */
 const ALIAS: Record<string, [RegExp, string][]> = {
+  // BROU nombra la misma tarjeta de dos formas según la página: "BROU
+  // Recompensa Mastercard Black" y, más corto, "Mastercard Black".
   brou: [
-    [/recompensa.*(black)/, "brou-recompensa-black"],
-    [/recompensa.*(platinum)/, "brou-recompensa-platinum"],
-    [/recompensa.*(debito)/, "brou-recompensa-debito"],
-    [/recompensa/, "brou-recompensa"],
-    [/visa.*(black)/, "brou-visa-black"],
-    [/visa.*(platinum)/, "brou-visa-platinum"],
-    [/visa.*(debito)|debito.*visa/, "brou-visa-debito"],
+    [/mastercard.*black|black.*mastercard|recompensa.*black/, "brou-recompensa-black"],
+    [/mastercard.*platinum|recompensa.*platinum/, "brou-recompensa-platinum"],
+    [/mastercard.*(oro|gold)|recompensa.*(oro|gold)/, "brou-recompensa-gold"],
+    [/mastercard.*debito|debito.*mastercard|recompensa.*debito/, "brou-recompensa-debito"],
+    [/mastercard|recompensa/, "brou-recompensa"],
+    [/visa.*black/, "brou-visa-black"],
+    [/visa.*platinum/, "brou-visa-platinum"],
+    [/visa.*(oro|gold)/, "brou-visa-gold"],
+    [/visa.*debito|debito.*visa/, "brou-visa-debito"],
     [/visa/, "brou-visa"],
     [/mi ?brou/, "brou-mi-brou"],
     [/tuapp|tu app/, "brou-tuapp"],
