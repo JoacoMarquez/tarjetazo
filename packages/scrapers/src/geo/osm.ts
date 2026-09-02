@@ -1,6 +1,14 @@
 import { CADENAS, type Cadena } from "./cadenas.js";
 
-const OVERPASS = "https://overpass-api.de/api/interpreter";
+/**
+ * Las instancias públicas de Overpass devuelven 504 seguido cuando están
+ * cargadas, así que rotamos entre mirrors antes de darnos por vencidos.
+ */
+const OVERPASS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.osm.ch/api/interpreter",
+];
 const UA = "Tarjetazo/0.1 (+https://tarjetazo.uy; contacto@tarjetazo.uy)";
 
 /** id de la relación de Uruguay en OSM; como área, se le suma 3600000000. */
@@ -45,21 +53,48 @@ function cadenaDe(tags: Record<string, string>): string | null {
   return null;
 }
 
+async function preguntar(query: string): Promise<Elemento[]> {
+  let ultimoError = "";
+  for (let intento = 0; intento < OVERPASS.length * 2; intento++) {
+    const url = OVERPASS[intento % OVERPASS.length]!;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "user-agent": UA, "content-type": "text/plain" },
+        body: query,
+        signal: AbortSignal.timeout(180_000),
+      });
+      if (!res.ok) {
+        ultimoError = `${new URL(url).host} devolvió ${res.status}`;
+        await new Promise((r) => setTimeout(r, 5000 * (intento + 1)));
+        continue;
+      }
+      const datos = (await res.json()) as { elements?: Elemento[]; remark?: string };
+      if (datos.remark) {
+        ultimoError = `${new URL(url).host}: ${datos.remark}`;
+        continue;
+      }
+      return datos.elements ?? [];
+    } catch (e) {
+      ultimoError = `${new URL(url).host}: ${String(e)}`;
+      await new Promise((r) => setTimeout(r, 5000 * (intento + 1)));
+    }
+  }
+  throw new Error(`Overpass no respondió: ${ultimoError}`);
+}
+
 export async function localesDeCadenas(
   cadenas: readonly Cadena[] = CADENAS,
 ): Promise<LocalOsm[]> {
-  const res = await fetch(OVERPASS, {
-    method: "POST",
-    headers: { "user-agent": UA, "content-type": "text/plain" },
-    body: consulta(cadenas),
-    signal: AbortSignal.timeout(180_000),
-  });
-  if (!res.ok) throw new Error(`Overpass devolvió ${res.status}`);
-  const datos = (await res.json()) as { elements?: Elemento[]; remark?: string };
-  if (datos.remark) throw new Error(`Overpass: ${datos.remark}`);
+  // De a pocas cadenas por consulta: las grandes son las que disparan el 504.
+  const elementos: Elemento[] = [];
+  for (let i = 0; i < cadenas.length; i += 3) {
+    elementos.push(...(await preguntar(consulta(cadenas.slice(i, i + 3)))));
+  }
 
   const locales: LocalOsm[] = [];
-  for (const e of datos.elements ?? []) {
+  const vistos = new Set<string>();
+  for (const e of elementos) {
     const tags = e.tags ?? {};
     const comercio_key = cadenaDe(tags);
     if (!comercio_key) continue;
@@ -68,9 +103,13 @@ export async function localesDeCadenas(
     const lng = e.lon ?? e.center?.lon;
     if (lat === undefined || lng === undefined) continue;
 
+    const osm_id = `${e.type}/${e.id}`;
+    if (vistos.has(osm_id)) continue;
+    vistos.add(osm_id);
+
     locales.push({
       comercio_key,
-      osm_id: `${e.type}/${e.id}`,
+      osm_id,
       lat,
       lng,
       nombre: tags.name ?? null,
