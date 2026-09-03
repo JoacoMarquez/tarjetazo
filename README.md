@@ -122,9 +122,18 @@ hueso/papel, texto tinta/humo, escala de radios y gradiente de marca. Tipografí
 Las vars semánticas de shadcn/ui están mapeadas encima, así que `pnpm dlx shadcn@latest add <x>`
 sale con la marca puesta.
 
+## Analítica
+
+PostHog para eventos agregados (`tarjetas_elegidas`, `filtro_aplicado`, `busqueda`,
+`comercio_elegido`, `click_saliente`) y Vercel Analytics para las visitas. Sin perfiles
+de personas, sin grabación de sesión y respetando "Do Not Track". Si no hay
+`NEXT_PUBLIC_POSTHOG_KEY`, no se inicializa nada.
+
 ## Deploy
 
-Vercel, con **Root Directory = `apps/web`** y las variables de `.env.example`.
+Vercel, con **Root Directory = `apps/web`** y las variables de `.env.example`. El dominio
+`tarjetazo.uy` se registra en [nic.uy](https://nic.uy) y se apunta a Vercel;
+`tarjetazo.com.uy` redirige al canónico.
 
 ## Legal
 

@@ -7,12 +7,14 @@ import Link from "next/link";
 import { List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Buscador } from "@/components/buscador";
+import { NavInferior } from "@/components/nav";
 import { CardBeneficio } from "@/components/card-beneficio";
 import { FiltrosBarra } from "@/components/filtros-barra";
 import { MisTarjetasModal } from "@/components/mis-tarjetas-modal";
 import { useMisTarjetas } from "@/lib/mis-tarjetas";
 import { escribirFiltros, leerFiltros, type Filtros } from "@/lib/filtros";
 import { cn } from "@/lib/utils";
+import { capturar } from "@/lib/analitica";
 import type { BeneficioListado, Bbox, PuntoMapa } from "@/lib/consultas";
 
 // Leaflet toca `window` al importarse, así que solo puede cargarse en el cliente.
@@ -56,6 +58,7 @@ function Pantalla() {
 
   function cambiar(parcial: Partial<Filtros>) {
     const nuevos = { ...filtros, ...parcial };
+    capturar("filtro_aplicado", { campos: Object.keys(parcial) });
     router.replace(`/app?${escribirFiltros(nuevos)}`, { scroll: false });
   }
 
@@ -122,6 +125,11 @@ function Pantalla() {
 
   const [modalAbierto, setModalAbierto] = useState(false);
 
+  // La barra inferior entra a /app?perfil=1 para abrir Mis tarjetas directo.
+  useEffect(() => {
+    if (params.get("perfil") === "1") setModalAbierto(true);
+  }, [params]);
+
   const lista = (
     <div className="space-y-3">
       {error && (
@@ -172,7 +180,7 @@ function Pantalla() {
   );
 
   return (
-    <div className="flex h-dvh flex-col">
+    <div className="flex h-dvh flex-col pb-14 md:pb-0">
       <header className="border-linea bg-hueso z-20 shrink-0 border-b px-4 py-3">
         <div className="mx-auto flex max-w-7xl flex-col gap-3">
           <div className="flex items-center gap-3">
@@ -183,6 +191,7 @@ function Pantalla() {
               <Buscador
                 params={new URLSearchParams(query)}
                 onElegir={(r) => {
+                  capturar("comercio_elegido", { comercio: r.comercio_key });
                   cambiar({ comercio: r.comercio_key });
                   const p = puntos.find((x) => x.comercio_key === r.comercio_key);
                   if (p) setIrA([p.lat, p.lng]);
@@ -222,7 +231,7 @@ function Pantalla() {
 
         <Button
           size="sm"
-          className="absolute bottom-4 left-1/2 z-1000 -translate-x-1/2 shadow-lg md:hidden"
+          className="absolute bottom-20 left-1/2 z-1000 -translate-x-1/2 shadow-lg md:hidden"
           onClick={() => setVista(vista === "lista" ? "mapa" : "lista")}
         >
           {vista === "lista" ? <MapIcon /> : <List />}
@@ -230,11 +239,17 @@ function Pantalla() {
         </Button>
       </main>
 
+      <NavInferior />
+
       <MisTarjetasModal
         abierto={modalAbierto}
         onAbrir={setModalAbierto}
         tarjetas={tarjetas}
         onGuardar={(t) => {
+          capturar("tarjetas_elegidas", {
+            bancos: t.bancos.length,
+            productos: t.productos.length,
+          });
           guardar(t);
           router.replace(
             `/app?${escribirFiltros({ ...filtros, bancos: t.bancos, productos: t.productos })}`,

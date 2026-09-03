@@ -66,6 +66,7 @@ Recibís el texto de una página de beneficios de un banco y devolvés datos est
 Reglas:
 - Un tramo por combinación distinta de descuento y tarjetas. Si la página dice "25% con Platinum y Black, 15% con las clásicas", son dos tramos.
 - No inventes. Lo que la página no dice va en null o en lista vacía.
+- \`porcentaje\` es cuánto se descuenta del precio de una compra. Una bonificación de un costo, un trámite o una comisión ("garantía de alquiler gratis", "sin costo de emisión") no es un descuento del 100%: si el beneficio no entra en ninguno de los tipos, poné es_beneficio=false.
 - \`descuento_raw\` y \`legales_raw\` van textuales, sin reescribir: se muestran como letra chica.
 - Las fechas del texto vienen en DD/MM/AAAA; devolvelas como AAAA-MM-DD.
 - Los montos son en pesos uruguayos salvo que diga USD. Sacá los separadores de miles.

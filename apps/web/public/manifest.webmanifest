@@ -1,11 +1,15 @@
 {
-  "name": "Tarjetazo",
+  "name": "Tarjetazo — descuentos con tus tarjetas",
   "short_name": "Tarjetazo",
-  "description": "Descuentos y cuotas con tus tarjetas en Uruguay.",
-  "start_url": "/",
+  "description": "Todos los descuentos, reintegros y cuotas de tus tarjetas en Uruguay, en un solo lugar.",
+  "start_url": "/app",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#fbfaf6",
   "theme_color": "#0f6fd6",
   "lang": "es-UY",
-  "icons": []
+  "categories": ["finance", "shopping"],
+  "icons": [
+    { "src": "/icon", "sizes": "32x32", "type": "image/png" }
+  ]
 }

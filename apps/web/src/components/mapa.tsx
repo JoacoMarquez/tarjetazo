@@ -6,6 +6,7 @@ import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "re
 import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
 import type { Bbox, PuntoMapa } from "@/lib/consultas";
+import { capturar } from "@/lib/analitica";
 
 /** Montevideo centro: el punto de partida razonable para Uruguay. */
 const CENTRO: [number, number] = [-34.9011, -56.1645];
@@ -167,6 +168,7 @@ export default function Mapa({
               href={`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`}
               target="_blank"
               rel="noreferrer noopener"
+              onClick={() => capturar("click_saliente", { destino: "google_maps", comercio: p.comercio_key })}
             >
               Cómo llegar
             </a>

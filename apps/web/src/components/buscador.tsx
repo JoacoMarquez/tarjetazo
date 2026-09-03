@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import type { ResultadoBusqueda } from "@/lib/consultas";
+import { capturar } from "@/lib/analitica";
 
 /**
  * "¿Dónde vas a pagar?": el usuario escribe un comercio y le decimos con cuál
@@ -38,6 +39,7 @@ export function Buscador({
         const datos = (await res.json()) as { resultados?: ResultadoBusqueda[] };
         setResultados(datos.resultados ?? []);
         setAbierto(true);
+        capturar("busqueda", { largo: q.trim().length, resultados: datos.resultados?.length ?? 0 });
       } catch {
         // Búsqueda cancelada o caída: dejamos lo que había.
       } finally {
