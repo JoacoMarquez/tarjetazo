@@ -117,6 +117,44 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/debito/, porInstrumento("brou", "debito")],
     [/prepaga/, porInstrumento("brou", "prepaga")],
   ],
+
+  santander: [
+    [/private/, ["santander-private"]],
+    [/select/, ["santander-select"]],
+    [/amex|american express/, ["santander-amex"]],
+    [/mastercard.*platinum|platinum.*mastercard/, ["santander-mastercard-platinum"]],
+    [/visa.*platinum|platinum/, ["santander-visa-platinum"]],
+    [/mastercard/, ["santander-mastercard"]],
+    [/visa/, ["santander-visa"]],
+    [/debito/, porInstrumento("santander", "debito")],
+    [/credito/, porInstrumento("santander", "credito")],
+  ],
+
+  itau: [
+    [/volar/, ["itau-debito-volar"]],
+    [/junior/, ["itau-debito-junior"]],
+    [/pocket/, ["itau-pocket"]],
+    [/personal bank/, ["itau-personal-bank"]],
+    [/alimentacion/, ["itau-alimentacion"]],
+    // "Azules" es como Itaú llama a las de débito por pago de sueldos.
+    [/sueldo|azul/, ["itau-debito-sueldo"]],
+    [/mastercard.*black|black/, ["itau-mastercard-black"]],
+    [/visa.*signature|infinite/, ["itau-visa-signature"]],
+    [/visa.*platinum/, ["itau-visa-platinum"]],
+    [/mastercard/, ["itau-mastercard"]],
+    [/visa/, ["itau-visa"]],
+    [/debito/, porInstrumento("itau", "debito")],
+    [/credito/, porInstrumento("itau", "credito")],
+  ],
+
+  oca: [
+    [/blue.*debito|debito.*blue/, ["oca-blue-debito"]],
+    [/blue/, ["oca-blue"]],
+    [/mastercard/, ["oca-mastercard"]],
+    [/visa/, ["oca-visa"]],
+    [/debito/, porInstrumento("oca", "debito")],
+    [/credito/, porInstrumento("oca", "credito")],
+  ],
 };
 
 function normalizarTexto(s: string): string {

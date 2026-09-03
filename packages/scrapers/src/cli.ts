@@ -1,8 +1,14 @@
 import { fetchBrou } from "./fuentes/brou.js";
+import { fetchItau } from "./fuentes/itau.js";
+import { fetchOca } from "./fuentes/oca.js";
+import { fetchSantander } from "./fuentes/santander.js";
 import { correr } from "./runner.js";
 
 const SCRAPERS: Record<string, () => Promise<import("./tipos.js").Crudo[]>> = {
   brou: fetchBrou,
+  santander: fetchSantander,
+  itau: fetchItau,
+  oca: fetchOca,
 };
 
 async function main() {
@@ -29,6 +35,7 @@ Fuentes: ${Object.keys(SCRAPERS).join(", ")}`);
       `actualizados: ${reporte.actualizados}`,
       `vencidos:     ${reporte.vencidos}`,
       `a revisar:    ${reporte.a_revisar}`,
+      `sucursales:   ${reporte.sucursales}`,
     ].join("\n"),
   );
 }

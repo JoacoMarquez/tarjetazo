@@ -25,7 +25,10 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "brou-mi-brou", fuente_id: "brou", nombre: "MI BROU Tarjeta Joven", instrumento: "prepaga", red: "propia", tier: null },
   { id: "brou-tuapp", fuente_id: "brou", nombre: "TuApp", instrumento: "saldo", red: "propia", tier: null },
 
-  // Santander
+  // Santander — además de las tarjetas, segmenta por paquete (Select, Private).
+  { id: "santander-select", fuente_id: "santander", nombre: "Santander Select", instrumento: "credito", red: "visa", tier: "platinum" },
+  { id: "santander-private", fuente_id: "santander", nombre: "Santander Private Banking", instrumento: "credito", red: "visa", tier: "black" },
+  { id: "santander-mastercard-platinum", fuente_id: "santander", nombre: "Mastercard Platinum Santander", instrumento: "credito", red: "mastercard", tier: "platinum" },
   { id: "santander-debito", fuente_id: "santander", nombre: "Débito Santander", instrumento: "debito", red: "mastercard", tier: null },
   { id: "santander-visa", fuente_id: "santander", nombre: "Visa Santander", instrumento: "credito", red: "visa", tier: null },
   { id: "santander-visa-platinum", fuente_id: "santander", nombre: "Visa Platinum Santander", instrumento: "credito", red: "visa", tier: "platinum" },
@@ -38,13 +41,22 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "scotiabank-visa-signature", fuente_id: "scotiabank", nombre: "Visa Signature Scotiabank", instrumento: "credito", red: "visa", tier: "signature" },
   { id: "scotiabank-mastercard", fuente_id: "scotiabank", nombre: "Mastercard Scotiabank", instrumento: "credito", red: "mastercard", tier: null },
 
-  // Itaú
+  // Itaú — la línea de débito tiene nombre propio (Volar) y hay alimentación.
+  { id: "itau-debito-volar", fuente_id: "itau", nombre: "Itaú Débito Volar", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "itau-debito-junior", fuente_id: "itau", nombre: "Itaú Débito Junior", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "itau-debito-sueldo", fuente_id: "itau", nombre: "Itaú Débito Sueldos", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "itau-pocket", fuente_id: "itau", nombre: "Itaú Cuenta Pocket", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "itau-alimentacion", fuente_id: "itau", nombre: "Itaú Tarjeta Alimentación", instrumento: "prepaga", red: "mastercard", tier: null },
+  { id: "itau-personal-bank", fuente_id: "itau", nombre: "Itaú Personal Bank", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "itau-visa-platinum", fuente_id: "itau", nombre: "Itaú Visa Platinum", instrumento: "credito", red: "visa", tier: "platinum" },
+  { id: "itau-visa-signature", fuente_id: "itau", nombre: "Itaú Visa Signature", instrumento: "credito", red: "visa", tier: "signature" },
   { id: "itau-debito", fuente_id: "itau", nombre: "Débito Itaú", instrumento: "debito", red: "mastercard", tier: null },
   { id: "itau-visa", fuente_id: "itau", nombre: "Visa Itaú", instrumento: "credito", red: "visa", tier: null },
   { id: "itau-mastercard", fuente_id: "itau", nombre: "Mastercard Itaú", instrumento: "credito", red: "mastercard", tier: null },
   { id: "itau-mastercard-black", fuente_id: "itau", nombre: "Mastercard Black Itaú", instrumento: "credito", red: "mastercard", tier: "black" },
 
   // OCA
+  { id: "oca-blue-debito", fuente_id: "oca", nombre: "OCA Blue Débito", instrumento: "debito", red: "mastercard", tier: null },
   { id: "oca-blue", fuente_id: "oca", nombre: "OCA Blue", instrumento: "credito", red: "propia", tier: null },
   { id: "oca-mastercard", fuente_id: "oca", nombre: "OCA Mastercard", instrumento: "credito", red: "mastercard", tier: null },
   { id: "oca-visa", fuente_id: "oca", nombre: "OCA Visa", instrumento: "credito", red: "visa", tier: null },

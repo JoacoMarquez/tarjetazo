@@ -125,3 +125,19 @@ export async function cerrarCorrida(
     .eq("id", id);
   if (error) throw new Error(`cerrando corrida: ${error.message}`);
 }
+
+/**
+ * Sucursales que la propia fuente publica con coordenadas (Itaú las trae en su
+ * feed). No pasan por el geocodificador: ya vienen ubicadas.
+ */
+export async function guardarSucursalesDeFuente(
+  db: SupabaseClient,
+  filas: Record<string, unknown>[],
+): Promise<number> {
+  if (filas.length === 0) return 0;
+  const { error } = await db
+    .from("sucursal")
+    .upsert(filas, { onConflict: "comercio_key,direccion,departamento" });
+  if (error) throw new Error(`guardando sucursales de la fuente: ${error.message}`);
+  return filas.length;
+}

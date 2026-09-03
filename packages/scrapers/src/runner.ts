@@ -8,11 +8,14 @@ import {
   crearCliente,
   encolarRevision,
   guardarPagina,
+  guardarSucursalesDeFuente,
   hashesGuardados,
   idsDeBeneficios,
   marcarVencidos,
   upsertBeneficios,
 } from "./db.js";
+import { reversaIde } from "./geo/ide.js";
+import { slugDepartamento } from "./geo/departamentos.js";
 import type { Crudo } from "./tipos.js";
 
 export interface Reporte {
@@ -23,6 +26,7 @@ export interface Reporte {
   actualizados: number;
   vencidos: number;
   a_revisar: number;
+  sucursales: number;
 }
 
 /** `fuente:external_id:n` — determinista, para que el upsert sea idempotente. */
@@ -53,6 +57,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     actualizados: 0,
     vencidos: 0,
     a_revisar: 0,
+    sucursales: 0,
   };
 
   try {
@@ -88,6 +93,28 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // shoppings, que listan locales sin describir ningún beneficio).
       if (extraido.comercio && extraido.beneficios.length > 0) {
         await asegurarComercio(db, extraido.comercio);
+
+        // Recién acá sabemos a qué comercio pertenecen los locales que la
+        // fuente publicó junto al beneficio. El punto ya viene dado; lo único
+        // que falta es el departamento, que resuelve el reverse oficial.
+        const filas = [];
+        for (const s of crudo.sucursales ?? []) {
+          const r = await reversaIde(s.lat, s.lng);
+          const departamento = slugDepartamento(r?.departamento ?? null);
+          if (!departamento) continue;
+          filas.push({
+            comercio_key: extraido.comercio.key,
+            nombre: s.nombre,
+            direccion: s.direccion,
+            localidad: r?.localidad ?? null,
+            departamento,
+            geom: `SRID=4326;POINT(${s.lng} ${s.lat})`,
+            precision: "exacta" as const,
+            fuente_direccion: fuenteId,
+            geocoded_at: new Date().toISOString(),
+          });
+        }
+        reporte.sucursales += await guardarSucursalesDeFuente(db, filas);
       }
 
       const filas = extraido.beneficios.map((b, n) => ({

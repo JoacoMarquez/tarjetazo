@@ -9,6 +9,19 @@ export interface Crudo {
   /** Texto de la página tal como lo lee una persona. */
   contenido: string;
   fetched_at: string;
+  /**
+   * Locales que la propia fuente publica con coordenadas. Itaú los trae en su
+   * feed; se guardan como sucursales una vez que sabemos a qué comercio
+   * pertenece el beneficio.
+   */
+  sucursales?: SucursalDeFuente[];
+}
+
+export interface SucursalDeFuente {
+  nombre: string | null;
+  direccion: string;
+  lat: number;
+  lng: number;
 }
 
 /** Una página puede contener varios beneficios (uno por tramo de tarjeta). */
