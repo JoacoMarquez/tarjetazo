@@ -129,15 +129,29 @@ export async function cerrarCorrida(
 /**
  * Sucursales que la propia fuente publica con coordenadas (Itaú las trae en su
  * feed). No pasan por el geocodificador: ya vienen ubicadas.
+ *
+ * La unicidad por dirección es un índice parcial (solo para las que no vienen
+ * de OSM) y Postgres no lo acepta en ON CONFLICT, así que descartamos las
+ * repetidas acá antes de insertar.
  */
 export async function guardarSucursalesDeFuente(
   db: SupabaseClient,
+  comercioKey: string,
   filas: Record<string, unknown>[],
 ): Promise<number> {
   if (filas.length === 0) return 0;
-  const { error } = await db
+
+  const { data, error: errorLectura } = await db
     .from("sucursal")
-    .upsert(filas, { onConflict: "comercio_key,direccion,departamento" });
+    .select("direccion, departamento")
+    .eq("comercio_key", comercioKey);
+  if (errorLectura) throw new Error(`leyendo sucursales: ${errorLectura.message}`);
+
+  const existentes = new Set((data ?? []).map((s) => `${s.direccion}|${s.departamento}`));
+  const nuevas = filas.filter((f) => !existentes.has(`${f.direccion}|${f.departamento}`));
+  if (nuevas.length === 0) return 0;
+
+  const { error } = await db.from("sucursal").insert(nuevas);
   if (error) throw new Error(`guardando sucursales de la fuente: ${error.message}`);
-  return filas.length;
+  return nuevas.length;
 }

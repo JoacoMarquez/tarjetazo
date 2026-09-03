@@ -29,6 +29,19 @@ export interface Reporte {
   sucursales: number;
 }
 
+/** Solo las columnas de `pagina_cruda`: el crudo trae además sus sucursales. */
+function filaDePagina(crudo: Crudo, hash: string, normalizada_en: string | null) {
+  return {
+    fuente_id: crudo.fuente_id,
+    external_id: crudo.external_id,
+    url_fuente: crudo.url_fuente,
+    contenido: crudo.contenido,
+    hash,
+    fetched_at: crudo.fetched_at,
+    normalizada_en,
+  };
+}
+
 /** `fuente:external_id:n` — determinista, para que el upsert sea idempotente. */
 function idBeneficio(fuenteId: string, externalId: string, n: number): string {
   return `${fuenteId}:${externalId}:${n}`;
@@ -77,12 +90,12 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         // La página no cambió: sus beneficios siguen vigentes tal cual están.
         const prefijo = `${fuenteId}:${crudo.external_id}:`;
         for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
-        await guardarPagina(db, { ...crudo, hash: h, normalizada_en: null });
+        await guardarPagina(db, filaDePagina(crudo, h, null));
         continue;
       }
 
       if (soloFetch) {
-        await guardarPagina(db, { ...crudo, hash: h, normalizada_en: null });
+        await guardarPagina(db, filaDePagina(crudo, h, null));
         continue;
       }
 
@@ -114,7 +127,11 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
             geocoded_at: new Date().toISOString(),
           });
         }
-        reporte.sucursales += await guardarSucursalesDeFuente(db, filas);
+        reporte.sucursales += await guardarSucursalesDeFuente(
+          db,
+          extraido.comercio.key,
+          filas,
+        );
       }
 
       const filas = extraido.beneficios.map((b, n) => ({
@@ -143,11 +160,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         });
       }
 
-      await guardarPagina(db, {
-        ...crudo,
-        hash: h,
-        normalizada_en: new Date().toISOString(),
-      });
+      await guardarPagina(db, filaDePagina(crudo, h, new Date().toISOString()));
     }
 
     const vencidos = [...existentes].filter((id) => !vistos.has(id));

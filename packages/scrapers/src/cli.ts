@@ -3,6 +3,8 @@ import { fetchItau } from "./fuentes/itau.js";
 import { fetchOca } from "./fuentes/oca.js";
 import { fetchSantander } from "./fuentes/santander.js";
 import { correr } from "./runner.js";
+import { revalidarRevisiones } from "./revision.js";
+import { crearCliente } from "./db.js";
 
 const SCRAPERS: Record<string, () => Promise<import("./tipos.js").Crudo[]>> = {
   brou: fetchBrou,
@@ -14,6 +16,14 @@ const SCRAPERS: Record<string, () => Promise<import("./tipos.js").Crudo[]>> = {
 async function main() {
   const args = process.argv.slice(2);
   const fuenteId = args[0];
+
+  if (fuenteId === "revisiones") {
+    const r = await revalidarRevisiones(crearCliente());
+    console.log(`revisadas: ${r.revisadas} | resueltas: ${r.resueltas} | pendientes: ${r.pendientes.length}`);
+    for (const p of r.pendientes) console.log(`  [${p.fuente_id}] ${p.motivo.slice(0, 110)}`);
+    return;
+  }
+
   const soloFetch = args.includes("--solo-fetch");
   const limiteArg = args.find((a) => a.startsWith("--limite="));
   const limite = limiteArg ? Number(limiteArg.split("=")[1]) : undefined;
@@ -21,7 +31,8 @@ async function main() {
   const fetch = fuenteId ? SCRAPERS[fuenteId] : undefined;
   if (!fuenteId || !fetch) {
     console.error(`Uso: scraper <fuente> [--solo-fetch] [--limite=N]
-Fuentes: ${Object.keys(SCRAPERS).join(", ")}`);
+Fuentes: ${Object.keys(SCRAPERS).join(", ")}
+También: scraper revisiones   (revalida la cola de revisión manual)`);
     process.exit(1);
   }
 

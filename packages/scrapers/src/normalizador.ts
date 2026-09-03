@@ -150,7 +150,8 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
   oca: [
     [/blue.*debito|debito.*blue/, ["oca-blue-debito"]],
     [/blue/, ["oca-blue"]],
-    [/mastercard/, ["oca-mastercard"]],
+    // OCA abrevia "Mastercard" como "Master" en varias fichas.
+    [/mastercard|master\b/, ["oca-mastercard"]],
     [/visa/, ["oca-visa"]],
     [/debito/, porInstrumento("oca", "debito")],
     [/credito/, porInstrumento("oca", "credito")],

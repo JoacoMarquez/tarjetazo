@@ -27,8 +27,8 @@ interface Beneficio {
   payment_method?: unknown;
   product?: unknown;
   location?: unknown;
-  link?: string;
-  extern_link?: string;
+  link?: unknown;
+  extern_link?: unknown;
 }
 
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
@@ -52,6 +52,16 @@ function nombres(valor: unknown): string[] {
     // Varios de estos campos vienen como ids ("3", "12") en vez de nombres:
     // no le dicen nada al normalizador y solo ensucian el texto.
     .filter((n) => !/^\d+$/.test(n.trim()));
+}
+
+/** En Contentstack un campo "link" es `{ title, href }`, no una cadena. */
+function href(valor: unknown): string | null {
+  if (typeof valor === "string" && valor.startsWith("http")) return valor;
+  if (valor && typeof valor === "object") {
+    const h = (valor as Record<string, unknown>).href;
+    if (typeof h === "string" && h.startsWith("http")) return h;
+  }
+  return null;
 }
 
 function limpiar(html: string | undefined): string {
@@ -102,7 +112,7 @@ export async function fetchOca(): Promise<Crudo[]> {
     crudos.push({
       fuente_id: "oca",
       external_id: slugificar(b.uid),
-      url_fuente: b.link || b.extern_link || "https://oca.uy/beneficios",
+      url_fuente: href(b.link) ?? href(b.extern_link) ?? "https://oca.uy/beneficios",
       contenido,
       fetched_at,
     });
