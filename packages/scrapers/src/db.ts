@@ -5,6 +5,27 @@ import { origenSupabase } from "@tarjetazo/core";
  * El pipeline escribe con la service role key, que saltea RLS. Solo corre en
  * GitHub Actions y en local; nunca en el browser.
  */
+/**
+ * Reintenta una operación contra Supabase ante fallas de red. Una corrida son
+ * cientos de llamadas: que una se caiga no puede tirar abajo toda la fuente.
+ */
+export async function conReintentos<T>(
+  descripcion: string,
+  operacion: () => Promise<T>,
+  intentos = 3,
+): Promise<T> {
+  let ultimo: unknown;
+  for (let i = 0; i < intentos; i++) {
+    try {
+      return await operacion();
+    } catch (e) {
+      ultimo = e;
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** i));
+    }
+  }
+  throw new Error(`${descripcion}: ${String(ultimo)}`);
+}
+
 export function crearCliente(): SupabaseClient {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -39,10 +60,12 @@ export async function guardarPagina(
     normalizada_en: string | null;
   },
 ): Promise<void> {
-  const { error } = await db
-    .from("pagina_cruda")
-    .upsert(pagina, { onConflict: "fuente_id,external_id" });
-  if (error) throw new Error(`guardando pagina_cruda: ${error.message}`);
+  await conReintentos("guardando pagina_cruda", async () => {
+    const { error } = await db
+      .from("pagina_cruda")
+      .upsert(pagina, { onConflict: "fuente_id,external_id" });
+    if (error) throw new Error(error.message);
+  });
 }
 
 export async function asegurarComercio(
@@ -51,10 +74,12 @@ export async function asegurarComercio(
 ): Promise<void> {
   // `ignoreDuplicates` para no pisar un nombre o una categoría ya corregidos a
   // mano por una corrida posterior del scraper.
-  const { error } = await db
-    .from("comercio")
-    .upsert(comercio, { onConflict: "key", ignoreDuplicates: true });
-  if (error) throw new Error(`guardando comercio ${comercio.key}: ${error.message}`);
+  await conReintentos(`guardando comercio ${comercio.key}`, async () => {
+    const { error } = await db
+      .from("comercio")
+      .upsert(comercio, { onConflict: "key", ignoreDuplicates: true });
+    if (error) throw new Error(error.message);
+  });
 }
 
 export async function upsertBeneficios(
@@ -62,8 +87,10 @@ export async function upsertBeneficios(
   filas: Record<string, unknown>[],
 ): Promise<void> {
   if (filas.length === 0) return;
-  const { error } = await db.from("beneficio").upsert(filas, { onConflict: "id" });
-  if (error) throw new Error(`guardando beneficios: ${error.message}`);
+  await conReintentos("guardando beneficios", async () => {
+    const { error } = await db.from("beneficio").upsert(filas, { onConflict: "id" });
+    if (error) throw new Error(error.message);
+  });
 }
 
 export async function idsDeBeneficios(
@@ -102,6 +129,27 @@ export async function encolarRevision(
 ): Promise<void> {
   const { error } = await db.from("beneficio_revision").insert(fila);
   if (error) throw new Error(`encolando revisión: ${error.message}`);
+}
+
+/**
+ * Dos corridas de la misma fuente a la vez se pisan: una invalida el caché que
+ * la otra está escribiendo y se gastan llamadas al modelo de más. Una corrida
+ * sin terminar de hace menos de una hora se considera viva.
+ */
+export async function hayCorridaAbierta(
+  db: SupabaseClient,
+  fuenteId: string,
+): Promise<boolean> {
+  const haceUnaHora = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data, error } = await db
+    .from("corrida")
+    .select("id")
+    .eq("fuente_id", fuenteId)
+    .is("termino_en", null)
+    .gt("empezo_en", haceUnaHora)
+    .limit(1);
+  if (error) throw new Error(`consultando corridas: ${error.message}`);
+  return (data ?? []).length > 0;
 }
 
 export async function abrirCorrida(db: SupabaseClient, fuenteId: string): Promise<string> {

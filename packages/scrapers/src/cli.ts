@@ -50,6 +50,7 @@ También: scraper revisiones   (revalida la cola de revisión manual)`);
       `vencidos:     ${reporte.vencidos}`,
       `a revisar:    ${reporte.a_revisar}`,
       `sucursales:   ${reporte.sucursales}`,
+      `fallidas:     ${reporte.fallidas}`,
     ].join("\n"),
   );
 }

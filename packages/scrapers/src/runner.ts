@@ -7,8 +7,10 @@ import {
   cerrarCorrida,
   crearCliente,
   encolarRevision,
+  conReintentos,
   guardarPagina,
   guardarSucursalesDeFuente,
+  hayCorridaAbierta,
   hashesGuardados,
   idsDeBeneficios,
   marcarVencidos,
@@ -27,6 +29,7 @@ export interface Reporte {
   vencidos: number;
   a_revisar: number;
   sucursales: number;
+  fallidas: number;
 }
 
 /** Solo las columnas de `pagina_cruda`: el crudo trae además sus sucursales. */
@@ -60,6 +63,11 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   const { fuenteId, fetch, soloFetch = false, limite } = opciones;
   const db = crearCliente();
   const claude = new Anthropic();
+  if (await hayCorridaAbierta(db, fuenteId)) {
+    throw new Error(
+      `ya hay una corrida de ${fuenteId} sin terminar; esperá a que cierre o marcala como terminada`,
+    );
+  }
   const corridaId = await abrirCorrida(db, fuenteId);
 
   const reporte: Reporte = {
@@ -71,6 +79,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     vencidos: 0,
     a_revisar: 0,
     sucursales: 0,
+    fallidas: 0,
   };
 
   try {
@@ -82,6 +91,22 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     const vistos = new Set<string>();
 
     for (const crudo of crudos) {
+      try {
+        await procesarPagina(crudo);
+      } catch (e) {
+        // Una página que falla no puede tirar abajo la fuente entera: queda
+        // registrada y la próxima corrida la vuelve a intentar, porque sin
+        // hash guardado no cuenta como "sin cambios".
+        reporte.fallidas++;
+        // Sus beneficios siguen vigentes: que no hayamos podido leerlos no
+        // significa que la fuente los haya dado de baja.
+        const prefijo = `${fuenteId}:${crudo.external_id}:`;
+        for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
+        console.error(`  fallo en ${crudo.external_id}: ${String(e).slice(0, 160)}`);
+      }
+    }
+
+    async function procesarPagina(crudo: Crudo) {
       const h = await hash(crudo.contenido);
       const sinCambios = previos.get(crudo.external_id) === h;
 
@@ -91,12 +116,12 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         const prefijo = `${fuenteId}:${crudo.external_id}:`;
         for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
         await guardarPagina(db, filaDePagina(crudo, h, null));
-        continue;
+        return;
       }
 
       if (soloFetch) {
         await guardarPagina(db, filaDePagina(crudo, h, null));
-        continue;
+        return;
       }
 
       const extraido = await normalizar(crudo, claude);
@@ -163,9 +188,19 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       await guardarPagina(db, filaDePagina(crudo, h, new Date().toISOString()));
     }
 
-    const vencidos = [...existentes].filter((id) => !vistos.has(id));
-    await marcarVencidos(db, vencidos);
-    reporte.vencidos = vencidos.length;
+    // Con muchas páginas caídas no se puede distinguir "la fuente lo quitó" de
+    // "no pudimos leerlo": dar de baja media fuente por una caída sería peor
+    // que no dar de baja nada.
+    const proporcionCaida = crudos.length > 0 ? reporte.fallidas / crudos.length : 0;
+    if (proporcionCaida > 0.2) {
+      console.error(
+        `  ${reporte.fallidas} de ${crudos.length} páginas fallaron: no se dan de baja beneficios en esta corrida`,
+      );
+    } else {
+      const vencidos = [...existentes].filter((id) => !vistos.has(id));
+      await marcarVencidos(db, vencidos);
+      reporte.vencidos = vencidos.length;
+    }
 
     await cerrarCorrida(db, corridaId, {
       paginas: reporte.paginas,
