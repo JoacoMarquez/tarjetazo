@@ -1,5 +1,6 @@
 import { fetchBrou } from "./fuentes/brou.js";
 import { fetchItau } from "./fuentes/itau.js";
+import { fetchItauLandings } from "./fuentes/itau-landings.js";
 import { fetchOca } from "./fuentes/oca.js";
 import { fetchSantander } from "./fuentes/santander.js";
 import { correr } from "./runner.js";
@@ -9,7 +10,9 @@ import { crearCliente } from "./db.js";
 const SCRAPERS: Record<string, () => Promise<import("./tipos.js").Crudo[]>> = {
   brou: fetchBrou,
   santander: fetchSantander,
-  itau: fetchItau,
+  // El feed trae las campañas; las landings, los comercios adheridos que el
+  // feed resume en un solo "15% menos en restaurantes".
+  itau: async () => [...(await fetchItau()), ...(await fetchItauLandings())],
   oca: fetchOca,
 };
 

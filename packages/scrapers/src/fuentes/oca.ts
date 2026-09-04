@@ -7,7 +7,11 @@ import type { Crudo } from "../tipos.js";
  * de lectura que viene en su propio JavaScript. Consultamos la misma API que
  * consulta el navegador de cualquier visitante.
  */
-const API = "https://cdn.contentstack.io/v3/content_types/marketing_benefits_page/entries";
+/**
+ * Se consulta el tipo `benefits` directo y no la página que los referencia: esa
+ * página lista 57 de los 72 que OCA tiene publicados.
+ */
+const API = "https://cdn.contentstack.io/v3/content_types/benefits/entries";
 const API_KEY = "blta9b90878af9436b4";
 const TOKEN = "cs79086e32ff712b934208ced7";
 
@@ -69,17 +73,25 @@ function limpiar(html: string | undefined): string {
 }
 
 export async function fetchOca(): Promise<Crudo[]> {
-  const url = new URL(API);
-  url.searchParams.set("environment", "produccion");
-  url.searchParams.append("include[]", "benefits");
+  const beneficios: Beneficio[] = [];
+  // Contentstack pagina de a 100; pedimos hasta agotar.
+  for (let salto = 0; ; salto += 100) {
+    const url = new URL(API);
+    url.searchParams.set("environment", "produccion");
+    url.searchParams.set("limit", "100");
+    url.searchParams.set("skip", String(salto));
+    url.searchParams.set("include_count", "true");
 
-  const res = await fetch(url, {
-    headers: { api_key: API_KEY, access_token: TOKEN, accept: "application/json" },
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!res.ok) throw new Error(`Contentstack devolvió ${res.status}`);
-  const datos = (await res.json()) as { entries?: { benefits?: Beneficio[] }[] };
-  const beneficios = datos.entries?.[0]?.benefits ?? [];
+    const res = await fetch(url, {
+      headers: { api_key: API_KEY, access_token: TOKEN, accept: "application/json" },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) throw new Error(`Contentstack devolvió ${res.status}`);
+    const datos = (await res.json()) as { entries?: Beneficio[]; count?: number };
+    const pagina = datos.entries ?? [];
+    beneficios.push(...pagina);
+    if (pagina.length < 100 || beneficios.length >= (datos.count ?? 0)) break;
+  }
 
   const fetched_at = new Date().toISOString();
   const crudos: Crudo[] = [];

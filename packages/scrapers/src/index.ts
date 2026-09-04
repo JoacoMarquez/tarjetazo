@@ -4,6 +4,7 @@ export { normalizar, mapearProductos } from "./normalizador.js";
 export { fetchBrou } from "./fuentes/brou.js";
 export { fetchSantander } from "./fuentes/santander.js";
 export { fetchItau } from "./fuentes/itau.js";
+export { fetchItauLandings } from "./fuentes/itau-landings.js";
 export { fetchOca } from "./fuentes/oca.js";
 export { geocodificar, type Punto, type PrecisionGeo } from "./geo/index.js";
 export { importarDeOsm, geocodificarPendientes, importarLocalidades } from "./geo/job.js";
