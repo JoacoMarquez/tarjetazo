@@ -9,7 +9,8 @@ returns table (
   departamento departamento,
   lat          double precision,
   lng          double precision,
-  precision    precision_geo
+  -- `precision` es palabra reservada (double precision): no sirve como nombre.
+  exactitud    precision_geo
 )
 language sql stable as $$
   select s.id, s.nombre, s.direccion, s.localidad, s.departamento,

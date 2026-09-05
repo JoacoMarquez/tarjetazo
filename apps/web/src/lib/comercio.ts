@@ -49,7 +49,7 @@ export interface Sucursal {
   departamento: string;
   lat: number;
   lng: number;
-  precision: string;
+  exactitud: string;
 }
 
 const LABEL_CATEGORIA = new Map(CATEGORIAS.map((c) => [c.slug, c.label]));
