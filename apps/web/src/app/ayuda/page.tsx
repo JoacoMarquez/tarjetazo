@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { PaginaTexto } from "@/components/pagina-texto";
+import { CATEGORIAS, FUENTES } from "@tarjetazo/core";
 
 export const metadata: Metadata = {
   title: "Ayuda",
@@ -35,16 +36,64 @@ const PREGUNTAS = [
   },
 ];
 
+/** Preguntas que la gente busca tal cual en Google: una por fuente y por rubro. */
+const POR_FUENTE = FUENTES.map((f) => ({
+  q: `¿Qué descuentos tengo con mi tarjeta ${f.nombre}?`,
+  a: `Todos los que ${f.nombre} publica en su sitio, actualizados a diario: porcentaje, cuotas, tope, días y qué tarjetas del banco aplican. Elegí ${f.nombre} en "Mis tarjetas" y la lista y el mapa se filtran solos.`,
+  href: `/app?bancos=${f.id}`,
+}));
+
+const POR_RUBRO = CATEGORIAS.filter((c) => c.en_home).map((c) => ({
+  q: `¿Dónde tengo descuento en ${c.label.toLowerCase()}?`,
+  a: `Juntamos los beneficios de ${c.label.toLowerCase()} de todos los bancos, emisores y billeteras. Podés filtrar por el día de hoy y por departamento, y ver en el mapa los locales que tienen dirección.`,
+  href: `/app?cat=${c.slug}`,
+}));
+
+const TODAS = [...PREGUNTAS, ...POR_FUENTE, ...POR_RUBRO];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: TODAS.map((p) => ({
+    "@type": "Question",
+    name: p.q,
+    acceptedAnswer: { "@type": "Answer", text: p.a },
+  })),
+};
+
 export default function Ayuda() {
   return (
     <PaginaTexto
       titulo="Ayuda"
       bajada="Lo que más nos preguntan sobre cómo funciona esto."
     >
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {PREGUNTAS.map((p) => (
         <section key={p.q}>
           <h2>{p.q}</h2>
           <p className="mt-2">{p.a}</p>
+        </section>
+      ))}
+
+      <h2 className="text-humo !text-xs font-semibold uppercase tracking-widest">Por banco</h2>
+      {POR_FUENTE.map((p) => (
+        <section key={p.q}>
+          <h2>{p.q}</h2>
+          <p className="mt-2">
+            {p.a}{" "}
+            <Link className="text-cielo underline underline-offset-4" href={p.href as Route}>Ver beneficios</Link>
+          </p>
+        </section>
+      ))}
+
+      <h2 className="text-humo !text-xs font-semibold uppercase tracking-widest">Por rubro</h2>
+      {POR_RUBRO.map((p) => (
+        <section key={p.q}>
+          <h2>{p.q}</h2>
+          <p className="mt-2">
+            {p.a}{" "}
+            <Link className="text-cielo underline underline-offset-4" href={p.href as Route}>Ver beneficios</Link>
+          </p>
         </section>
       ))}
       <section>

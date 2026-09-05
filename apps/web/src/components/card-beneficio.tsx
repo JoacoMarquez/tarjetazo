@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { CalendarDays, MapPin, Sparkles, Ticket } from "lucide-react";
 import { CATEGORIAS } from "@tarjetazo/core";
 import { NOMBRES_DIA } from "@/lib/filtros";
@@ -61,7 +62,15 @@ export function CardBeneficio({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-display truncate text-base font-bold">{b.comercio}</h3>
+          <h3 className="font-display truncate text-base font-bold">
+            <Link
+              href={`/comercio/${b.comercio_key}`}
+              className="hover:text-cielo hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {b.comercio}
+            </Link>
+          </h3>
           <p className="text-humo mt-0.5 text-xs">
             {LABEL_CATEGORIA.get(b.categoria) ?? b.categoria} · {b.fuente_nombre}
           </p>

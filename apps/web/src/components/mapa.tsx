@@ -163,6 +163,9 @@ export default function Mapa({
               {p.n_beneficios} {p.n_beneficios === 1 ? "beneficio" : "beneficios"}
               {p.best_pct != null && ` · hasta ${Math.round(p.best_pct)}%`}
             </span>
+            <a className="text-[var(--cielo)] mt-1 mr-3 inline-block text-xs font-medium underline" href={`/comercio/${p.comercio_key}`}>
+              Ver beneficios
+            </a>
             <a
               className="text-[var(--cielo)] mt-1 inline-block text-xs font-medium underline"
               href={`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`}
