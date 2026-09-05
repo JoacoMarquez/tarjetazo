@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { CATEGORIAS } from "@tarjetazo/core";
+import { CATEGORIAS, FUENTES } from "@tarjetazo/core";
 import { clavesDeComercios } from "@/lib/comercio";
 import { createSupabaseClient } from "@/lib/supabase";
 
@@ -13,6 +13,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const fijas: MetadataRoute.Sitemap = [
     { url: BASE, lastModified: hoy, changeFrequency: "daily", priority: 1 },
     { url: `${BASE}/app`, lastModified: hoy, changeFrequency: "daily", priority: 0.9 },
+    { url: `${BASE}/comparar`, lastModified: hoy, changeFrequency: "daily", priority: 0.8 },
+    ...FUENTES.map((f) => ({
+      url: `${BASE}/banco/${f.id}`,
+      lastModified: hoy,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    })),
     { url: `${BASE}/ayuda`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE}/terminos`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/privacidad`, changeFrequency: "yearly", priority: 0.2 },

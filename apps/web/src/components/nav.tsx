@@ -17,14 +17,13 @@ type Item = {
   label: string;
   icono: typeof Home;
   ruta: string;
-  href?: { pathname: "/" | "/app"; query?: Record<string, string> };
+  href?: { pathname: "/" | "/app" | "/comparar"; query?: Record<string, string> };
 };
 
 const ITEMS: Item[] = [
   { label: "Inicio", icono: Home, ruta: "/", href: { pathname: "/" } },
   { label: "Explorar", icono: Compass, ruta: "/app", href: { pathname: "/app" } },
-  // El comparador llega en su propio hito; hasta entonces no lo ofrecemos.
-  { label: "Comparar", icono: Scale, ruta: "/comparar" },
+  { label: "Comparar", icono: Scale, ruta: "/comparar", href: { pathname: "/comparar" } },
   {
     label: "Mis tarjetas",
     icono: CreditCard,
