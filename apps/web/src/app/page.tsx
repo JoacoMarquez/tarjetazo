@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Lock, MapPin, RefreshCw, Search, Sparkles } from "lucide-react";
+import { ArrowRight, Lock, MapPin, RefreshCw, Scale, Search, Sparkles } from "lucide-react";
 import { CATEGORIAS, FUENTES } from "@tarjetazo/core";
 import { EncabezadoSitio, NavInferior, PieSitio } from "@/components/nav";
 import { hoyTeConviene, resumen } from "@/lib/stats";
+import { comparar } from "@/lib/comparar";
 import { NOMBRES_DIA, diaEnUruguay } from "@/lib/filtros";
 
 // Los beneficios cambian con el cron diario; una hora de caché alcanza y evita
@@ -21,7 +22,14 @@ function Numero({ valor, label }: { valor: number; label: string }) {
 }
 
 export default async function Home() {
-  const [datos, destacados] = await Promise.all([resumen(), hoyTeConviene(12)]);
+  const [datos, destacados, ranking] = await Promise.all([
+    resumen(),
+    hoyTeConviene(12),
+    // Si la función del comparador no está, la home sale sin ese bloque.
+    comparar([], []).catch(() => []),
+  ]);
+  const podio = ranking.slice(0, 3);
+  const maximo = podio[0]?.puntos || 1;
   const hoy = NOMBRES_DIA[diaEnUruguay()]!;
   // Un "100% de descuento" nunca es un descuento sobre una compra: es una
   // bonificación de un costo mal tipificada al normalizar. El normalizador ya
@@ -137,6 +145,42 @@ export default async function Home() {
           </ul>
         </section>
 
+        {podio.length > 0 && (
+          <section className="border-linea border-t py-12">
+            <h2 className="flex items-center gap-2 text-2xl">
+              <Scale className="text-cielo size-6" /> ¿Qué banco te conviene?
+            </h2>
+            <p className="text-humo mt-1 text-sm">
+              Ranking por cantidad y calidad de lo que publica cada fuente. Elegí tus rubros y se
+              recalcula, con la fórmula a la vista.
+            </p>
+            <ol className="mt-6 space-y-3">
+              {podio.map((r, i) => (
+                <li key={r.fuente_id} className="border-linea bg-card rounded-lg border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link href={`/banco/${r.fuente_id}`} className="font-display hover:text-cielo font-bold hover:underline">
+                      <span className="text-humo mr-2 text-sm">{i + 1}.</span>
+                      {r.fuente_nombre}
+                    </Link>
+                    <span className="text-humo text-xs">
+                      {r.n_beneficios} beneficios · {r.n_comercios} comercios
+                    </span>
+                  </div>
+                  <div className="bg-papel mt-3 h-2 overflow-hidden rounded-pill">
+                    <div className="bg-marca h-full rounded-pill" style={{ width: `${Math.max(4, (r.puntos / maximo) * 100)}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <Link
+              href="/comparar"
+              className="bg-primary text-primary-foreground mt-6 inline-flex h-11 items-center gap-2 rounded-md px-5 font-medium hover:opacity-90"
+            >
+              Comparar según dónde gastás <ArrowRight className="size-4" />
+            </Link>
+          </section>
+        )}
+
         <section className="border-linea border-t py-12">
           <h2 className="text-2xl">Cómo funciona</h2>
           <ol className="mt-6 grid gap-6 sm:grid-cols-3">
@@ -177,11 +221,13 @@ export default async function Home() {
           </p>
           <ul className="mt-5 flex flex-wrap gap-2">
             {FUENTES.map((f) => (
-              <li
-                key={f.id}
-                className="border-linea bg-card rounded-pill border px-3.5 py-2 text-sm font-medium"
-              >
-                {f.nombre}
+              <li key={f.id}>
+                <Link
+                  href={`/banco/${f.id}`}
+                  className="border-linea bg-card hover:border-cielo-ln hover:bg-cielo-s hover:text-cielo-ink rounded-pill inline-block border px-3.5 py-2 text-sm font-medium transition-colors"
+                >
+                  {f.nombre}
+                </Link>
               </li>
             ))}
           </ul>
