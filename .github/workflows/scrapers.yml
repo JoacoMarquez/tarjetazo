@@ -10,8 +10,8 @@ on:
       fuente:
         description: Fuente a correr
         type: choice
-        options: [brou]
-        default: brou
+        options: [todas, brou, santander, itau, oca]
+        default: todas
       limite:
         description: Máximo de páginas a normalizar (vacío = todas)
         type: string
@@ -42,10 +42,18 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FUENTE: ${{ inputs.fuente || 'todas' }}
+          LIMITE: ${{ inputs.limite && format('--limite={0}', inputs.limite) || '' }}
         run: |
-          pnpm scrape "${{ inputs.fuente || 'brou' }}" \
-            ${{ inputs.limite && format('--limite={0}', inputs.limite) || '' }} \
-            | tee "$RUNNER_TEMP/reporte.txt"
+          # Sin input (el cron) o con "todas": una fuente por vez, y que la
+          # caída de una no frene a las siguientes.
+          if [ "$FUENTE" = "todas" ]; then fuentes="brou santander itau oca"; else fuentes="$FUENTE"; fi
+          estado=0
+          for f in $fuentes; do
+            echo "=== $f ==="   | tee -a "$RUNNER_TEMP/reporte.txt"
+            pnpm scrape "$f" $LIMITE 2>&1 | tee -a "$RUNNER_TEMP/reporte.txt" || estado=1
+          done
+          exit $estado
 
       - name: Reporte
         if: always()
