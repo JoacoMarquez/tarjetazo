@@ -41,6 +41,9 @@ export function EncabezadoSitio() {
           <Link href="/app" className="hover:text-cielo font-medium">
             Explorar
           </Link>
+          <Link href="/comparar" className="hover:text-cielo font-medium">
+            Comparar
+          </Link>
           <Link href="/ayuda" className="text-humo hover:text-cielo">
             Ayuda
           </Link>
