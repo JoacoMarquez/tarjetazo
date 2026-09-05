@@ -35,7 +35,12 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "santander-mastercard", fuente_id: "santander", nombre: "Mastercard Santander", instrumento: "credito", red: "mastercard", tier: null },
   { id: "santander-amex", fuente_id: "santander", nombre: "American Express Santander", instrumento: "credito", red: "amex", tier: null },
 
-  // Scotiabank
+  // Scotiabank — nombra por tier y sello; la débito Premium va con los tiers altos.
+  { id: "scotiabank-visa-gold", fuente_id: "scotiabank", nombre: "Visa Gold Scotiabank", instrumento: "credito", red: "visa", tier: "gold" },
+  { id: "scotiabank-visa-platinum", fuente_id: "scotiabank", nombre: "Visa Platinum Scotiabank", instrumento: "credito", red: "visa", tier: "platinum" },
+  { id: "scotiabank-visa-infinite", fuente_id: "scotiabank", nombre: "Visa Infinite Scotiabank", instrumento: "credito", red: "visa", tier: "black" },
+  { id: "scotiabank-amex", fuente_id: "scotiabank", nombre: "American Express Scotiabank", instrumento: "credito", red: "amex", tier: null },
+  { id: "scotiabank-debito-premium", fuente_id: "scotiabank", nombre: "Débito Premium Scotiabank", instrumento: "debito", red: "visa", tier: "platinum" },
   { id: "scotiabank-debito", fuente_id: "scotiabank", nombre: "Débito Scotiabank", instrumento: "debito", red: "visa", tier: null },
   { id: "scotiabank-visa", fuente_id: "scotiabank", nombre: "Visa Scotiabank", instrumento: "credito", red: "visa", tier: null },
   { id: "scotiabank-visa-signature", fuente_id: "scotiabank", nombre: "Visa Signature Scotiabank", instrumento: "credito", red: "visa", tier: "signature" },

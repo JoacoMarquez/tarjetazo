@@ -3,6 +3,7 @@ import { fetchItau } from "./fuentes/itau.js";
 import { fetchItauLandings } from "./fuentes/itau-landings.js";
 import { fetchOca } from "./fuentes/oca.js";
 import { fetchSantander } from "./fuentes/santander.js";
+import { fetchScotiabank } from "./fuentes/scotiabank.js";
 import { correr } from "./runner.js";
 import { revalidarRevisiones } from "./revision.js";
 import { crearCliente } from "./db.js";
@@ -14,6 +15,7 @@ const SCRAPERS: Record<string, () => Promise<import("./tipos.js").Crudo[]>> = {
   // feed resume en un solo "15% menos en restaurantes".
   itau: async () => [...(await fetchItau()), ...(await fetchItauLandings())],
   oca: fetchOca,
+  scotiabank: fetchScotiabank,
 };
 
 async function main() {

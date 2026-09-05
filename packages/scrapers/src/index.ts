@@ -6,6 +6,7 @@ export { fetchSantander } from "./fuentes/santander.js";
 export { fetchItau } from "./fuentes/itau.js";
 export { fetchItauLandings } from "./fuentes/itau-landings.js";
 export { fetchOca } from "./fuentes/oca.js";
+export { fetchScotiabank } from "./fuentes/scotiabank.js";
 export { geocodificar, type Punto, type PrecisionGeo } from "./geo/index.js";
 export { importarDeOsm, geocodificarPendientes, importarLocalidades } from "./geo/job.js";
 export { CADENAS, type Cadena } from "./geo/cadenas.js";

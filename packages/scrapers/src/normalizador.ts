@@ -147,6 +147,18 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/credito/, porInstrumento("itau", "credito")],
   ],
 
+  scotiabank: [
+    [/infinite|signature/, ["scotiabank-visa-infinite", "scotiabank-visa-signature"]],
+    [/platinum/, ["scotiabank-visa-platinum"]],
+    [/gold|oro/, ["scotiabank-visa-gold"]],
+    [/amex|american express/, ["scotiabank-amex"]],
+    [/debito.*premium|premium/, ["scotiabank-debito-premium"]],
+    [/mastercard/, ["scotiabank-mastercard"]],
+    [/visa/, ["scotiabank-visa"]],
+    [/debito/, porInstrumento("scotiabank", "debito")],
+    [/credito/, porInstrumento("scotiabank", "credito")],
+  ],
+
   oca: [
     [/blue.*debito|debito.*blue/, ["oca-blue-debito"]],
     [/blue/, ["oca-blue"]],
