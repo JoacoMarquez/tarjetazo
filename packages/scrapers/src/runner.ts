@@ -192,7 +192,11 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     // "no pudimos leerlo": dar de baja media fuente por una caída sería peor
     // que no dar de baja nada.
     const proporcionCaida = crudos.length > 0 ? reporte.fallidas / crudos.length : 0;
-    if (proporcionCaida > 0.2) {
+    if (limite !== undefined) {
+      // Una corrida con tope mira solo unas pocas páginas: el resto no está
+      // "vencido", simplemente no se leyó.
+      console.error("  corrida parcial (--limite): no se dan de baja beneficios");
+    } else if (proporcionCaida > 0.2) {
       console.error(
         `  ${reporte.fallidas} de ${crudos.length} páginas fallaron: no se dan de baja beneficios en esta corrida`,
       );

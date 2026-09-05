@@ -61,19 +61,47 @@ Un módulo por fuente en `packages/scrapers/src/fuentes/`. El pipeline es
 pnpm --filter @tarjetazo/scrapers scrape brou --limite=3
 ```
 
+Otros comandos: `scrape revisiones` revalida la cola de revisión manual contra las
+reglas de mapeo actuales, y `scrape destrabar` cierra corridas que quedaron
+interrumpidas (el runner se niega a arrancar si hay una abierta de hace menos de una
+hora, para que dos corridas no se pisen el caché).
+
 `--solo-fetch` baja y cachea las páginas sin llamar a Claude (útil para probar el
 descubrimiento sin gastar tokens). Necesita `SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY` y `ANTHROPIC_API_KEY` en el entorno.
 
 Cada página se guarda en `pagina_cruda` con un hash: si en la corrida siguiente el
 hash no cambió, no se vuelve a normalizar y no cuesta nada. Lo que la fuente dejó
-de publicar se marca `estado_revision = 'descartado'` en vez de borrarse. Los
+de publicar se marca `estado_revision = 'descartado'` en vez de borrarse.
+
+Dar de baja tiene tres guardas, porque "no lo vimos" no es lo mismo que "la fuente lo
+quitó": los beneficios de una página que falló cuentan como vistos, si cae más del 20%
+de las páginas no se da de baja nada, y una corrida con `--limite` nunca da de baja.
+Sin esto, una caída de red o un corte de crédito vacían media base en silencio y la
+corrida igual termina con éxito. Los
 tramos que no validan, o cuyas tarjetas no supimos mapear, van a
 `beneficio_revision`. Cada corrida queda registrada en `corrida`.
 
 Corre solo con el workflow `.github/workflows/scrapers.yml` (cron diario a las
 06:00 de Uruguay), que además mantiene despierto el proyecto de Supabase Free.
 Secrets del repo: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`.
+
+### Notas por fuente
+
+**Itaú** publica un XML con todas sus campañas (`inst/aci/inst_camp.xml`), con las bases
+completas y locales con coordenadas. Pero ahí los restaurantes adheridos son un único
+"15% menos en restaurantes": los nombres están en las landings por rubro
+(`restaurantes.html`, `restaurantesplatinum.html`, `restaurantespersonalbank.html`), en
+el `alt` de cada logo. Cada landing es un segmento de tarjeta y se divide en tres
+pestañas por ubicación; las pestañas no referencian su panel por id, el contenedor tiene
+la barra y después una `<section>` por pestaña, en el mismo orden.
+
+**OCA** sirve desde Contentstack con un token de lectura que viene en su propio
+JavaScript. Hay que consultar el tipo `benefits` directo: la página que los referencia
+lista 57 de los 72 publicados.
+
+**Santander** renderiza el listado en el servidor (327 tarjetas con comercio y descuento)
+pero carga el descuento de cada ficha por AJAX, así que hace falta combinar las dos.
 
 ### Notas sobre BROU
 

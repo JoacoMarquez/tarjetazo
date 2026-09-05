@@ -76,14 +76,25 @@ function seccionesPorUbicacion(html: string): { ubicacion: string; seccion: HTML
   }));
 }
 
-/** El texto legal de la campaña, sin el pie de página que se repite en el sitio. */
+/**
+ * De las bases solo guardamos la vigencia y el tope, que es lo que el
+ * encabezado de cada sección no dice. El bloque legal completo son ~1.000
+ * caracteres iguales para todos los comercios de la landing: repetirlo en cada
+ * página triplica el costo de normalizar y no agrega información.
+ */
 function bases(html: string): string {
   const texto = htmlATexto(html);
   const i = texto.search(/bases y condiciones/i);
   if (i < 0) return "";
   const resto = texto.slice(i, i + 2000);
   const fin = resto.search(/\n(canales digitales|encontranos en|¿Conocés todos)/i);
-  return (fin > 0 ? resto.slice(0, fin) : resto).trim();
+  const bloque = (fin > 0 ? resto.slice(0, fin) : resto).trim();
+
+  const utiles = bloque
+    .split(/\n|(?<=\.)\s+/)
+    .filter((l) => /vigen|del \d|hasta el|tope|no acumulable/i.test(l))
+    .map((l) => l.trim());
+  return [...new Set(utiles)].join(" ").slice(0, 400);
 }
 
 export async function fetchItauLandings(): Promise<Crudo[]> {
