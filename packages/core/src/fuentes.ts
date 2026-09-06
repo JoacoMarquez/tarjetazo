@@ -8,6 +8,7 @@ export const FUENTES: readonly Fuente[] = [
   { id: "itau", nombre: "Itaú", tipo: "banco", logo_url: null, url: "https://www.itau.com.uy", activa: true },
   { id: "oca", nombre: "OCA", tipo: "emisor", logo_url: null, url: "https://www.oca.com.uy", activa: true },
   { id: "prex", nombre: "Prex", tipo: "billetera", logo_url: null, url: "https://www.prexcard.com.uy", activa: true },
+  { id: "bbva", nombre: "BBVA", tipo: "banco", logo_url: null, url: "https://www.bbva.com.uy", activa: true },
 ] as const;
 
 export const PRODUCTOS: readonly Producto[] = [
@@ -67,6 +68,14 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "oca-blue", fuente_id: "oca", nombre: "OCA Blue", instrumento: "credito", red: "propia", tier: null },
   { id: "oca-mastercard", fuente_id: "oca", nombre: "OCA Mastercard", instrumento: "credito", red: "mastercard", tier: null },
   { id: "oca-visa", fuente_id: "oca", nombre: "OCA Visa", instrumento: "credito", red: "visa", tier: null },
+
+  // BBVA — tres grupos: débito; Internacional/Oro/Pymes/Corporativas; Platinum/Black/Infinite.
+  { id: "bbva-debito", fuente_id: "bbva", nombre: "Débito BBVA", instrumento: "debito", red: "visa", tier: null },
+  { id: "bbva-credito", fuente_id: "bbva", nombre: "Crédito Internacional BBVA", instrumento: "credito", red: "visa", tier: null },
+  { id: "bbva-oro", fuente_id: "bbva", nombre: "Crédito Oro BBVA", instrumento: "credito", red: "visa", tier: "gold" },
+  { id: "bbva-platinum", fuente_id: "bbva", nombre: "Crédito Platinum BBVA", instrumento: "credito", red: "visa", tier: "platinum" },
+  { id: "bbva-black", fuente_id: "bbva", nombre: "Mastercard Black BBVA", instrumento: "credito", red: "mastercard", tier: "black" },
+  { id: "bbva-infinite", fuente_id: "bbva", nombre: "Visa Infinite BBVA", instrumento: "credito", red: "visa", tier: "black" },
 
   // Prex
   { id: "prex-saldo", fuente_id: "prex", nombre: "Saldo Prex", instrumento: "saldo", red: "propia", tier: null },

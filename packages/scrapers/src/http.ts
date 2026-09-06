@@ -12,13 +12,27 @@ async function esperarTurno() {
   ultimaPeticion = Date.now();
 }
 
-export async function bajarTexto(url: string, intentos = 3): Promise<string> {
+/**
+ * Algunos sitios (BBVA) devuelven 403 a cualquier User-Agent que no sea de un
+ * navegador, aunque robots.txt no prohíba nada. Para esos se pasa `comoNavegador`.
+ */
+const UA_NAVEGADOR =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
+
+export async function bajarTexto(
+  url: string,
+  intentos = 3,
+  opciones: { comoNavegador?: boolean } = {},
+): Promise<string> {
   let ultimoError: unknown;
   for (let i = 0; i < intentos; i++) {
     await esperarTurno();
     try {
       const res = await fetch(url, {
-        headers: { "user-agent": UA, accept: "text/html,application/xhtml+xml" },
+        headers: {
+          "user-agent": opciones.comoNavegador ? UA_NAVEGADOR : UA,
+          accept: "text/html,application/xhtml+xml",
+        },
         signal: AbortSignal.timeout(30_000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status} en ${url}`);
@@ -30,6 +44,25 @@ export async function bajarTexto(url: string, intentos = 3): Promise<string> {
     }
   }
   throw new Error(`No se pudo bajar ${url}: ${String(ultimoError)}`);
+}
+
+/**
+ * Adónde apunta un acortador (goo.gl/maps), sin bajar el destino: la URL
+ * larga de Google Maps trae las coordenadas del lugar.
+ */
+export async function resolverRedireccion(url: string): Promise<string | null> {
+  await esperarTurno();
+  try {
+    const res = await fetch(url, {
+      method: "HEAD",
+      redirect: "manual",
+      headers: { "user-agent": UA_NAVEGADOR },
+      signal: AbortSignal.timeout(15_000),
+    });
+    return res.headers.get("location");
+  } catch {
+    return null;
+  }
 }
 
 /** Hash estable del contenido, para saltear páginas que no cambiaron. */
