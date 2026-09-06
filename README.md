@@ -103,6 +103,25 @@ lista 57 de los 72 publicados.
 **Santander** renderiza el listado en el servidor (327 tarjetas con comercio y descuento)
 pero carga el descuento de cada ficha por AJAX, así que hace falta combinar las dos.
 
+**BBVA** publica un listado paginado (`descuentos.pag-N.html`) con una ficha
+server-rendered por comercio: rubro y localidad, vigencia, tramos por tier de tarjeta,
+locales con link a Google Maps (acortadores `goo.gl` que se siguen con un HEAD para
+llegar a las coordenadas) y legales. Devuelve 403 a cualquier cliente que no parezca un
+navegador —no alcanza el User-Agent, hacen falta los headers completos (`accept-language`,
+`sec-fetch-*`)—, aunque robots.txt no prohíbe nada. Como todas sus fichas siguen la misma
+plantilla, **no pasa por el modelo**: `bbva-parser.ts` las convierte en tramos de forma
+determinista y el runner usa ese normalizador propio (`normalizar?`) en vez de Claude.
+Es el patrón para cualquier fuente con plantilla fija.
+
+`scrape ingerir <json>` carga beneficios ya normalizados con las mismas guardas del
+pipeline (Zod, ids deterministas, upsert idempotente) y deja la página marcada como
+normalizada: sirve para un backfill hecho a mano o revisado. `--limite` llega también al
+fetch por `SCRAPER_LIMITE`, así probar una fuente grande no baja todo su catálogo.
+
+Guarda adicional contra bajas falsas: si el fetch trae menos de la mitad de las páginas
+conocidas (o ninguna), no se da de baja nada — es casi seguro que la fuente bloqueó al
+scraper, no que haya retirado medio catálogo.
+
 ### Notas sobre BROU
 
 Todo el sitio es server-rendered, así que no hace falta Playwright. El mismo
