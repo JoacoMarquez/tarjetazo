@@ -140,7 +140,8 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/sueldo|azul/, ["itau-debito-sueldo"]],
     [/mastercard.*black|black/, ["itau-mastercard-black"]],
     [/visa.*signature|infinite/, ["itau-visa-signature"]],
-    [/visa.*platinum/, ["itau-visa-platinum"]],
+    // En las landings de restaurantes dice "tarjetas de crédito Platinum" a secas.
+    [/platinum/, ["itau-visa-platinum"]],
     [/mastercard/, ["itau-mastercard"]],
     [/visa/, ["itau-visa"]],
     [/debito/, porInstrumento("itau", "debito")],
