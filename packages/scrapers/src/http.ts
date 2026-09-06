@@ -29,10 +29,17 @@ export async function bajarTexto(
     await esperarTurno();
     try {
       const res = await fetch(url, {
-        headers: {
-          "user-agent": opciones.comoNavegador ? UA_NAVEGADOR : UA,
-          accept: "text/html,application/xhtml+xml",
-        },
+        headers: opciones.comoNavegador
+          ? {
+              "user-agent": UA_NAVEGADOR,
+              accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "accept-language": "es-UY,es;q=0.9,en;q=0.8",
+              "sec-fetch-dest": "document",
+              "sec-fetch-mode": "navigate",
+              "sec-fetch-site": "none",
+              "upgrade-insecure-requests": "1",
+            }
+          : { "user-agent": UA, accept: "text/html,application/xhtml+xml" },
         signal: AbortSignal.timeout(30_000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status} en ${url}`);
