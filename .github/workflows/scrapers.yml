@@ -10,7 +10,7 @@ on:
       fuente:
         description: Fuente a correr
         type: choice
-        options: [todas, brou, santander, itau, oca, scotiabank]
+        options: [todas, brou, santander, itau, oca, scotiabank, prex]
         default: todas
       limite:
         description: Máximo de páginas a normalizar (vacío = todas)
@@ -47,7 +47,7 @@ jobs:
         run: |
           # Sin input (el cron) o con "todas": una fuente por vez, y que la
           # caída de una no frene a las siguientes.
-          if [ "$FUENTE" = "todas" ]; then fuentes="brou santander itau oca scotiabank"; else fuentes="$FUENTE"; fi
+          if [ "$FUENTE" = "todas" ]; then fuentes="brou santander itau oca scotiabank prex"; else fuentes="$FUENTE"; fi
           estado=0
           for f in $fuentes; do
             echo "=== $f ==="   | tee -a "$RUNNER_TEMP/reporte.txt"

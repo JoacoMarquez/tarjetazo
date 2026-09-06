@@ -167,6 +167,10 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/scotia/, porInstrumento("scotiabank", "credito", "debito")],
   ],
 
+  // Prex es una sola tarjeta prepaga más el saldo de la cuenta: cualquier
+  // mención aplica a las dos.
+  prex: [[/prex|mastercard|prepaga|saldo|cuenta/, porInstrumento("prex", "prepaga", "saldo")]],
+
   oca: [
     [/blue.*debito|debito.*blue/, ["oca-blue-debito"]],
     [/blue/, ["oca-blue"]],
