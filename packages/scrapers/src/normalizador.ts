@@ -119,6 +119,8 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
   ],
 
   santander: [
+    [/farmacard/, ["santander-farmacard"]],
+    [/hiperm[aá]s/, ["santander-hipermas"]],
     [/private/, ["santander-private"]],
     [/select/, ["santander-select"]],
     [/amex|american express/, ["santander-amex"]],
@@ -128,6 +130,9 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/visa/, ["santander-visa"]],
     [/debito/, porInstrumento("santander", "debito")],
     [/credito/, porInstrumento("santander", "credito")],
+    // "Santander" a secas: cualquier tarjeta del banco. "Puntos" es el
+    // programa de puntos, no una tarjeta: queda en revisión a propósito.
+    [/^santander$/, porInstrumento("santander", "credito", "debito")],
   ],
 
   itau: [

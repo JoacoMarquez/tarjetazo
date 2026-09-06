@@ -29,6 +29,8 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "santander-select", fuente_id: "santander", nombre: "Santander Select", instrumento: "credito", red: "visa", tier: "platinum" },
   { id: "santander-private", fuente_id: "santander", nombre: "Santander Private Banking", instrumento: "credito", red: "visa", tier: "black" },
   { id: "santander-mastercard-platinum", fuente_id: "santander", nombre: "Mastercard Platinum Santander", instrumento: "credito", red: "mastercard", tier: "platinum" },
+  { id: "santander-farmacard", fuente_id: "santander", nombre: "Farmacard Santander", instrumento: "credito", red: "mastercard", tier: null },
+  { id: "santander-hipermas", fuente_id: "santander", nombre: "Hipermás Santander", instrumento: "credito", red: "mastercard", tier: null },
   { id: "santander-debito", fuente_id: "santander", nombre: "Débito Santander", instrumento: "debito", red: "mastercard", tier: null },
   { id: "santander-visa", fuente_id: "santander", nombre: "Visa Santander", instrumento: "credito", red: "visa", tier: null },
   { id: "santander-visa-platinum", fuente_id: "santander", nombre: "Visa Platinum Santander", instrumento: "credito", red: "visa", tier: "platinum" },
