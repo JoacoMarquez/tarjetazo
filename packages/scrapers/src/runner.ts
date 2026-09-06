@@ -18,7 +18,7 @@ import {
 } from "./db.js";
 import { reversaIde } from "./geo/ide.js";
 import { slugDepartamento } from "./geo/departamentos.js";
-import type { Crudo } from "./tipos.js";
+import type { Crudo, Extraido } from "./tipos.js";
 
 export interface Reporte {
   fuente_id: string;
@@ -53,6 +53,11 @@ function idBeneficio(fuenteId: string, externalId: string, n: number): string {
 export interface OpcionesCorrida {
   fuenteId: string;
   fetch: () => Promise<Crudo[]>;
+  /**
+   * Normalizador determinista para fuentes con plantilla fija (BBVA). Si está,
+   * la fuente nunca pasa por el modelo y no cuesta nada.
+   */
+  normalizar?: (crudo: Crudo) => Extraido;
   /** Corre el pipeline sin escribir en Supabase ni llamar a Claude. */
   soloFetch?: boolean;
   /** Tope de páginas a normalizar, para probar sin gastar la corrida entera. */
@@ -60,7 +65,7 @@ export interface OpcionesCorrida {
 }
 
 export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
-  const { fuenteId, fetch, soloFetch = false, limite } = opciones;
+  const { fuenteId, fetch, normalizar: propio, soloFetch = false, limite } = opciones;
   const db = crearCliente();
   const claude = new Anthropic();
   if (await hayCorridaAbierta(db, fuenteId)) {
@@ -124,7 +129,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         return;
       }
 
-      const extraido = await normalizar(crudo, claude);
+      const extraido = propio ? propio(crudo) : await normalizar(crudo, claude);
 
       // Solo creamos el comercio si la página dejó al menos un beneficio: si
       // no, quedaría un comercio vacío en la web (pasa con las páginas de

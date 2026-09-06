@@ -79,9 +79,9 @@ export async function fetchBbva(): Promise<Crudo[]> {
     const slug = partes.at(-1)!.replace(/\.html$/, "");
     const texto = htmlATexto(contenidoPrincipal(html));
     // Después de "Legales" viene el bloque largo; lo recortamos para no pagar
-    // (ni leer) párrafos que repiten lo que ya dicen los tramos.
+    // (ni leer) el resto de la página; 3.000 chars cubren los tres grupos de tarjetas.
     const i = texto.search(/\nLegales\n/);
-    const contenido = i > 0 ? `${texto.slice(0, i)}\n\nLegales:\n${texto.slice(i + 9, i + 9 + 900).trim()}` : texto;
+    const contenido = i > 0 ? `${texto.slice(0, i)}\n\nLegales:\n${texto.slice(i + 9, i + 9 + 3000).trim()}` : texto;
     crudos.push({
       fuente_id: "bbva",
       external_id: slugificar(`${rubro}-${slug}`),

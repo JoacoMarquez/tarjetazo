@@ -1,3 +1,4 @@
+import { normalizarBbva } from "./fuentes/bbva-parser.js";
 import { fetchBrou } from "./fuentes/brou.js";
 import { fetchItau } from "./fuentes/itau.js";
 import { fetchItauLandings } from "./fuentes/itau-landings.js";
@@ -8,7 +9,10 @@ import { correr } from "./runner.js";
 import { revalidarRevisiones } from "./revision.js";
 import { crearCliente } from "./db.js";
 
-const SCRAPERS: Record<string, () => Promise<import("./tipos.js").Crudo[]>> = {
+type Crudo = import("./tipos.js").Crudo;
+type Extraido = import("./tipos.js").Extraido;
+const NORMALIZADORES: Record<string, (c: Crudo) => Extraido> = { bbva: normalizarBbva };
+const SCRAPERS: Record<string, () => Promise<Crudo[]>> = {
   brou: fetchBrou,
   santander: fetchSantander,
   // El feed trae las campañas; las landings, los comercios adheridos que el
@@ -57,7 +61,7 @@ También: scraper revisiones   (revalida la cola de revisión manual)
     process.exit(1);
   }
 
-  const reporte = await correr({ fuenteId, fetch, soloFetch, limite });
+  const reporte = await correr({ fuenteId, fetch, normalizar: NORMALIZADORES[fuenteId], soloFetch, limite });
   console.log(
     [
       `fuente:       ${reporte.fuente_id}`,
