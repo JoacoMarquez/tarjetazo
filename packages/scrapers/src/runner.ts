@@ -88,6 +88,9 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   };
 
   try {
+    // El tope también llega al fetch por entorno: las fuentes que bajan cientos
+    // de fichas (BBVA) lo usan para no bajar todo cuando solo se prueban unas pocas.
+    if (limite !== undefined) process.env.SCRAPER_LIMITE = String(limite);
     const crudos = (await fetch()).slice(0, limite ?? Infinity);
     reporte.paginas = crudos.length;
 

@@ -5,6 +5,7 @@ import { fetchItauLandings } from "./fuentes/itau-landings.js";
 import { fetchOca } from "./fuentes/oca.js";
 import { fetchSantander } from "./fuentes/santander.js";
 import { fetchScotiabank } from "./fuentes/scotiabank.js";
+import { fetchBbva } from "./fuentes/bbva.js";
 import { correr } from "./runner.js";
 import { revalidarRevisiones } from "./revision.js";
 import { crearCliente } from "./db.js";
@@ -20,6 +21,7 @@ const SCRAPERS: Record<string, () => Promise<Crudo[]>> = {
   itau: async () => [...(await fetchItau()), ...(await fetchItauLandings())],
   oca: fetchOca,
   scotiabank: fetchScotiabank,
+  bbva: fetchBbva,
 };
 
 async function main() {

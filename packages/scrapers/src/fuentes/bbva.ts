@@ -62,8 +62,8 @@ async function localesDe(html: string): Promise<SucursalDeFuente[]> {
 
 export async function fetchBbva(): Promise<Crudo[]> {
   let fichas = await fichasDelListado();
-  // Para probar sin bajar las ~290 fichas.
-  const tope = Number(process.env.BBVA_TOPE);
+  // Para probar sin bajar las ~300 fichas (el runner lo setea con --limite).
+  const tope = Number(process.env.SCRAPER_LIMITE ?? process.env.BBVA_TOPE);
   if (Number.isFinite(tope) && tope > 0) fichas = fichas.slice(0, tope);
   const crudos: Crudo[] = [];
   for (const path of fichas) {
