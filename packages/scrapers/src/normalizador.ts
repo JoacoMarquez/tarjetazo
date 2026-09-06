@@ -71,7 +71,8 @@ Reglas:
 - Las fechas del texto vienen en DD/MM/AAAA; devolvelas como AAAA-MM-DD.
 - Los montos son en pesos uruguayos salvo que diga USD. Sacá los separadores de miles.
 - En \`productos\` copiá el nombre de cada tarjeta como aparece en la página, sin normalizar, y listalas por separado: "tarjetas de crédito y débito BROU VISA" son dos entradas ("BROU VISA crédito", "BROU VISA débito").
-- Si la página no describe un beneficio en un comercio concreto, poné es_beneficio=false y dejá tramos vacío. Eso incluye páginas institucionales, sorteos, listados y las características de la tarjeta en sí (compras en el exterior, seguros, asistencia al viajero): no son comercios.
+- Si la página no describe un beneficio en un comercio concreto, poné es_beneficio=false y dejá tramos vacío. Eso incluye páginas institucionales, sorteos, listados y las características de la tarjeta o la cuenta en sí (compras en el exterior, seguros, asistencia al viajero, transferencias, cambio de moneda, retiros, recargas): no son comercios.
+- Solo cuentan los beneficios usables en Uruguay. Lo que aplica en otro país (Argentina, Brasil, viajes al exterior) es es_beneficio=false.
 
 Categorías disponibles: ${CATEGORIAS.map((c) => `${c.slug} (${c.label})`).join(", ")}.`;
 
