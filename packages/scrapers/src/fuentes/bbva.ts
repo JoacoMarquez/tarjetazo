@@ -21,7 +21,10 @@ async function fichasDelListado(): Promise<string[]> {
     let html: string;
     try {
       html = await bajarTexto(url, 3, { comoNavegador: true });
-    } catch {
+    } catch (e) {
+      // Que quede en el log por qué no hay páginas: BBVA bloquea por IP y
+      // desde un runner de GitHub puede devolver 403 aunque el UA sea de navegador.
+      console.error(`  bbva: no se pudo bajar el listado ${url}: ${String(e).slice(0, 200)}`);
       break;
     }
     for (const m of html.matchAll(/href="(\/personas\/productos\/tarjetas\/descuentos\/[^"/]+\/[^"]+\.html)"/g)) {

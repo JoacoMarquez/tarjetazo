@@ -204,6 +204,13 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // Una corrida con tope mira solo unas pocas páginas: el resto no está
       // "vencido", simplemente no se leyó.
       console.error("  corrida parcial (--limite): no se dan de baja beneficios");
+    } else if (crudos.length < Math.max(1, previos.size * 0.5)) {
+      // El fetch trajo mucho menos que la vez anterior (o nada): casi seguro
+      // la fuente bloqueó al scraper. No es que hayan quitado la mitad del
+      // catálogo de un día para otro.
+      console.error(
+        `  el fetch trajo ${crudos.length} páginas contra ${previos.size} conocidas: no se dan de baja beneficios`,
+      );
     } else if (proporcionCaida > 0.2) {
       console.error(
         `  ${reporte.fallidas} de ${crudos.length} páginas fallaron: no se dan de baja beneficios en esta corrida`,
