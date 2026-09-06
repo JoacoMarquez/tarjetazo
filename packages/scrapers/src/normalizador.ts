@@ -157,6 +157,8 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/visa/, ["scotiabank-visa"]],
     [/debito/, porInstrumento("scotiabank", "debito")],
     [/credito/, porInstrumento("scotiabank", "credito")],
+    // "Tarjetas Scotiabank" a secas: cualquiera del banco.
+    [/scotia/, porInstrumento("scotiabank", "credito", "debito")],
   ],
 
   oca: [
