@@ -8,7 +8,7 @@ Producto real para lanzar en Uruguay (b) con mentalidad de side project (a): tra
 
 ## Alcance v1
 Incluye: lista + mapa (una sola pantalla split), páginas de comercio SEO, home explicativa, selector "Mis tarjetas" sin cuenta, comparador "qué banco te conviene según tus rubros".
-Excluye (v2): cuenta/login/sync, favoritos con cuenta, notificaciones, BBVA/ANDA/PassCard/Cabal/clubes, app nativa, comparador editorial.
+Excluye (v2): cuenta/login/sync, favoritos con cuenta, notificaciones, BBVA/ANDA/PassCard/Cabal/clubes, app nativa, comparador editorial. El censo de fuentes v2, medido y priorizado, está en `02-research-uruguay.md` → "Censo de fuentes y emisores".
 
 ## Fuentes v1 (en orden)
 1. BROU (tracer bullet) 2. Santander 3. Scotiabank 4. Itaú 5. OCA 6. Prex.
