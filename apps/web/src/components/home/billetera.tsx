@@ -83,6 +83,8 @@ export function Billetera() {
           Tocá una tarjeta para sacarla · clic afuera para cerrar
         </p>
 
+        <Tira abierta={abierta} lado="abierta" />
+
         {/* cuerpo */}
         <div
           style={{
@@ -289,61 +291,80 @@ export function Billetera() {
           />
         </div>
 
-        {/* tira con el broche: al abrirse se da vuelta y pasa por detrás.
-            Sin perspectiva, rotateX(-175°) se ve igual que scaleY(-0.996), y la
-            versión 2D evita que Safari pinte la tira por encima de las tarjetas
-            ignorando el z-index (las capas 3D se ordenan por profundidad). */}
+        <Tira abierta={abierta} lado="cerrada" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * La tira con el broche. Son dos elementos con el mismo dibujo: `cerrada` va
+ * última en el DOM y tapa el bolsillo; `abierta` va primera y queda detrás de
+ * todo. Los compositores de Chrome y Safari a veces pintan las capas
+ * transformadas por orden de DOM ignorando el z-index, y con esto el orden de
+ * DOM ya es el correcto en los dos estados.
+ *
+ * El giro se reparte: la cerrada se aplasta hasta scaleY(0) y ahí, de canto e
+ * invisible, arranca la abierta desde 0 hasta -0.996 (lo mismo que se ve con
+ * rotateX(-175°) sin perspectiva). Al cerrar, al revés.
+ */
+function Tira({ abierta, lado }: { abierta: boolean; lado: "cerrada" | "abierta" }) {
+  const soyLaVisible = lado === (abierta ? "abierta" : "cerrada");
+  const escala = !soyLaVisible ? 0 : lado === "abierta" ? -0.996 : 1;
+  // La que se está yendo anima primero (ease-in); la que llega, después (ease-out).
+  const transicion = soyLaVisible
+    ? "transform .275s cubic-bezier(0,0,.2,1) .275s"
+    : "transform .275s cubic-bezier(.4,0,1,1)";
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        left: 110,
+        top: 276,
+        width: 80,
+        height: 118,
+        transformOrigin: "50% 0",
+        transform: `scaleY(${escala})`,
+        transition: transicion,
+        zIndex: lado === "abierta" ? 1 : 40,
+        pointerEvents: "none",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "0 0 16px 16px",
+          background: "linear-gradient(160deg, #46586e 0%, #3a4b5e 100%)",
+          boxShadow: "0 8px 18px rgba(0,0,0,.4), inset 0 -1px 0 rgba(255,255,255,.1)",
+        }}
+      >
         <div
           style={{
             position: "absolute",
-            left: 110,
-            top: 276,
-            width: 80,
-            height: 118,
-            transformOrigin: "50% 0",
-            transform: `scaleY(${abierta ? -0.996 : 1})`,
-            transition: `transform .55s cubic-bezier(.4,0,.2,1), z-index 0s .3s`,
-            zIndex: abierta ? 1 : 40,
-            // Abierta queda detrás de las tarjetas: que no capture los clics.
-            pointerEvents: abierta ? "none" : "auto",
+            left: 7,
+            right: 7,
+            top: 0,
+            bottom: 7,
+            borderRadius: "0 0 11px 11px",
+            border: "1.5px dashed rgba(255,255,255,.18)",
+            borderTop: 0,
           }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "0 0 16px 16px",
-              background: "linear-gradient(160deg, #46586e 0%, #3a4b5e 100%)",
-              boxShadow: "0 8px 18px rgba(0,0,0,.4), inset 0 -1px 0 rgba(255,255,255,.1)",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                left: 7,
-                right: 7,
-                top: 0,
-                bottom: 7,
-                borderRadius: "0 0 11px 11px",
-                border: "1.5px dashed rgba(255,255,255,.18)",
-                borderTop: 0,
-              }}
-            />
-            <span
-              style={{
-                position: "absolute",
-                left: "50%",
-                bottom: 14,
-                width: 24,
-                height: 24,
-                borderRadius: "50%",
-                transform: "translateX(-50%)",
-                background: "radial-gradient(circle at 35% 30%, #ffd863 0%, #f7b500 45%, #c98f00 100%)",
-                boxShadow: "0 2px 4px rgba(0,0,0,.45), inset 0 0 0 3px rgba(0,0,0,.12)",
-              }}
-            />
-          </div>
-        </div>
+        />
+        <span
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 14,
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            transform: "translateX(-50%)",
+            background: "radial-gradient(circle at 35% 30%, #ffd863 0%, #f7b500 45%, #c98f00 100%)",
+            boxShadow: "0 2px 4px rgba(0,0,0,.45), inset 0 0 0 3px rgba(0,0,0,.12)",
+          }}
+        />
       </div>
     </div>
   );
