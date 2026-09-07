@@ -1,64 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef } from "react";
 import { Search } from "lucide-react";
-import { CATEGORIAS, FUENTES } from "@tarjetazo/core";
-import type { ResultadoBusqueda } from "@/lib/consultas";
+import { FUENTES } from "@tarjetazo/core";
 import { useBilletera } from "@/lib/billetera";
 import { PRODUCTO_POR_ID, nombreCorto } from "@/lib/marca";
+import { ListaResultados, useBusqueda } from "./busqueda";
 import { HeroLoop } from "./hero-loop";
 import { PilaTarjetas } from "./pila-tarjetas";
 
-const LABEL_CATEGORIA = Object.fromEntries(CATEGORIAS.map((c) => [c.slug, c.label]));
-
-function cifra(r: ResultadoBusqueda): string {
-  if (r.best_pct != null) return `${Math.round(r.best_pct)}%`;
-  if (r.max_cuotas) return `${r.max_cuotas}c`;
-  return "—";
-}
-
 export function Hero() {
-  const router = useRouter();
   const { mis, misBancos, abrir } = useBilletera();
-  const [q, setQ] = useState("");
-  const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
   const caja = useRef<HTMLDivElement>(null);
-
-  // Desde dos caracteres consultamos el buscador; el debounce evita una
-  // llamada por tecla y el AbortController descarta las respuestas viejas.
-  useEffect(() => {
-    const texto = q.trim();
-    if (texto.length < 2) {
-      setResultados([]);
-      return;
-    }
-    const ctrl = new AbortController();
-    const id = setTimeout(async () => {
-      try {
-        const params = new URLSearchParams({ q: texto });
-        if (misBancos.length) params.set("bancos", misBancos.join(","));
-        const r = await fetch(`/api/buscar?${params}`, { signal: ctrl.signal });
-        const json = (await r.json()) as { resultados?: ResultadoBusqueda[] };
-        setResultados((json.resultados ?? []).slice(0, 4));
-      } catch {
-        // Abortos y errores de red: el dropdown simplemente no aparece.
-      }
-    }, 200);
-    return () => {
-      clearTimeout(id);
-      ctrl.abort();
-    };
-  }, [q, misBancos]);
-
-  // Un clic fuera de la caja cierra el dropdown de resultados.
-  useEffect(() => {
-    const fuera = (e: MouseEvent) => {
-      if (caja.current && !caja.current.contains(e.target as Node)) setResultados([]);
-    };
-    document.addEventListener("mousedown", fuera);
-    return () => document.removeEventListener("mousedown", fuera);
-  }, []);
+  const { q, setQ, resultados, buscar } = useBusqueda(caja);
 
   const etiquetaSelector =
     mis.length === 0
@@ -66,11 +20,6 @@ export function Hero() {
       : mis.length === 1
         ? nombreCorto(PRODUCTO_POR_ID[mis[0]!]!)
         : `${mis.length} tarjetas`;
-
-  const buscar = () => {
-    const texto = q.trim();
-    router.push(texto ? `/app?q=${encodeURIComponent(texto)}` : "/app");
-  };
 
   return (
     <section style={{ background: "#14202c", color: "#fff", padding: "40px 20px 64px" }}>
@@ -119,26 +68,10 @@ export function Hero() {
             </button>
           </div>
 
-          {resultados.length > 0 && (
-            <ul className="border-linea absolute inset-x-0 top-[72px] z-20 m-0 list-none rounded-2xl border bg-white p-1.5 text-tinta shadow-[0_12px_32px_rgba(20,32,44,.12)]">
-              {resultados.map((r) => (
-                <li key={r.comercio_key}>
-                  <a
-                    href={`/comercio/${r.comercio_key}`}
-                    className="hover:bg-papel flex items-center justify-between gap-3 rounded-[10px] px-3.5 py-3"
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-[15px] font-medium">{r.comercio}</span>
-                      <span className="block text-[13px] text-humo">
-                        Te conviene {r.mejor_fuente} · {LABEL_CATEGORIA[r.categoria] ?? r.categoria}
-                      </span>
-                    </span>
-                    <span className="num shrink-0 text-xl font-bold text-cielo">{cifra(r)}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ListaResultados
+            resultados={resultados}
+            className="absolute inset-x-0 top-[72px] z-20"
+          />
         </div>
 
         <p className="mt-4 text-sm" style={{ color: "#b9c3cf" }}>

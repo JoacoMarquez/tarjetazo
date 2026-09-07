@@ -155,6 +155,7 @@ export default function Mapa({
   onMover,
   irA,
   mias,
+  zoomConRueda = true,
 }: {
   puntos: PuntoMapa[];
   recortado: boolean;
@@ -163,6 +164,8 @@ export default function Mapa({
   irA: [number, number] | null;
   /** Ids de productos del usuario: apaga los pines que no le sirven. */
   mias?: string[];
+  /** En la home el mapa está en medio del scroll: la rueda no hace zoom. */
+  zoomConRueda?: boolean;
 }) {
   const { ref, medido } = useMedido();
 
@@ -201,7 +204,7 @@ export default function Mapa({
       <MapContainer
         center={CENTRO}
         zoom={13}
-        scrollWheelZoom
+        scrollWheelZoom={zoomConRueda}
         className="size-full"
         // Leaflet dibuja sus paneles con z-index altos; los bajamos para que la
         // hoja del mobile y los popovers queden por encima.

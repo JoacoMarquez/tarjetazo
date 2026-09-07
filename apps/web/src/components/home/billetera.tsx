@@ -31,7 +31,9 @@ export function Billetera() {
   // Con muchas tarjetas la escalera se comprime para no salirse del alto.
   const paso = n <= 6 ? 30 : Math.floor(180 / n);
   const hov = b.destacada;
-  const addTy = abierta ? -(n * paso) - 150 - (hov != null ? 34 : 0) - 8 : 0;
+  // Sin tarjetas el botón ocupa el lugar de la primera: apoyado sobre el
+  // cuerpo de la billetera, no flotando por encima de la tira.
+  const addTy = !abierta ? 0 : n === 0 ? -69 : -(n * paso) - 150 - (hov != null ? 34 : 0) - 8;
 
   return (
     <div
@@ -299,7 +301,8 @@ export function Billetera() {
             transform: `rotateX(${abierta ? -175 : 0}deg)`,
             transition: `transform .55s cubic-bezier(.4,0,.2,1), z-index 0s .3s`,
             zIndex: abierta ? 1 : 40,
-            perspective: 600,
+            // Abierta queda detrás de las tarjetas: que no capture los clics.
+            pointerEvents: abierta ? "none" : "auto",
           }}
         >
           <div

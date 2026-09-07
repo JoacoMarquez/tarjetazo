@@ -121,6 +121,7 @@ export function CercaTuyo() {
             onMover={consultar}
             irA={centro}
             mias={mis}
+            zoomConRueda={false}
           />
           <Link
             href="/app"

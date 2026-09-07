@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { Search, User } from "lucide-react";
 import { useBilletera } from "@/lib/billetera";
 import { GRADIENTE, PRODUCTO_POR_ID } from "@/lib/marca";
+import { ListaResultados, useBusqueda } from "./busqueda";
 import { PilaTarjetas } from "./pila-tarjetas";
 
 const PIZARRA = "#2b3a4a";
@@ -62,6 +64,73 @@ export function BotonBilletera() {
   );
 }
 
+/**
+ * La lupa del header. Cerrada es un círculo; al tocarla se estira hacia la
+ * izquierda y deja escribir ahí mismo, con el mismo dropdown que el hero.
+ * Escape o un clic afuera la vuelven a cerrar.
+ */
+function BuscadorHeader() {
+  const [abierto, setAbierto] = useState(false);
+  const caja = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const { q, setQ, resultados, buscar } = useBusqueda(caja);
+
+  useEffect(() => {
+    if (!abierto) return;
+    input.current?.focus();
+    const fuera = (e: MouseEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false);
+    };
+    const tecla = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
+    document.addEventListener("mousedown", fuera);
+    document.addEventListener("keydown", tecla);
+    return () => {
+      document.removeEventListener("mousedown", fuera);
+      document.removeEventListener("keydown", tecla);
+    };
+  }, [abierto]);
+
+  return (
+    <div ref={caja} className="relative hidden sm:block">
+      <div
+        className="flex h-10 items-center overflow-hidden rounded-pill text-white"
+        style={{
+          background: PIZARRA,
+          width: abierto ? 260 : 40,
+          transition: "width .3s cubic-bezier(.2,.8,.2,1)",
+        }}
+      >
+        <button
+          type="button"
+          aria-label={abierto ? "Buscar" : "Abrir el buscador"}
+          aria-expanded={abierto}
+          onClick={() => (abierto ? buscar() : setAbierto(true))}
+          className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center"
+        >
+          <Search className="size-[18px]" strokeWidth={2} />
+        </button>
+        <input
+          ref={input}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && buscar()}
+          placeholder="¿Dónde vas a pagar?"
+          aria-label="¿Dónde vas a pagar?"
+          tabIndex={abierto ? 0 : -1}
+          className="h-full min-w-0 flex-1 border-0 bg-transparent pr-4 text-sm text-white outline-none placeholder:text-[#b9c3cf]"
+          style={{ opacity: abierto ? 1 : 0, transition: "opacity .2s" }}
+        />
+      </div>
+      {abierto && (
+        <ListaResultados
+          resultados={resultados}
+          className="absolute right-0 top-12 z-40 w-[340px]"
+        />
+      )}
+    </div>
+  );
+}
+
 const NAV = [
   { label: "Inicio", href: "/" },
   { label: "Explorar", href: "/app" },
@@ -82,14 +151,7 @@ export function HeaderHome() {
         </nav>
         <div className="ml-auto flex items-center justify-end gap-2.5">
           <BotonBilletera />
-          <Link
-            href="/app"
-            aria-label="Buscar"
-            className="hidden size-10 items-center justify-center rounded-full text-white sm:inline-flex"
-            style={{ background: PIZARRA }}
-          >
-            <Search className="size-[18px]" strokeWidth={2} />
-          </Link>
+          <BuscadorHeader />
           <Link
             href="/ayuda"
             aria-label="Ayuda"

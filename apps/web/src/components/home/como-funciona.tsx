@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MejorDelRubro } from "@/lib/stats";
 import { useBilletera } from "@/lib/billetera";
 import { CANASTA_SEMANAL, PASOS } from "@/lib/contenido-home";
@@ -29,30 +29,48 @@ function estimar(rubros: MejorDelRubro[], mis: string[]): number {
   return Math.round(total);
 }
 
-/** Contador que sube desde 0 con easing, como en el diseño. */
+/**
+ * Contador animado. Cuando cambia el destino (agregaste o sacaste una tarjeta)
+ * va del valor que estaba mostrando al nuevo, para que se vea qué cambió. Con
+ * `replay()` arranca de cero, que es el efecto "cae la plata" del hover.
+ */
 function useConteo(destino: number, ms = 1400) {
   const [v, setV] = useState(0);
+  const actual = useRef(0);
+  const raf = useRef(0);
+
+  const animar = useCallback(
+    (desde: number) => {
+      cancelAnimationFrame(raf.current);
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        actual.current = destino;
+        setV(destino);
+        return;
+      }
+      const t0 = performance.now();
+      const paso = (ahora: number) => {
+        const p = Math.min(1, (ahora - t0) / ms);
+        const valor = Math.round(desde + (destino - desde) * (1 - Math.pow(1 - p, 3)));
+        actual.current = valor;
+        setV(valor);
+        if (p < 1) raf.current = requestAnimationFrame(paso);
+      };
+      raf.current = requestAnimationFrame(paso);
+    },
+    [destino, ms],
+  );
+
   useEffect(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setV(destino);
-      return;
-    }
-    let raf = 0;
-    const t0 = performance.now();
-    const paso = (ahora: number) => {
-      const p = Math.min(1, (ahora - t0) / ms);
-      setV(Math.round(destino * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(paso);
-    };
-    raf = requestAnimationFrame(paso);
-    return () => cancelAnimationFrame(raf);
-  }, [destino, ms]);
-  return v;
+    animar(actual.current);
+    return () => cancelAnimationFrame(raf.current);
+  }, [animar]);
+
+  return { valor: v, replay: () => animar(0) };
 }
 
 export function ComoFunciona({ rubros }: { rubros: MejorDelRubro[] }) {
   const { mis, abrir } = useBilletera();
-  const ahorro = useConteo(estimar(rubros, mis));
+  const { valor: ahorro, replay } = useConteo(estimar(rubros, mis));
 
   return (
     <section
@@ -76,7 +94,11 @@ export function ComoFunciona({ rubros }: { rubros: MejorDelRubro[] }) {
         </ol>
       </div>
 
-      <div className="rounded-2xl p-7 text-center text-white" style={{ background: "#14202c" }}>
+      <div
+        className="rounded-2xl p-7 text-center text-white"
+        style={{ background: "#14202c" }}
+        onMouseEnter={replay}
+      >
         <p className="m-0 text-xs font-semibold uppercase tracking-[.1em]" style={{ color: "#b9c3cf" }}>
           Ahorro estimado por mes
         </p>
