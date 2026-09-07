@@ -31,9 +31,9 @@ export function Billetera() {
   // Con muchas tarjetas la escalera se comprime para no salirse del alto.
   const paso = n <= 6 ? 30 : Math.floor(180 / n);
   const hov = b.destacada;
-  // Sin tarjetas el botón asoma por el pliegue del bolsillo (y=340), con los
-  // últimos 12px metidos detrás; con tarjetas va arriba de la escalera.
-  const addTy = !abierta ? 0 : n === 0 ? 8 : -(n * paso) - 150 - (hov != null ? 34 : 0) - 8;
+  // Sin tarjetas el botón se apoya justo sobre el pliegue del bolsillo
+  // (y=340), entero a la vista; con tarjetas va arriba de la escalera.
+  const addTy = !abierta ? 0 : n === 0 ? -4 : -(n * paso) - 150 - (hov != null ? 34 : 0) - 8;
 
   return (
     <div
