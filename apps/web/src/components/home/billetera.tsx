@@ -289,7 +289,10 @@ export function Billetera() {
           />
         </div>
 
-        {/* tira con el broche: al abrirse se da vuelta y pasa por detrás */}
+        {/* tira con el broche: al abrirse se da vuelta y pasa por detrás.
+            Sin perspectiva, rotateX(-175°) se ve igual que scaleY(-0.996), y la
+            versión 2D evita que Safari pinte la tira por encima de las tarjetas
+            ignorando el z-index (las capas 3D se ordenan por profundidad). */}
         <div
           style={{
             position: "absolute",
@@ -298,7 +301,7 @@ export function Billetera() {
             width: 80,
             height: 118,
             transformOrigin: "50% 0",
-            transform: `rotateX(${abierta ? -175 : 0}deg)`,
+            transform: `scaleY(${abierta ? -0.996 : 1})`,
             transition: `transform .55s cubic-bezier(.4,0,.2,1), z-index 0s .3s`,
             zIndex: abierta ? 1 : 40,
             // Abierta queda detrás de las tarjetas: que no capture los clics.
