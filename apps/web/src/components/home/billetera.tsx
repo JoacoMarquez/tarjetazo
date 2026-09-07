@@ -215,7 +215,10 @@ export function Billetera() {
               height: "100%",
               borderRadius: 12,
               border: "1.5px dashed rgba(255,255,255,.45)",
-              background: b.agregando ? "rgba(255,255,255,.12)" : "transparent",
+              // Fondo opaco: el botón se apoya sobre la tira abierta y con
+              // fondo transparente se veía la tira a través de él.
+              background: b.agregando ? "#3a4b5e" : "#2b3a4a",
+              boxShadow: "0 6px 16px rgba(0,0,0,.35)",
               boxSizing: "border-box",
               display: "flex",
               alignItems: "center",
