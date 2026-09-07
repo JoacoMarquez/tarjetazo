@@ -6,6 +6,7 @@ import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "re
 import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
 import type { Bbox, PuntoMapa } from "@/lib/consultas";
+import { colorFuente } from "@/lib/marca";
 import { capturar } from "@/lib/analitica";
 
 /** Montevideo centro: el punto de partida razonable para Uruguay. */
@@ -15,16 +16,26 @@ const CENTRO: [number, number] = [-34.9011, -56.1645];
  * Pin propio: el número es la información, no el ícono. Se dibuja con HTML
  * porque Leaflet no acepta componentes de React dentro de un marcador.
  */
-function icono(p: PuntoMapa): L.DivIcon {
+function icono(p: PuntoMapa, mias?: string[]): L.DivIcon {
   const etiqueta =
     p.best_pct != null
       ? `${Math.round(p.best_pct)}%`
       : p.max_cuotas
         ? `${p.max_cuotas}c`
         : "•";
+  const color = colorFuente(p.mejor_fuente_id).color;
+  // Con la lista de tarjetas del usuario, el pin de un local que no puede
+  // aprovechar sale en blanco y punteado: se ve, pero no compite.
+  const laTengo =
+    !mias ||
+    p.mejor_productos.length === 0 ||
+    p.mejor_productos.some((id) => mias.includes(id));
+  const estilo = laTengo
+    ? `background:${color};color:#fff;border:2px solid #fff`
+    : `background:#fff;color:var(--humo);border:1.5px dashed ${color}`;
   return L.divIcon({
     className: "",
-    html: `<span class="num flex h-7 min-w-7 items-center justify-center rounded-pill border-2 border-white bg-[var(--cielo)] px-1.5 text-xs font-bold text-white shadow-md">${etiqueta}</span>`,
+    html: `<span class="num flex h-7 min-w-7 items-center justify-center rounded-pill px-1.5 text-xs font-bold shadow-md" style="${estilo}">${etiqueta}</span>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
     popupAnchor: [0, -14],
@@ -143,19 +154,22 @@ export default function Mapa({
   cargando,
   onMover,
   irA,
+  mias,
 }: {
   puntos: PuntoMapa[];
   recortado: boolean;
   cargando: boolean;
   onMover: (b: Bbox) => void;
   irA: [number, number] | null;
+  /** Ids de productos del usuario: apaga los pines que no le sirven. */
+  mias?: string[];
 }) {
   const { ref, medido } = useMedido();
 
   const marcadores = useMemo(
     () =>
       puntos.map((p) => (
-        <Marker key={p.sucursal_id} position={[p.lat, p.lng]} icon={icono(p)}>
+        <Marker key={p.sucursal_id} position={[p.lat, p.lng]} icon={icono(p, mias)}>
           <Popup>
             <span className="font-display block text-sm font-bold">{p.comercio}</span>
             <span className="block text-xs text-[var(--humo)]">{p.direccion}</span>
@@ -178,7 +192,7 @@ export default function Mapa({
           </Popup>
         </Marker>
       )),
-    [puntos],
+    [puntos, mias],
   );
 
   return (

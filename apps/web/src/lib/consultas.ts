@@ -66,6 +66,10 @@ export interface PuntoMapa {
   best_pct: number | null;
   max_cuotas: number | null;
   n_beneficios: number;
+  /** De quién es el mejor beneficio del local: con eso se pinta el pin. */
+  mejor_fuente_id: string;
+  mejor_fuente: string;
+  mejor_productos: string[];
 }
 
 export interface Bbox {

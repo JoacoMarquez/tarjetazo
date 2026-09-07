@@ -45,3 +45,43 @@ export async function hoyTeConviene(cantidad = 6): Promise<BeneficioListado[]> {
   if (error) throw new Error(error.message);
   return (data ?? []) as BeneficioListado[];
 }
+
+/** Los seis rubros que muestra la grilla "Hoy … pagá así" de la home. */
+export const RUBROS_DE_HOY = [
+  { slug: "supermercados", label: "Supermercado" },
+  { slug: "restaurantes", label: "Restaurantes" },
+  { slug: "combustible", label: "Combustible" },
+  { slug: "entretenimiento", label: "Cines" },
+  { slug: "farmacias", label: "Farmacias" },
+  { slug: "delivery", label: "Delivery" },
+] as const;
+
+export interface MejorDelRubro {
+  rubro: string;
+  slug: string;
+  beneficio: BeneficioListado;
+}
+
+/**
+ * El mejor beneficio de hoy en cada rubro de la home. Una consulta por rubro:
+ * `beneficios_filtrados` ya ordena y recorta, así que pedir el primero de cada
+ * uno sale más barato que traer todo y agrupar acá.
+ */
+export async function mejorPorRubro(): Promise<MejorDelRubro[]> {
+  const db = createSupabaseClient();
+  const dia = diaEnUruguay();
+  const filas = await Promise.all(
+    RUBROS_DE_HOY.map(async (r) => {
+      const { data, error } = await db.rpc("beneficios_filtrados", {
+        p_categorias: [r.slug],
+        p_dia: dia,
+        p_orden: "porcentaje",
+        p_limit: 1,
+      });
+      if (error) throw new Error(error.message);
+      const b = ((data ?? []) as BeneficioListado[])[0];
+      return b ? ({ rubro: r.label, slug: r.slug, beneficio: b } as MejorDelRubro) : null;
+    }),
+  );
+  return filas.filter((f): f is MejorDelRubro => f !== null);
+}
