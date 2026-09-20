@@ -313,3 +313,27 @@
     animation: none;
   }
 }
+
+/* ==========================================================================
+   Billetera — confirmación "¿Agregar al tarjetero?"
+   La tarjeta nueva espera al costado de la cartera con un tintineo horizontal,
+   y una flecha marca hacia dónde va. Los dos se mueven con el mismo ritmo.
+   ========================================================================== */
+@keyframes tintineo {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-8px);
+  }
+}
+.tintinea {
+  animation: tintineo 1.6s ease-in-out 0.7s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tintinea {
+    animation: none;
+  }
+}

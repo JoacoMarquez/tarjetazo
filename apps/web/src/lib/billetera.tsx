@@ -31,6 +31,12 @@ interface Billetera {
   alternarAgregar: () => void;
   banco: string;
   elegirBanco: (id: string) => void;
+  /** Id del producto que se está ofreciendo agregar, o `null`. */
+  confirmando: string | null;
+  /** La tarjeta nueva ya viaja hacia la pila (última fase de la confirmación). */
+  viajando: boolean;
+  pedirConfirmacion: (productoId: string) => void;
+  aceptarConfirmacion: () => void;
 }
 
 const Contexto = createContext<Billetera | null>(null);
@@ -55,6 +61,8 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
   const [destacada, setDestacada] = useState<number | null>(null);
   const [agregando, setAgregando] = useState(false);
   const [banco, setBanco] = useState("brou");
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+  const [viajando, setViajando] = useState(false);
 
   useEffect(() => {
     setMis(leer());
@@ -95,9 +103,42 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
     setEstado(1);
     setDestacada(null);
     setAgregando(false);
+    setConfirmando(null);
+    setViajando(false);
     // Se desmonta recién cuando terminaron las transiciones de cierre.
     setTimeout(() => setEstado((e) => (e === 1 ? 0 : e)), 500);
   }, []);
+
+  /**
+   * Abre la billetera ofreciendo guardar una tarjeta (la usa Comparar). Es la
+   * misma cartera pero sin la interacción de quitar: solo se confirma o no.
+   */
+  const pedirConfirmacion = useCallback(
+    (productoId: string) => {
+      setConfirmando(productoId);
+      setViajando(false);
+      setAgregando(false);
+      setDestacada(null);
+      setEstado(1);
+      requestAnimationFrame(() => requestAnimationFrame(() => setEstado(2)));
+    },
+    [],
+  );
+
+  /**
+   * La tarjeta viaja al frente de la pila y recién cuando llega se guarda: si
+   * se agregara antes, la pila se re-renderizaría con ella y el viaje se vería
+   * cortado.
+   */
+  const aceptarConfirmacion = useCallback(() => {
+    const id = confirmando;
+    if (!id) return;
+    setViajando(true);
+    setTimeout(() => {
+      guardar(mis.includes(id) ? mis : [...mis, id]);
+      cerrar();
+    }, 700);
+  }, [confirmando, mis, guardar, cerrar]);
 
   // Escape cierra, como cualquier diálogo.
   useEffect(() => {
@@ -110,7 +151,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
   // Con la billetera abierta la rueda del mouse recorre la escalera de
   // tarjetas en lugar de scrollear la página.
   useEffect(() => {
-    if (estado !== 2) return;
+    if (estado !== 2 || confirmando) return;
     let acumulado = 0;
     let bloqueoHasta = 0;
     const alRodar = (e: WheelEvent) => {
@@ -132,7 +173,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
     };
     window.addEventListener("wheel", alRodar, { passive: false });
     return () => window.removeEventListener("wheel", alRodar);
-  }, [estado, mis.length]);
+  }, [estado, mis.length, confirmando]);
 
   const valor = useMemo<Billetera>(
     () => ({
@@ -149,8 +190,26 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
       alternarAgregar: () => setAgregando((a) => !a),
       banco,
       elegirBanco: setBanco,
+      confirmando,
+      viajando,
+      pedirConfirmacion,
+      aceptarConfirmacion,
     }),
-    [mis, cargado, alternar, estado, abrir, cerrar, destacada, agregando, banco],
+    [
+      mis,
+      cargado,
+      alternar,
+      estado,
+      abrir,
+      cerrar,
+      destacada,
+      agregando,
+      banco,
+      confirmando,
+      viajando,
+      pedirConfirmacion,
+      aceptarConfirmacion,
+    ],
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { FUENTES } from "@tarjetazo/core";
+import { FUENTES, type Producto } from "@tarjetazo/core";
 import { useBilletera } from "@/lib/billetera";
 import {
   FUENTE_POR_ID,
@@ -30,7 +30,11 @@ export function Billetera() {
   const n = b.mis.length;
   // Con muchas tarjetas la escalera se comprime para no salirse del alto.
   const paso = n <= 6 ? 30 : Math.floor(180 / n);
-  const hov = b.destacada;
+  // En la confirmación no se destaca ni se quita nada: solo se dice sí o no.
+  const confirmando = b.confirmando ? PRODUCTO_POR_ID[b.confirmando] : undefined;
+  const hov = confirmando ? null : b.destacada;
+  // La escalera sube menos que en el modo normal para dejar aire al título.
+  const alto = confirmando ? 110 : 150;
   // Sin tarjetas el botón va donde iría la tarjeta de más arriba: por encima
   // de la tira abierta (que llega hasta y=158), con 8px de aire.
   const addTy = !abierta ? 0 : n === 0 ? -194 : -(n * paso) - 150 - (hov != null ? 34 : 0) - 8;
@@ -66,22 +70,26 @@ export function Billetera() {
           transition: `transform .45s ${SUAVE}`,
         }}
       >
-        <p
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 470,
-            margin: 0,
-            textAlign: "center",
-            color: "#b9c3cf",
-            fontSize: 13,
-            opacity: abierta ? 1 : 0,
-            transition: "opacity .3s .4s",
-          }}
-        >
-          Tocá una tarjeta para sacarla · clic afuera para cerrar
-        </p>
+        {confirmando ? (
+          <Confirmacion producto={confirmando} abierta={abierta} n={n} paso={paso} />
+        ) : (
+          <p
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: 470,
+              margin: 0,
+              textAlign: "center",
+              color: "#b9c3cf",
+              fontSize: 13,
+              opacity: abierta ? 1 : 0,
+              transition: "opacity .3s .4s",
+            }}
+          >
+            Tocá una tarjeta para sacarla · clic afuera para cerrar
+          </p>
+        )}
 
         <Tira abierta={abierta} lado="abierta" />
 
@@ -111,7 +119,7 @@ export function Billetera() {
           // Las de arriba se separan y las de abajo bajan: siempre queda una
           // franja clickeable de cada tarjeta.
           const desvio = hov == null ? 0 : i > hov ? -34 : i < hov ? 34 : 0;
-          const ty = abierta ? -(i * paso) - 150 + desvio : i * 5;
+          const ty = abierta ? -(i * paso) - alto + desvio : i * 5;
           return (
             <div
               key={id}
@@ -134,6 +142,7 @@ export function Billetera() {
               <button
                 type="button"
                 aria-label={`Quitar ${p.nombre}`}
+                disabled={Boolean(confirmando)}
                 onClick={(e) => {
                   e.stopPropagation();
                   b.alternar(id);
@@ -155,7 +164,7 @@ export function Billetera() {
                   fontSize: 13,
                   fontWeight: 600,
                   textAlign: "left",
-                  cursor: "pointer",
+                  cursor: confirmando ? "default" : "pointer",
                   position: "relative",
                 }}
               >
@@ -165,9 +174,11 @@ export function Billetera() {
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.8 }}>{f?.nombre}</span>
                 </span>
-                <span style={{ fontSize: 14 }} aria-hidden>
-                  ✕
-                </span>
+                {!confirmando && (
+                  <span style={{ fontSize: 14 }} aria-hidden>
+                    ✕
+                  </span>
+                )}
                 <span
                   style={{ position: "absolute", left: 12, top: 52, width: 26, height: 20, borderRadius: 4, background: "rgba(247,181,0,1)" }}
                 />
@@ -191,6 +202,7 @@ export function Billetera() {
         })}
 
         {/* alta de tarjetas */}
+        {!confirmando && (
         <div
           style={{
             position: "absolute",
@@ -250,8 +262,9 @@ export function Billetera() {
             Agregar tarjeta
           </button>
         </div>
+        )}
 
-        {abierta && b.agregando && <PanelDeAlta />}
+        {abierta && b.agregando && !confirmando && <PanelDeAlta />}
 
         {/* bolsillo frontal */}
         <div
@@ -479,5 +492,224 @@ function PanelDeAlta() {
         })}
       </div>
     </div>
+  );
+}
+
+
+/**
+ * Variante "¿Agregar al tarjetero?": la misma cartera, pero en vez de sacar
+ * tarjetas se ofrece guardar una. La nueva espera al costado con un tintineo y
+ * una flecha que apunta a la pila; al confirmar viaja hasta el frente y recién
+ * cuando llega se guarda.
+ */
+function Confirmacion({
+  producto,
+  abierta,
+  n,
+  paso,
+}: {
+  producto: Producto;
+  abierta: boolean;
+  n: number;
+  paso: number;
+}) {
+  const b = useBilletera();
+  const f = FUENTE_POR_ID[producto.fuente_id];
+  const color = colorFuente(producto.fuente_id).color;
+
+  // Espera a la altura de la tarjeta más alta; al confirmar va al lugar que le
+  // tocaría como última de la escalera.
+  const yCima = -(Math.max(n - 1, 0) * paso) - 110;
+  const yDestino = -(n * paso) - 110;
+  const viaja = b.viajando;
+  const y = viaja ? yDestino : yCima;
+  const x = viaja ? 0 : abierta ? 268 : 440;
+  const topTitulo = Math.max(0, 300 + yCima - 82);
+
+  return (
+    <>
+      <div
+        style={{
+          position: "absolute",
+          // Más ancho que la cartera: si no, el subtítulo se parte en tres
+          // líneas y la última queda tapada por la pila.
+          left: -70,
+          right: -70,
+          top: topTitulo,
+          textAlign: "center",
+          opacity: abierta ? 1 : 0,
+          transition: "opacity .3s .3s, top .32s " + SUAVE,
+        }}
+      >
+        <h2
+          className="font-display"
+          style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}
+        >
+          ¿Agregar al tarjetero?
+        </h2>
+        <p style={{ margin: "6px 0 0", fontSize: 13, color: "#b9c3cf", lineHeight: 1.5 }}>
+          {nombreCorto(producto)} · {f?.nombre}
+          <br />
+          Pasa a contar en tu ahorro y en todas las comparaciones.
+        </p>
+      </div>
+
+      {/* flecha: desaparece apenas se confirma */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 262,
+          top: 300 + yCima + 50,
+          width: 44,
+          height: 24,
+          opacity: abierta && !viaja ? 1 : 0,
+          transition: viaja ? "opacity 0s" : "opacity .3s .5s",
+          zIndex: 45,
+        }}
+      >
+        <div className="tintinea">
+          <svg width="44" height="24" viewBox="0 0 44 24" fill="none">
+            <path
+              d="M42 12H4M4 12l10-8M4 12l10 8"
+              stroke="#f7b500"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </div>
+
+      {/* la tarjeta nueva */}
+      <div
+        style={{
+          position: "absolute",
+          left: 50,
+          top: 300,
+          width: 200,
+          height: 125,
+          transform: `translate(${x}px, ${y}px)`,
+          opacity: abierta ? 1 : 0,
+          transition: `transform .6s ${SUAVE} ${viaja ? 0 : 0.25}s, opacity .3s`,
+          zIndex: 46,
+        }}
+      >
+        <div className={viaja ? undefined : "tintinea"} style={{ width: "100%", height: "100%" }}>
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              height: "100%",
+              borderRadius: 12,
+              background: color,
+              border: "2px solid #f7b500",
+              boxSizing: "border-box",
+              boxShadow: "0 0 0 6px rgba(247,181,0,.18), 0 -3px 10px rgba(0,0,0,.3)",
+              padding: "10px 12px",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                right: 10,
+                top: 10,
+                background: "#f7b500",
+                color: "#14202c",
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: ".08em",
+                borderRadius: 4,
+                padding: "2px 5px",
+              }}
+            >
+              NUEVA
+            </span>
+            <span style={{ display: "block", paddingRight: 52 }}>{nombreCorto(producto)}</span>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, opacity: 0.8 }}>
+              {f?.nombre}
+            </span>
+            <span
+              style={{ position: "absolute", left: 12, top: 52, width: 26, height: 20, borderRadius: 4, background: "#f7b500" }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                left: 12,
+                bottom: 12,
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: ".06em",
+                textTransform: "uppercase",
+                opacity: 0.85,
+              }}
+            >
+              {pieDeTarjeta(producto)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: 470,
+          display: "flex",
+          justifyContent: "center",
+          gap: 10,
+          zIndex: 50,
+          opacity: abierta ? 1 : 0,
+          transition: "opacity .3s .4s",
+        }}
+      >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            b.cerrar();
+          }}
+          style={{
+            height: 40,
+            padding: "0 18px",
+            borderRadius: 10,
+            border: "1px solid rgba(255,255,255,.3)",
+            background: "transparent",
+            color: "#fff",
+            font: "inherit",
+            fontSize: 14,
+            fontWeight: 500,
+            cursor: "pointer",
+          }}
+        >
+          Ahora no
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            b.aceptarConfirmacion();
+          }}
+          style={{
+            height: 40,
+            padding: "0 18px",
+            borderRadius: 10,
+            border: 0,
+            background: "#f7b500",
+            color: "#14202c",
+            font: "inherit",
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          Sí, guardarla
+        </button>
+      </div>
+    </>
   );
 }
