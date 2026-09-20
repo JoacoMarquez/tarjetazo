@@ -4,8 +4,24 @@
     {
       "name": "tarjetazo-web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@tarjetazo/web", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@tarjetazo/web",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "tarjetazo-prod",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@tarjetazo/web",
+        "start",
+        "-p",
+        "3210"
+      ],
+      "port": 3210
     }
   ]
 }
