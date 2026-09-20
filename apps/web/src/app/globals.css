@@ -375,3 +375,41 @@
     animation: none;
   }
 }
+
+/* ==========================================================================
+   Comparar — cambio de pestaña
+   La sección entra desde el lado hacia el que se mueve la pestaña elegida.
+   ========================================================================== */
+@keyframes tabInR {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tabInL {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.tab-entra-r {
+  animation: tabInR 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.tab-entra-l {
+  animation: tabInL 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-entra-r,
+  .tab-entra-l {
+    animation: none;
+  }
+}

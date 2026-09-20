@@ -1,32 +1,19 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { EncabezadoSitio } from "@/components/encabezado";
-import { NavInferior, PieSitio } from "@/components/nav";
-import { Comparador } from "@/components/comparador";
+import { matrizComparar } from "@/lib/comparar-tarjetas";
+import { CompararCliente } from "./comparar-cliente";
+
+// La matriz sale de los beneficios, que cambian con el cron diario: una hora
+// de caché alcanza y evita recalcularla en cada visita.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Qué banco te conviene según dónde gastás",
+  title: "Comparar tus tarjetas",
   description:
-    "Elegí los rubros donde más gastás y comparamos los beneficios de cada banco, emisor y billetera de Uruguay: cantidad, porcentaje, días y topes. Con la fórmula a la vista.",
-  alternates: { canonical: "/comparar" },
+    "Cuánto te ahorra cada tarjeta por mes según dónde gastás, qué días conviene cada una y si vale la pena sumar una nueva.",
 };
 
-export default function PaginaComparar() {
-  return (
-    <>
-      <EncabezadoSitio />
-      <main className="mx-auto max-w-3xl px-5 pb-24 pt-8 md:pb-12">
-        <h1 className="text-3xl md:text-4xl">¿Qué banco te conviene?</h1>
-        <p className="text-humo mt-2">
-          Elegí en qué gastás y comparamos lo que publica cada fuente. Es una cuenta sobre datos
-          públicos, no un consejo financiero: pesá también costos, límites y cómo te tratan.
-        </p>
-        <Suspense fallback={<div className="bg-papel mt-8 h-64 animate-pulse rounded-lg" />}>
-          <Comparador />
-        </Suspense>
-      </main>
-      <PieSitio />
-      <NavInferior />
-    </>
-  );
+export default async function PaginaComparar() {
+  // Si Supabase no responde, la página sale igual: sin datos que comparar.
+  const matriz = await matrizComparar().catch(() => ({}));
+  return <CompararCliente matriz={matriz} />;
 }
