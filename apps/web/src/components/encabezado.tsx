@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Search, User } from "lucide-react";
 import { useBilletera } from "@/lib/billetera";
 import { GRADIENTE, PRODUCTO_POR_ID } from "@/lib/marca";
-import { ListaResultados, useBusqueda } from "./busqueda";
-import { PilaTarjetas } from "./pila-tarjetas";
+import { ListaResultados, useBusqueda } from "./home/busqueda";
+import { PilaTarjetas } from "./home/pila-tarjetas";
 
 const PIZARRA = "#2b3a4a";
 
@@ -137,17 +138,40 @@ const NAV = [
   { label: "Comparar", href: "/comparar" },
 ] as const;
 
-export function HeaderHome() {
+/**
+ * Header común de Home, Explorar y Comparar. La pestaña activa va en blanco
+ * 600 con un subrayado de 2px pintado con el gradiente de marca; las demás en
+ * humo-claro y se pintan con el gradiente al pasar por encima.
+ */
+export function EncabezadoSitio() {
+  const ruta = usePathname();
   return (
     <header className="sticky top-0 z-30" style={{ background: "#14202c" }}>
       <div className="mx-auto flex max-w-[1120px] items-center gap-8 px-5 py-3">
         <Wordmark />
         <nav className="hidden items-center gap-6 text-[15px] md:flex">
-          {NAV.map((i) => (
-            <Link key={i.href} href={i.href} className="link-marca font-medium text-white">
-              {i.label}
-            </Link>
-          ))}
+          {NAV.map((i) => {
+            const activo = i.href === "/" ? ruta === "/" : ruta.startsWith(i.href);
+            return (
+              <Link
+                key={i.href}
+                href={i.href}
+                aria-current={activo ? "page" : undefined}
+                className={
+                  activo
+                    ? "border-b-2 border-transparent pb-0.5 font-semibold text-white"
+                    : "link-marca text-humo-claro font-medium"
+                }
+                style={
+                  activo
+                    ? { borderImage: `${GRADIENTE} 1`, borderImageSlice: 1 }
+                    : undefined
+                }
+              >
+                {i.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="ml-auto flex items-center justify-end gap-2.5">
           <BotonBilletera />

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { EncabezadoSitio, NavInferior, PieSitio } from "@/components/nav";
+import { EncabezadoSitio } from "@/components/encabezado";
+import { NavInferior, PieSitio } from "@/components/nav";
 
 /** Marco común de las páginas de texto: ayuda, términos y privacidad. */
 export function PaginaTexto({

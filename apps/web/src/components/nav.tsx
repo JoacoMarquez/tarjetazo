@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, CreditCard, Home, Scale, User } from "lucide-react";
+import { Compass, CreditCard, Home, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Logo({ className }: { className?: string }) {
@@ -47,41 +47,6 @@ const ITEMS: Item[] = [
     href: { pathname: "/app", query: { perfil: "1" } },
   },
 ];
-
-export function EncabezadoSitio() {
-  return (
-    <header className="border-linea bg-hueso/90 sticky top-0 z-30 border-b backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center gap-6 px-5 py-3">
-        <Logo className="text-xl" />
-        <nav className="ml-auto hidden items-center gap-5 text-sm md:flex">
-          <Link href="/app" className="hover:text-cielo font-medium">
-            Explorar
-          </Link>
-          <Link href="/comparar" className="hover:text-cielo font-medium">
-            Comparar
-          </Link>
-          <Link href="/ayuda" className="text-humo hover:text-cielo">
-            Ayuda
-          </Link>
-          <Link
-            href="/app"
-            className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 font-medium hover:opacity-90"
-          >
-            Ver beneficios
-          </Link>
-        </nav>
-        {/* TODO: con sesión activa este botón debería llevar al perfil. */}
-        <Link
-          href="/login"
-          aria-label="Ingresar o crear cuenta"
-          className="bg-pizarra ml-auto inline-flex size-10 shrink-0 items-center justify-center rounded-full text-white md:ml-0"
-        >
-          <User className="size-[18px]" strokeWidth={2} />
-        </Link>
-      </div>
-    </header>
-  );
-}
 
 /** Barra inferior de mobile. En escritorio no se muestra. */
 export function NavInferior() {

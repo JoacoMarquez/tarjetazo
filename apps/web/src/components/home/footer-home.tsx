@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Mail } from "lucide-react";
 import { CATEGORIAS } from "@tarjetazo/core";
 import { useBilletera } from "@/lib/billetera";
-import { Wordmark } from "./header-home";
+import { Wordmark } from "@/components/encabezado";
 
 const RUBROS = CATEGORIAS.filter((c) => c.en_home).slice(0, 6);
 

@@ -35,6 +35,7 @@
   --papel-2: #eeebe3;
   --tinta: #14202c;
   --pizarra: #2b3a4a;
+  --pizarra-2: #34455a;
   --humo: #6b7683;
   --humo-oscuro: #8a97a6;
   --humo-claro: #b9c3cf;
@@ -111,6 +112,7 @@
   --color-papel-2: var(--papel-2);
   --color-tinta: var(--tinta);
   --color-pizarra: var(--pizarra);
+  --color-pizarra-2: var(--pizarra-2);
   --color-humo: var(--humo);
   --color-humo-oscuro: var(--humo-oscuro);
   --color-humo-claro: var(--humo-claro);

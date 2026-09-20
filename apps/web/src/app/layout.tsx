@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo, Inter, Outfit } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Analitica } from "@/components/analitica";
+import { Proveedores } from "@/components/proveedores";
 import "./globals.css";
 
 const outfit = Outfit({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-outfit" });
@@ -37,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es-UY" className={`${outfit.variable} ${inter.variable} ${archivo.variable}`}>
       <body>
-        {children}
+        <Proveedores>{children}</Proveedores>
         <Analitica />
         <Analytics />
       </body>

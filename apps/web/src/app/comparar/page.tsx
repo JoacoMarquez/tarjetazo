@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { EncabezadoSitio, NavInferior, PieSitio } from "@/components/nav";
+import { EncabezadoSitio } from "@/components/encabezado";
+import { NavInferior, PieSitio } from "@/components/nav";
 import { Comparador } from "@/components/comparador";
 
 export const metadata: Metadata = {

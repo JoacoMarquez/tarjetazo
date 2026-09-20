@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, MapPin, Sparkles } from "lucide-react";
-import { EncabezadoSitio, NavInferior, PieSitio } from "@/components/nav";
+import { EncabezadoSitio } from "@/components/encabezado";
+import { NavInferior, PieSitio } from "@/components/nav";
 import { CopiarLink } from "@/components/copiar-link";
 import {
   aplicaHoy,
