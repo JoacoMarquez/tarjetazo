@@ -1,8 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import L from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
 import type { Bbox, PuntoMapa } from "@/lib/consultas";
@@ -16,7 +30,7 @@ const CENTRO: [number, number] = [-34.9011, -56.1645];
  * Pin propio: el número es la información, no el ícono. Se dibuja con HTML
  * porque Leaflet no acepta componentes de React dentro de un marcador.
  */
-function icono(p: PuntoMapa, mias?: string[]): L.DivIcon {
+function icono(p: PuntoMapa, mias?: string[], seleccionado = false): L.DivIcon {
   const etiqueta =
     p.best_pct != null
       ? `${Math.round(p.best_pct)}%`
@@ -30,9 +44,13 @@ function icono(p: PuntoMapa, mias?: string[]): L.DivIcon {
     !mias ||
     p.mejor_productos.length === 0 ||
     p.mejor_productos.some((id) => mias.includes(id));
-  const estilo = laTengo
+  const base = laTengo
     ? `background:${color};color:#fff;border:2px solid #fff`
     : `background:#fff;color:var(--humo);border:1.5px dashed ${color}`;
+  // El pin elegido crece y se rodea con el color del banco.
+  const estilo = seleccionado
+    ? `${base};transform:scale(1.25);outline:3px solid ${color};outline-offset:3px;z-index:5`
+    : base;
   return L.divIcon({
     className: "",
     html: `<span class="num flex h-7 min-w-7 items-center justify-center rounded-pill px-1.5 text-xs font-bold shadow-md" style="${estilo}">${etiqueta}</span>`,
@@ -140,10 +158,46 @@ function useMedido() {
   return { ref, medido };
 }
 
+/**
+ * Traduce la posición del pin elegido a píxeles del contenedor para que el
+ * popup pueda anclarse a él y seguirlo mientras se mueve el mapa.
+ */
+function SeguirSeleccion({
+  punto,
+  onPos,
+}: {
+  punto: PuntoMapa | null;
+  onPos: (p: { x: number; y: number } | null) => void;
+}) {
+  const mapa = useMap();
+  // Igual que en AvisarMovimiento: el callback cambia de identidad en cada
+  // render del padre y no puede ser dependencia del efecto.
+  const ultimo = useRef(onPos);
+  ultimo.current = onPos;
+
+  const reportar = useCallback(() => {
+    if (!punto) {
+      ultimo.current(null);
+      return;
+    }
+    const px = mapa.latLngToContainerPoint([punto.lat, punto.lng]);
+    ultimo.current({ x: px.x, y: px.y });
+  }, [punto, mapa]);
+
+  useMapEvents({ move: reportar, zoom: reportar, resize: reportar });
+
+  useEffect(() => {
+    reportar();
+  }, [reportar]);
+
+  return null;
+}
+
 function IrA({ punto }: { punto: [number, number] | null }) {
   const mapa = useMap();
   useEffect(() => {
-    if (punto) mapa.flyTo(punto, Math.max(mapa.getZoom(), 15), { duration: 0.8 });
+    if (punto)
+      mapa.flyTo(punto, Math.max(mapa.getZoom(), 15), { duration: 0.8 });
   }, [punto, mapa]);
   return null;
 }
@@ -156,6 +210,9 @@ export default function Mapa({
   irA,
   mias,
   zoomConRueda = true,
+  seleccion = null,
+  onElegirPunto,
+  onPosSeleccion,
 }: {
   puntos: PuntoMapa[];
   recortado: boolean;
@@ -166,74 +223,115 @@ export default function Mapa({
   mias?: string[];
   /** En la home el mapa está en medio del scroll: la rueda no hace zoom. */
   zoomConRueda?: boolean;
+  /** `comercio_key` del pin elegido: crece y se rodea con el color del banco. */
+  seleccion?: string | null;
+  /** Con esto Explorar maneja su propia ficha en vez del popup de Leaflet. */
+  onElegirPunto?: (p: PuntoMapa) => void;
+  onPosSeleccion?: (p: { x: number; y: number } | null) => void;
 }) {
   const { ref, medido } = useMedido();
+
+  const propio = Boolean(onElegirPunto);
+  // El callback llega nuevo en cada render; con la ref los marcadores no se
+  // recrean (y con ellos todos los iconos) en cada pintada del padre.
+  const elegir = useRef(onElegirPunto);
+  elegir.current = onElegirPunto;
 
   const marcadores = useMemo(
     () =>
       puntos.map((p) => (
-        <Marker key={p.sucursal_id} position={[p.lat, p.lng]} icon={icono(p, mias)}>
-          <Popup>
-            <span className="font-display block text-sm font-bold">{p.comercio}</span>
-            <span className="block text-xs text-[var(--humo)]">{p.direccion}</span>
-            <span className="mt-1 block text-xs">
-              {p.n_beneficios} {p.n_beneficios === 1 ? "beneficio" : "beneficios"}
-              {p.best_pct != null && ` · hasta ${Math.round(p.best_pct)}%`}
-            </span>
-            <a className="text-[var(--cielo)] mt-1 mr-3 inline-block text-xs font-medium underline" href={`/comercio/${p.comercio_key}`}>
-              Ver beneficios
-            </a>
-            <a
-              className="text-[var(--cielo)] mt-1 inline-block text-xs font-medium underline"
-              href={`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`}
-              target="_blank"
-              rel="noreferrer noopener"
-              onClick={() => capturar("click_saliente", { destino: "google_maps", comercio: p.comercio_key })}
-            >
-              Cómo llegar
-            </a>
-          </Popup>
+        <Marker
+          key={p.sucursal_id}
+          position={[p.lat, p.lng]}
+          icon={icono(p, mias, seleccion === p.comercio_key)}
+          eventHandlers={
+            propio ? { click: () => elegir.current?.(p) } : undefined
+          }
+        >
+          {!propio && (
+            <Popup>
+              <span className="font-display block text-sm font-bold">
+                {p.comercio}
+              </span>
+              <span className="block text-xs text-[var(--humo)]">
+                {p.direccion}
+              </span>
+              <span className="mt-1 block text-xs">
+                {p.n_beneficios}{" "}
+                {p.n_beneficios === 1 ? "beneficio" : "beneficios"}
+                {p.best_pct != null && ` · hasta ${Math.round(p.best_pct)}%`}
+              </span>
+              <a
+                className="text-[var(--cielo)] mt-1 mr-3 inline-block text-xs font-medium underline"
+                href={`/comercio/${p.comercio_key}`}
+              >
+                Ver beneficios
+              </a>
+              <a
+                className="text-[var(--cielo)] mt-1 inline-block text-xs font-medium underline"
+                href={`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                onClick={() =>
+                  capturar("click_saliente", {
+                    destino: "google_maps",
+                    comercio: p.comercio_key,
+                  })
+                }
+              >
+                Cómo llegar
+              </a>
+            </Popup>
+          )}
         </Marker>
       )),
-    [puntos, mias],
+    [puntos, mias, seleccion, propio],
   );
 
   return (
     <div ref={ref} className="bg-papel relative size-full">
       {medido && (
-      <MapContainer
-        center={CENTRO}
-        zoom={13}
-        scrollWheelZoom={zoomConRueda}
-        className="size-full"
-        // Leaflet dibuja sus paneles con z-index altos; los bajamos para que la
-        // hoja del mobile y los popovers queden por encima.
-        style={{ zIndex: 0 }}
-      >
-        {/* CARTO pasó a pedir API key en sus basemaps, así que usamos los
-            tiles estándar de OpenStreetMap, que no la piden. */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
-        />
-        <AjustarAlContenedor />
-        <AvisarMovimiento onMover={onMover} />
-        <IrA punto={irA} />
-        <MarkerClusterGroup
-          chunkedLoading
-          maxClusterRadius={50}
-          iconCreateFunction={iconoCluster}
-          showCoverageOnHover={false}
+        <MapContainer
+          center={CENTRO}
+          zoom={13}
+          scrollWheelZoom={zoomConRueda}
+          className="size-full"
+          // Leaflet dibuja sus paneles con z-index altos; los bajamos para que la
+          // hoja del mobile y los popovers queden por encima.
+          style={{ zIndex: 0 }}
         >
-          {marcadores}
-        </MarkerClusterGroup>
-      </MapContainer>
+          {/* CARTO pasó a pedir API key en sus basemaps, así que usamos los
+            tiles estándar de OpenStreetMap, que no la piden. */}
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+          />
+          <AjustarAlContenedor />
+          <AvisarMovimiento onMover={onMover} />
+          <IrA punto={irA} />
+          {onPosSeleccion && (
+            <SeguirSeleccion
+              punto={puntos.find((p) => p.comercio_key === seleccion) ?? null}
+              onPos={onPosSeleccion}
+            />
+          )}
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={50}
+            iconCreateFunction={iconoCluster}
+            showCoverageOnHover={false}
+          >
+            {marcadores}
+          </MarkerClusterGroup>
+        </MapContainer>
       )}
 
       {medido && (recortado || cargando) && (
         <p className="border-linea bg-card/95 text-humo absolute left-1/2 top-3 z-1000 -translate-x-1/2 rounded-pill border px-3 py-1.5 text-xs shadow-sm">
-          {cargando ? "Buscando locales…" : "Hay más locales de los que entran: acercá el mapa"}
+          {cargando
+            ? "Buscando locales…"
+            : "Hay más locales de los que entran: acercá el mapa"}
         </p>
       )}
     </div>
