@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, CreditCard, Home, Scale } from "lucide-react";
+import { Compass, CreditCard, Home, Scale, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <Link href="/" className={cn("font-display font-extrabold tracking-tight", className)}>
+    <Link
+      href="/"
+      className={cn("font-display font-extrabold tracking-tight", className)}
+    >
       Tarjeta<span className="bg-marca bg-clip-text text-transparent">zo</span>
     </Link>
   );
@@ -17,13 +20,26 @@ type Item = {
   label: string;
   icono: typeof Home;
   ruta: string;
-  href?: { pathname: "/" | "/app" | "/comparar"; query?: Record<string, string> };
+  href?: {
+    pathname: "/" | "/app" | "/comparar";
+    query?: Record<string, string>;
+  };
 };
 
 const ITEMS: Item[] = [
   { label: "Inicio", icono: Home, ruta: "/", href: { pathname: "/" } },
-  { label: "Explorar", icono: Compass, ruta: "/app", href: { pathname: "/app" } },
-  { label: "Comparar", icono: Scale, ruta: "/comparar", href: { pathname: "/comparar" } },
+  {
+    label: "Explorar",
+    icono: Compass,
+    ruta: "/app",
+    href: { pathname: "/app" },
+  },
+  {
+    label: "Comparar",
+    icono: Scale,
+    ruta: "/comparar",
+    href: { pathname: "/comparar" },
+  },
   {
     label: "Mis tarjetas",
     icono: CreditCard,
@@ -54,6 +70,14 @@ export function EncabezadoSitio() {
             Ver beneficios
           </Link>
         </nav>
+        {/* TODO: con sesión activa este botón debería llevar al perfil. */}
+        <Link
+          href="/login"
+          aria-label="Ingresar o crear cuenta"
+          className="bg-pizarra ml-auto inline-flex size-10 shrink-0 items-center justify-center rounded-full text-white md:ml-0"
+        >
+          <User className="size-[18px]" strokeWidth={2} />
+        </Link>
       </div>
     </header>
   );
@@ -108,18 +132,27 @@ export function PieSitio() {
     <footer className="border-linea text-humo mt-16 border-t px-5 py-8 text-xs">
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
         <p>
-          Los beneficios pertenecen a sus fuentes. Cada ficha enlaza a la publicación oficial
-          del banco o emisor, que es la que vale. Corregimos o damos de baja contenido a
-          pedido.
+          Los beneficios pertenecen a sus fuentes. Cada ficha enlaza a la
+          publicación oficial del banco o emisor, que es la que vale. Corregimos
+          o damos de baja contenido a pedido.
         </p>
         <nav className="flex flex-wrap gap-4">
-          <Link href="/ayuda" className="hover:text-cielo underline-offset-4 hover:underline">
+          <Link
+            href="/ayuda"
+            className="hover:text-cielo underline-offset-4 hover:underline"
+          >
             Ayuda
           </Link>
-          <Link href="/terminos" className="hover:text-cielo underline-offset-4 hover:underline">
+          <Link
+            href="/terminos"
+            className="hover:text-cielo underline-offset-4 hover:underline"
+          >
             Términos
           </Link>
-          <Link href="/privacidad" className="hover:text-cielo underline-offset-4 hover:underline">
+          <Link
+            href="/privacidad"
+            className="hover:text-cielo underline-offset-4 hover:underline"
+          >
             Privacidad
           </Link>
         </nav>

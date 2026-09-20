@@ -152,9 +152,10 @@ export function HeaderHome() {
         <div className="ml-auto flex items-center justify-end gap-2.5">
           <BotonBilletera />
           <BuscadorHeader />
+          {/* TODO: con sesión activa este botón debería llevar al perfil. */}
           <Link
-            href="/ayuda"
-            aria-label="Ayuda"
+            href="/login"
+            aria-label="Ingresar o crear cuenta"
             className="hidden size-10 items-center justify-center rounded-full text-white sm:inline-flex"
             style={{ background: PIZARRA }}
           >
