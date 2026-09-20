@@ -300,11 +300,23 @@ export default function Mapa({
           // hoja del mobile y los popovers queden por encima.
           style={{ zIndex: 0 }}
         >
-          {/* CARTO pasó a pedir API key en sus basemaps, así que usamos los
-            tiles estándar de OpenStreetMap, que no la piden. */}
+          {/* Light Gray Canvas de Esri: gris desaturado tipo Positron, para
+            que los pines con la cifra sean lo único con color del mapa. No
+            pide API key; los de CARTO, que es lo que usa manguito, llegan con
+            marca de agua si no se les pasa una.
+
+            Viene en dos capas (fondo y etiquetas) y tiene datos hasta z16: de
+            ahí en más `maxNativeZoom` hace que Leaflet agrande el último tile
+            en vez de pedir uno que vuelve en blanco. */}
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; Esri'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+            maxNativeZoom={16}
+            maxZoom={19}
+          />
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+            maxNativeZoom={16}
             maxZoom={19}
           />
           <AjustarAlContenedor />
