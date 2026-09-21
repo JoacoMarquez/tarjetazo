@@ -16,6 +16,10 @@ const fechaHora = new Intl.DateTimeFormat("es-UY", {
 export default async function InicioAdmin() {
   await exigirAdmin();
   const db = createSupabaseAdmin();
+  // Uruguay no tiene horario de verano: la fecha local es siempre UTC-3.
+  const hoy = new Date(Date.now() - 3 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 
   const [cola, beneficios, corrida] = await Promise.all([
     db
@@ -25,7 +29,9 @@ export default async function InicioAdmin() {
     db
       .from("beneficio")
       .select("id", { count: "exact", head: true })
-      .eq("estado_revision", "ok"),
+      .eq("estado_revision", "ok")
+      .or(`vigencia_desde.is.null,vigencia_desde.lte.${hoy}`)
+      .or(`vigencia_hasta.is.null,vigencia_hasta.gte.${hoy}`),
     db
       .from("corrida")
       .select("fuente_id, empezo_en, termino_en, error")
