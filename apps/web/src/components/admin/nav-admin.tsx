@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, HeartPulse, Inbox, LayoutDashboard } from "lucide-react";
+import { Activity, HeartPulse, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Item = {
@@ -13,8 +13,7 @@ type Item = {
 };
 
 const ITEMS: Item[] = [
-  { label: "Inicio", icono: LayoutDashboard, href: "/admin" },
-  { label: "Corridas", icono: Activity },
+  { label: "Corridas", icono: Activity, href: "/admin" },
   { label: "Salud de datos", icono: HeartPulse },
   { label: "Cola de revisión", icono: Inbox },
 ];
@@ -42,7 +41,8 @@ export function NavAdmin() {
             </span>
           );
         }
-        const activo = pathname === href;
+        // El detalle de una corrida cuelga de esta misma sección.
+        const activo = pathname === href || pathname.startsWith("/admin/corridas");
         return (
           <Link
             key={label}
