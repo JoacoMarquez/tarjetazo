@@ -6,7 +6,9 @@ import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
 import {
   agruparPorFuente,
   duracion,
+  esProblema,
   estadoCorrida,
+  resumenError,
   type Corrida,
 } from "@/lib/admin/corridas";
 import { fechaHora, numero } from "@/lib/admin/formato";
@@ -16,10 +18,35 @@ export const metadata: Metadata = { title: "Corridas" };
 
 /** Corridas que se muestran por fuente: con el cron diario, algo más de una semana. */
 const POR_FUENTE = 10;
-/** Alcanza para POR_FUENTE de cada una aunque alguna fuente se haya corrido a mano varias veces. */
-const A_TRAER = 400;
+const COLUMNAS =
+  "id, fuente_id, empezo_en, termino_en, paginas, sin_cambios, nuevos, actualizados, vencidos, a_revisar, error";
 
 const NOMBRE_FUENTE = new Map(FUENTES.map((f) => [f.id as string, f.nombre]));
+
+/**
+ * Una consulta por fuente del catálogo, y no las últimas N de la tabla: con un
+ * tope global, una fuente que deja de correr termina saliendo de la ventana y
+ * desaparece del monitoreo justo cuando más importa verla.
+ */
+async function corridasPorFuente(db: ReturnType<typeof createSupabaseAdmin>) {
+  const resultados = await Promise.all(
+    FUENTES.map((f) =>
+      db
+        .from("corrida")
+        .select(COLUMNAS)
+        .eq("fuente_id", f.id)
+        .order("empezo_en", { ascending: false })
+        .limit(POR_FUENTE)
+        .returns<Corrida[]>(),
+    ),
+  );
+  return {
+    error: resultados.find((r) => r.error)?.error ?? null,
+    data: resultados
+      .flatMap((r) => r.data ?? [])
+      .sort((a, b) => b.empezo_en.localeCompare(a.empezo_en)),
+  };
+}
 
 export default async function Corridas() {
   await exigirAdmin();
@@ -30,14 +57,7 @@ export default async function Corridas() {
     .slice(0, 10);
 
   const [corridas, cola, beneficios, salud] = await Promise.all([
-    db
-      .from("corrida")
-      .select(
-        "id, fuente_id, empezo_en, termino_en, paginas, sin_cambios, nuevos, actualizados, vencidos, a_revisar, error",
-      )
-      .order("empezo_en", { ascending: false })
-      .limit(A_TRAER)
-      .returns<Corrida[]>(),
+    corridasPorFuente(db),
     db
       .from("beneficio_revision")
       .select("id", { count: "exact", head: true })
@@ -67,11 +87,17 @@ export default async function Corridas() {
   }
 
   const ahora = Date.now();
-  const fuentes = agruparPorFuente(corridas.data ?? [], ahora, POR_FUENTE);
-  const conProblema = fuentes.filter(
-    (f) => f.estado !== "ok" && f.estado !== "en_curso",
-  ).length;
-  const ultima = corridas.data?.[0];
+  const todas = agruparPorFuente(
+    corridas.data,
+    ahora,
+    POR_FUENTE,
+    FUENTES.map((f) => f.id),
+  );
+  // Las que nunca corrieron van aparte: se ven, pero no son una alarma.
+  const fuentes = todas.filter((f) => f.estado !== "sin_historial");
+  const sinHistorial = todas.filter((f) => f.estado === "sin_historial");
+  const conProblema = fuentes.filter((f) => esProblema(f.estado)).length;
+  const ultima = corridas.data[0];
   // Si la migración de salud todavía no se aplicó, el dashboard igual tiene que abrir.
   const alertas = salud.error ? null : totalAccionables(armarResumen(salud.data));
 
@@ -120,7 +146,7 @@ export default async function Corridas() {
                 <EstadoCorridaBadge estado={f.estado} />
               </header>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm">
+                <table className="w-full min-w-[760px] text-sm">
                   <thead>
                     <tr className="text-humo-oscuro text-left text-xs">
                       <Th>Empezó</Th>
@@ -132,6 +158,7 @@ export default async function Corridas() {
                       <Th num>Vencidos</Th>
                       <Th num>A revisar</Th>
                       <Th num>Duración</Th>
+                      <Th>Error</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -157,6 +184,17 @@ export default async function Corridas() {
                         <Td destacar={c.vencidos > 0}>{numero(c.vencidos)}</Td>
                         <Td destacar={c.a_revisar > 0}>{numero(c.a_revisar)}</Td>
                         <Td>{duracion(c) ?? "—"}</Td>
+                        <td className="text-coral-ink max-w-[22rem] px-4 py-2 text-xs">
+                          {c.error ? (
+                            <Link
+                              href={`/admin/corridas/${c.id}`}
+                              title="Ver el error completo"
+                              className="hover:underline"
+                            >
+                              {resumenError(c.error)}
+                            </Link>
+                          ) : null}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -166,6 +204,16 @@ export default async function Corridas() {
           ))}
         </div>
       )}
+
+      {sinHistorial.length > 0 ? (
+        <p className="text-humo-oscuro mt-6 text-sm">
+          Sin corridas registradas (no están en el cron):{" "}
+          {sinHistorial
+            .map((f) => NOMBRE_FUENTE.get(f.fuenteId) ?? f.fuenteId)
+            .join(", ")}
+          .
+        </p>
+      ) : null}
     </div>
   );
 }
