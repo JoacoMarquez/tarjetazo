@@ -73,8 +73,9 @@ export default async function Corridas() {
     <div className="mx-auto max-w-5xl">
       <h1 className="text-2xl">Corridas</h1>
       <p className="text-pizarra mt-1 text-sm">
-        Últimas {POR_FUENTE} corridas de cada fuente. El cron corre todos los
-        días a las 06:00.
+        Últimas {POR_FUENTE} corridas de cada fuente. El cron está programado
+        para las 06:00, pero GitHub lo arranca con horas de demora (entre las
+        09:30 y las 13:00).
       </p>
 
       <dl className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
