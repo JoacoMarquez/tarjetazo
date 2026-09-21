@@ -4,6 +4,16 @@ import posthog from "posthog-js";
 
 let iniciado = false;
 
+/** Las rutas internas no deben salir en las métricas del sitio público. */
+export function esRutaAdmin(valor: string): boolean {
+  try {
+    const pathname = new URL(valor, "https://tarjetazo.uy").pathname;
+    return pathname === "/admin" || pathname.startsWith("/admin/");
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Métricas agregadas, sin perfiles de personas: no identificamos usuarios, no
  * grabamos sesiones y respetamos "Do Not Track". Si no hay clave configurada,
@@ -26,6 +36,10 @@ export function iniciarAnalitica() {
     capture_pageleave: true,
     disable_session_recording: true,
     autocapture: false,
+    before_send: (captura) => {
+      const url = captura?.properties.$current_url;
+      return typeof url === "string" && esRutaAdmin(url) ? null : captura;
+    },
   });
   iniciado = true;
 }
