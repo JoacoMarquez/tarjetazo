@@ -194,6 +194,8 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         reporte.a_revisar++;
         await encolarRevision(db, {
           fuente_id: fuenteId,
+          // La URL no identifica la página (Itaú comparte 2 entre 247): la clave es esta.
+          external_id: crudo.external_id,
           raw: { contenido: crudo.contenido, problemas: extraido.productos_desconocidos },
           motivo: extraido.productos_desconocidos.join(" | ").slice(0, 500),
           url_fuente: crudo.url_fuente,
