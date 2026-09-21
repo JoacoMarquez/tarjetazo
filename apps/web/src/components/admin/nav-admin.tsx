@@ -9,13 +9,13 @@ type Item = {
   label: string;
   icono: typeof Activity;
   /** Sin `href` la pantalla todavía no existe y el ítem queda deshabilitado. */
-  href?: "/admin" | "/admin/salud";
+  href?: "/admin" | "/admin/salud" | "/admin/revision";
 };
 
 const ITEMS: Item[] = [
   { label: "Corridas", icono: Activity, href: "/admin" },
   { label: "Salud de datos", icono: HeartPulse, href: "/admin/salud" },
-  { label: "Cola de revisión", icono: Inbox },
+  { label: "Cola de revisión", icono: Inbox, href: "/admin/revision" },
 ];
 
 export function NavAdmin() {

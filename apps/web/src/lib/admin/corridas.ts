@@ -21,8 +21,12 @@ export type EstadoCorrida = "ok" | "error" | "en_curso" | "trabada";
 
 /** Mismo umbral que `hayCorridaAbierta` del runner: abierta hace más de una hora = trabada. */
 const MS_VIVA = 60 * 60 * 1000;
-/** El cron es diario a las 06:00 UY; con 26 h de margen no salta por una corrida lenta. */
-const MS_DIARIA = 26 * 60 * 60 * 1000;
+/**
+ * El cron es diario, pero GitHub lo arranca cuando puede: en la práctica entre
+ * las 09:30 y las 13:00 UY. Con 30 h de margen, que un día arranque tres horas
+ * más tarde que el anterior no aparece como "no corrió".
+ */
+const MS_DIARIA = 30 * 60 * 60 * 1000;
 
 export function estadoCorrida(c: Corrida, ahora: number): EstadoCorrida {
   if (c.error) return "error";

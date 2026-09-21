@@ -70,6 +70,10 @@ Un módulo por fuente en `packages/scrapers/src/fuentes/`. El pipeline es
 pnpm --filter @tarjetazo/scrapers scrape brou --limite=3
 ```
 
+Las reglas de mapeo de tarjetas viven en `normalizador.ts`; encima se aplican los alias y
+las reglas de ignorar creados desde `/admin/revision` (tablas `producto_alias` y
+`regla_ignorar`), que el runner lee al arrancar.
+
 Otros comandos: `scrape revisiones` revalida la cola de revisión manual contra las
 reglas de mapeo actuales, y `scrape destrabar` cierra corridas que quedaron
 interrumpidas (el runner se niega a arrancar si hay una abierta de hace menos de una

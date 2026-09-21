@@ -5,8 +5,10 @@ import {
   BeneficioNormalizadoSchema,
   CATEGORIAS,
   PRODUCTOS,
+  normalizarNombreTarjeta,
   type BeneficioNormalizado,
 } from "@tarjetazo/core";
+import { SIN_REGLAS, type ReglasDb } from "./reglas-db.js";
 import { slugificar } from "./slug.js";
 import type { Crudo, Extraido } from "./tipos.js";
 
@@ -183,6 +185,17 @@ function normalizarTexto(s: string): string {
 }
 
 /**
+ * Reglas creadas desde el backoffice. Se cargan una vez por proceso (el runner
+ * y `scrape revisiones` lo hacen al arrancar) en vez de pasarlas por cada
+ * normalizador: todos terminan en `mapearProductos`.
+ */
+let reglasDb: ReglasDb = SIN_REGLAS;
+
+export function usarReglasDb(reglas: ReglasDb): void {
+  reglasDb = reglas;
+}
+
+/**
  * Un nombre de la página puede corresponder a varios productos: "tarjetas de
  * crédito y débito BROU VISA" son dos.
  */
@@ -191,15 +204,24 @@ export function mapearProductos(
   nombres: string[],
 ): { ids: string[]; desconocidos: string[] } {
   const reglas = ALIAS[fuenteId] ?? [];
+  const aliasDb = reglasDb.alias.get(fuenteId);
+  const ignorarDb = reglasDb.ignorar.get(fuenteId);
   const idsValidos = new Set(PRODUCTOS.filter((p) => p.fuente_id === fuenteId).map((p) => p.id));
   const ids = new Set<string>();
   const desconocidos: string[] = [];
 
   for (const nombre of nombres) {
+    // Las reglas del backoffice van primero y por texto exacto: son la
+    // corrección a mano de algo que los regex de abajo no resolvieron.
+    const exacto = normalizarNombreTarjeta(nombre);
+    if (ignorarDb?.has(exacto)) continue;
+
     const t = normalizarTexto(nombre);
     // La primera regla que matchea gana: van de más específica a más general.
     const regla = reglas.find(([re]) => re.test(t));
-    const encontrados = (regla?.[1] ?? []).filter((id) => idsValidos.has(id));
+    const encontrados = (aliasDb?.get(exacto) ?? regla?.[1] ?? []).filter((id) =>
+      idsValidos.has(id),
+    );
     if (encontrados.length > 0) for (const id of encontrados) ids.add(id);
     else desconocidos.push(nombre);
   }

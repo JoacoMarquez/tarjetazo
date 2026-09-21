@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { hash } from "./http.js";
-import { normalizar } from "./normalizador.js";
+import { normalizar, usarReglasDb } from "./normalizador.js";
+import { cargarReglasDb } from "./reglas-db.js";
 import {
   abrirCorrida,
   asegurarComercio,
@@ -14,6 +15,7 @@ import {
   hashesGuardados,
   idsDeBeneficios,
   marcarVencidos,
+  resolverRevisionesDePagina,
   upsertBeneficios,
 } from "./db.js";
 import { reversaIde } from "./geo/ide.js";
@@ -68,6 +70,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   const { fuenteId, fetch, normalizar: propio, soloFetch = false, limite } = opciones;
   const db = crearCliente();
   const claude = new Anthropic();
+  usarReglasDb(await cargarReglasDb(db));
   if (await hayCorridaAbierta(db, fuenteId)) {
     throw new Error(
       `ya hay una corrida de ${fuenteId} sin terminar; esperá a que cierre o marcala como terminada`,
@@ -132,6 +135,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         return;
       }
 
+      // Las reglas del backoffice (alias, ignorar) actúan en `mapearProductos`.
+      // Un normalizador propio no pasa por ahí, pero tampoco manda nombres de
+      // tarjeta a la cola: el de BBVA resuelve todo con su plantilla y nunca
+      // informa desconocidos, así que no hay nada a lo que ponerle un alias.
       const extraido = propio ? propio(crudo) : await normalizar(crudo, claude);
 
       // Solo creamos el comercio si la página dejó al menos un beneficio: si
@@ -182,6 +189,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         else reporte.nuevos++;
       }
       await upsertBeneficios(db, filas);
+
+      // La página se volvió a leer entera: lo que tenía pendiente en la cola ya
+      // no vale (si algo sigue sin resolverse, se encola de nuevo acá abajo).
+      await resolverRevisionesDePagina(db, fuenteId, crudo.external_id);
 
       if (extraido.productos_desconocidos.length > 0) {
         reporte.a_revisar++;

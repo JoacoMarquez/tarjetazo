@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { mapearProductos } from "./normalizador.js";
+import { esErrorDeTramo, problemasDeMotivo } from "@tarjetazo/core";
+import { mapearProductos, usarReglasDb } from "./normalizador.js";
+import { cargarReglasDb } from "./reglas-db.js";
 
 /**
  * La cola de revisión acumula entradas de corridas viejas que las reglas de
@@ -12,9 +14,12 @@ export async function revalidarRevisiones(db: SupabaseClient): Promise<{
   resueltas: number;
   pendientes: { fuente_id: string; motivo: string }[];
 }> {
+  usarReglasDb(await cargarReglasDb(db));
+
   const { data, error } = await db
     .from("beneficio_revision")
-    .select("id, fuente_id, motivo")
+    // `motivo` está cortado a 500 caracteres; la lista completa vive en `raw.problemas`.
+    .select("id, fuente_id, motivo, problemas:raw->problemas")
     .eq("resuelto", false);
   if (error) throw new Error(`leyendo revisiones: ${error.message}`);
 
@@ -22,13 +27,13 @@ export async function revalidarRevisiones(db: SupabaseClient): Promise<{
   const pendientes: { fuente_id: string; motivo: string }[] = [];
 
   for (const r of data ?? []) {
-    const nombres = String(r.motivo)
-      .split("|")
-      .map((x) => x.trim())
-      .filter(Boolean);
+    const guardados = (r as { problemas?: unknown }).problemas;
+    const nombres = Array.isArray(guardados)
+      ? guardados.filter((p): p is string => typeof p === "string" && p.trim() !== "")
+      : problemasDeMotivo(String(r.motivo));
     // Los motivos que no son nombres de tarjeta (errores de validación) no se
     // pueden reevaluar así: quedan pendientes.
-    const esDeProductos = nombres.length > 0 && !nombres.some((n) => n.startsWith("tramo "));
+    const esDeProductos = nombres.length > 0 && !nombres.some(esErrorDeTramo);
     const { desconocidos } = esDeProductos
       ? mapearProductos(r.fuente_id as string, nombres)
       : { desconocidos: nombres };

@@ -76,6 +76,17 @@ Todo SQL sobre lo existente:
 
 No hay "editar JSON y aprobar". Si un ítem no se resuelve con alias, es un bug del scraper o un caso de carga manual.
 
+Cómo quedó implementado (#16):
+- Una página con una tarjeta desconocida **igual publica sus beneficios**, sin esa tarjeta. Por eso *Asignar tarjeta* además pone `pagina_cruda.hash = ''` en las páginas afectadas: la próxima corrida las re-normaliza con el alias (una llamada al modelo por página). Revalidar la cola sola no corrige el beneficio.
+- La cola se agrupa por problema y fuente, no por fila. Una fila queda resuelta cuando todos sus problemas están cubiertos por un alias, una regla de ignorar o `beneficio_revision.descartados` (descartes a mano, sin regla).
+- `producto_alias` y `regla_ignorar` matchean por texto exacto normalizado (`normalizarNombreTarjeta` de `@tarjetazo/core`) y van **antes** que los regex de `normalizador.ts`. Un alias puede apuntar a varias tarjetas.
+- Los errores de validación de un tramo ("tramo N: …") solo se pueden descartar.
+- Al re-normalizar una página, el runner da por resueltas sus filas viejas y encola de nuevo lo que siga sin resolverse: no se acumulan duplicados.
+- Si las tablas de reglas no existen todavía, el runner avisa y sigue solo con las reglas de código.
+- La página se identifica por `(fuente_id, external_id)`, nunca por URL: Itaú publica 247 beneficios bajo 2 URLs. La cola guarda `external_id`; el cierre de ítems y la re-normalización van por esa clave.
+- Los problemas de una fila se leen de `raw.problemas`; `motivo` es un resumen cortado a 500 caracteres y solo sirve de respaldo.
+- Las reglas actúan en `mapearProductos`. Los normalizadores propios (BBVA) no pasan por ahí, pero tampoco mandan nombres de tarjeta a la cola, así que no hay nada a lo que ponerle un alias. Si un parser propio empieza a informar desconocidos, tiene que delegar en `mapearProductos`.
+
 ### Registro de beneficios (F2)
 Tabla filtrable del **estado actual** de `beneficio` (fuente, comercio, tipo, vigencia, `estado_revision`, origen, semáforo de frescura) con link al inspector y a la URL de la fuente. Sin historial de cambios.
 
@@ -117,7 +128,7 @@ Paso final de `.github/workflows/scrapers.yml`. Una línea por fuente (ok / erro
 | Fase | Cambio |
 |---|---|
 | F1 | Quitar policy de lectura pública de `corrida` (y de `beneficio_revision` si la tiene). |
-| F1 | `producto_alias (fuente_id, texto_normalizado → producto_id)`; `regla_ignorar (fuente_id, patron, motivo)`. El runner las lee al arrancar. |
+| F1 | `producto_alias (fuente_id, texto, producto_ids[])`; `regla_ignorar (fuente_id, texto)`; `beneficio_revision.descartados text[]`. El runner lee las dos tablas al arrancar. |
 | F2 | `beneficio.corrida_id`; `corrida.tokens_entrada`, `corrida.tokens_salida`. |
 | F2 | `pagina_cruda.hash_desde`; `pagina_cruda.http_status` (o tabla de chequeo de links). |
 | F2 | `regla_ocultar (fuente_id, external_id, hash_al_ocultar)`; `verificacion (beneficio_id, verificado_hasta)`. |

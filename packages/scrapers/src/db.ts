@@ -132,6 +132,26 @@ export async function encolarRevision(
 }
 
 /**
+ * Da por resuelto lo que la página tenía en la cola antes de volver a
+ * normalizarla. Por `external_id` y no por URL: Itaú publica 247 beneficios
+ * bajo 2 URLs, y por URL se cerraban ítems de páginas ajenas. Las filas viejas
+ * sin `external_id` no se tocan; las cierra `scrape revisiones` o el backoffice.
+ */
+export async function resolverRevisionesDePagina(
+  db: SupabaseClient,
+  fuenteId: string,
+  externalId: string,
+): Promise<void> {
+  const { error } = await db
+    .from("beneficio_revision")
+    .update({ resuelto: true })
+    .eq("fuente_id", fuenteId)
+    .eq("external_id", externalId)
+    .eq("resuelto", false);
+  if (error) throw new Error(`resolviendo revisiones de ${externalId}: ${error.message}`);
+}
+
+/**
  * Dos corridas de la misma fuente a la vez se pisan: una invalida el caché que
  * la otra está escribiendo y se gastan llamadas al modelo de más. Una corrida
  * sin terminar de hace menos de una hora se considera viva.
