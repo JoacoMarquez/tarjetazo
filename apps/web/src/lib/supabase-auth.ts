@@ -66,10 +66,11 @@ export function createSupabaseServidor(cookieStore: AlmacenCookies) {
 /**
  * Refresca la sesión en cada request y reenvía las cookies actualizadas.
  * Importante: hay que devolver *esta* respuesta para no perder las cookies.
+ * Devuelve también el usuario, que el middleware usa para cortar `/admin`.
  */
 export async function refrescarSesion(request: NextRequest) {
   const cred = credencialesAuth();
-  if (!cred) return NextResponse.next({ request });
+  if (!cred) return { respuesta: NextResponse.next({ request }), usuario: null };
 
   let respuesta = NextResponse.next({ request });
 
@@ -89,9 +90,9 @@ export async function refrescarSesion(request: NextRequest) {
   });
 
   // No sacar: esta llamada es la que dispara el refresh del token.
-  await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
 
-  return respuesta;
+  return { respuesta, usuario: data.user };
 }
 
 /**
