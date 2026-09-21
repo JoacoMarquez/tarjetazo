@@ -10,6 +10,7 @@ import {
   type Corrida,
 } from "@/lib/admin/corridas";
 import { fechaHora, numero } from "@/lib/admin/formato";
+import { armarResumen, totalAccionables } from "@/lib/admin/salud";
 
 export const metadata: Metadata = { title: "Corridas" };
 
@@ -24,7 +25,7 @@ export default async function Corridas() {
   await exigirAdmin();
   const db = createSupabaseAdmin();
 
-  const [corridas, cola, beneficios] = await Promise.all([
+  const [corridas, cola, beneficios, salud] = await Promise.all([
     db
       .from("corrida")
       .select(
@@ -41,6 +42,7 @@ export default async function Corridas() {
       .from("beneficio")
       .select("id", { count: "exact", head: true })
       .eq("estado_revision", "ok"),
+    db.rpc("salud_resumen"),
   ]);
 
   const fallo = corridas.error ?? cola.error ?? beneficios.error;
@@ -64,6 +66,8 @@ export default async function Corridas() {
     (f) => f.estado !== "ok" && f.estado !== "en_curso",
   ).length;
   const ultima = corridas.data?.[0];
+  // Si la migración de salud todavía no se aplicó, el dashboard igual tiene que abrir.
+  const alertas = salud.error ? null : totalAccionables(armarResumen(salud.data));
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -79,14 +83,17 @@ export default async function Corridas() {
           valor={`${conProblema} de ${fuentes.length}`}
           alerta={conProblema > 0}
         />
+        <Dato
+          titulo="Alertas de salud"
+          valor={alertas === null ? "—" : numero(alertas)}
+          alerta={(alertas ?? 0) > 0}
+          href="/admin/salud"
+        />
         <Dato titulo="Cola de revisión" valor={numero(cola.count ?? 0)} />
         <Dato
           titulo="Beneficios publicados"
           valor={numero(beneficios.count ?? 0)}
-        />
-        <Dato
-          titulo="Última corrida"
-          valor={ultima ? fechaHora(ultima.empezo_en) : "—"}
+          detalle={ultima ? `Última corrida: ${fechaHora(ultima.empezo_en)}` : undefined}
         />
       </dl>
 
@@ -160,11 +167,15 @@ export default async function Corridas() {
 function Dato({
   titulo,
   valor,
+  detalle,
   alerta,
+  href,
 }: {
   titulo: string;
   valor: string;
+  detalle?: string;
   alerta?: boolean;
+  href?: "/admin/salud";
 }) {
   return (
     <div
@@ -175,7 +186,16 @@ function Dato({
       }
     >
       <dt className="text-humo-oscuro text-xs font-medium">{titulo}</dt>
-      <dd className="font-display mt-1 text-xl font-bold">{valor}</dd>
+      <dd className="font-display mt-1 text-xl font-bold">
+        {href ? (
+          <Link href={href} className="hover:underline">
+            {valor}
+          </Link>
+        ) : (
+          valor
+        )}
+      </dd>
+      {detalle ? <p className="text-pizarra mt-0.5 text-xs">{detalle}</p> : null}
     </div>
   );
 }

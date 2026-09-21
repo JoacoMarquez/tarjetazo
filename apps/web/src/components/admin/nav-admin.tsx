@@ -9,12 +9,12 @@ type Item = {
   label: string;
   icono: typeof Activity;
   /** Sin `href` la pantalla todavía no existe y el ítem queda deshabilitado. */
-  href?: "/admin";
+  href?: "/admin" | "/admin/salud";
 };
 
 const ITEMS: Item[] = [
   { label: "Corridas", icono: Activity, href: "/admin" },
-  { label: "Salud de datos", icono: HeartPulse },
+  { label: "Salud de datos", icono: HeartPulse, href: "/admin/salud" },
   { label: "Cola de revisión", icono: Inbox },
 ];
 
@@ -42,7 +42,10 @@ export function NavAdmin() {
           );
         }
         // El detalle de una corrida cuelga de esta misma sección.
-        const activo = pathname === href || pathname.startsWith("/admin/corridas");
+        const activo =
+          href === "/admin"
+            ? pathname === href || pathname.startsWith("/admin/corridas")
+            : pathname.startsWith(href);
         return (
           <Link
             key={label}
