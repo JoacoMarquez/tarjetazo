@@ -14,6 +14,7 @@ import {
   hayCorridaAbierta,
   hashesGuardados,
   idsDeBeneficios,
+  marcarPaginaVista,
   marcarVencidos,
   resolverRevisionesDePagina,
   upsertBeneficios,
@@ -126,11 +127,13 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         // La página no cambió: sus beneficios siguen vigentes tal cual están.
         const prefijo = `${fuenteId}:${crudo.external_id}:`;
         for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
-        await guardarPagina(db, filaDePagina(crudo, h, null));
+        await marcarPaginaVista(db, crudo);
         return;
       }
 
       if (soloFetch) {
+        // Queda con `normalizada_en` en null: la próxima corrida real la
+        // normaliza aunque el hash coincida.
         await guardarPagina(db, filaDePagina(crudo, h, null));
         return;
       }

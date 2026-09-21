@@ -36,16 +36,38 @@ export function crearCliente(): SupabaseClient {
 }
 
 
+/**
+ * Hashes de las páginas que ya pasaron por el normalizador. Una página que
+ * solo se bajó (`--solo-fetch`) o que se marcó para re-normalizar tiene
+ * `normalizada_en` en null y no cuenta: si contara, la corrida siguiente la
+ * vería "sin cambios" y no la normalizaría nunca.
+ */
 export async function hashesGuardados(
   db: SupabaseClient,
   fuenteId: string,
 ): Promise<Map<string, string>> {
   const { data, error } = await db
     .from("pagina_cruda")
-    .select("external_id, hash")
+    .select("external_id, hash, normalizada_en")
     .eq("fuente_id", fuenteId);
   if (error) throw new Error(`leyendo pagina_cruda: ${error.message}`);
-  return new Map((data ?? []).map((r) => [r.external_id as string, r.hash as string]));
+  const filas = data ?? [];
+  const normalizadas = filas.filter((r) => r.normalizada_en !== null);
+
+  // Hasta 2026-09 el runner pisaba `normalizada_en` con null en cada página sin
+  // cambios: en producción lo tenían 6 de 1.300. Si la mayoría no lo tiene es
+  // que falta aplicar el backfill (20260924120000), y tomarlo al pie de la
+  // letra re-normalizaría —y pagaría— la fuente entera. En ese caso se sigue
+  // como antes. Con el backfill aplicado esto no vuelve a dispararse salvo que
+  // se haga `--solo-fetch` de más de media fuente, donde el aviso queda en el log.
+  if (normalizadas.length < filas.length / 2) {
+    console.error(
+      `  ${fuenteId}: solo ${normalizadas.length} de ${filas.length} páginas tienen normalizada_en; ` +
+        "falta el backfill, se comparan todos los hashes",
+    );
+    return new Map(filas.map((r) => [r.external_id as string, r.hash as string]));
+  }
+  return new Map(normalizadas.map((r) => [r.external_id as string, r.hash as string]));
 }
 
 export async function guardarPagina(
@@ -64,6 +86,25 @@ export async function guardarPagina(
     const { error } = await db
       .from("pagina_cruda")
       .upsert(pagina, { onConflict: "fuente_id,external_id" });
+    if (error) throw new Error(error.message);
+  });
+}
+
+/**
+ * La página llegó igual que la última vez: se registra que la vimos, sin tocar
+ * `hash` ni `normalizada_en`. Antes esto pasaba por el upsert de `guardarPagina`
+ * con `normalizada_en: null`, que borraba cuándo se había normalizado.
+ */
+export async function marcarPaginaVista(
+  db: SupabaseClient,
+  pagina: { fuente_id: string; external_id: string; url_fuente: string; fetched_at: string },
+): Promise<void> {
+  await conReintentos("actualizando pagina_cruda", async () => {
+    const { error } = await db
+      .from("pagina_cruda")
+      .update({ url_fuente: pagina.url_fuente, fetched_at: pagina.fetched_at })
+      .eq("fuente_id", pagina.fuente_id)
+      .eq("external_id", pagina.external_id);
     if (error) throw new Error(error.message);
   });
 }

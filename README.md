@@ -80,7 +80,8 @@ interrumpidas (el runner se niega a arrancar si hay una abierta de hace menos de
 hora, para que dos corridas no se pisen el caché).
 
 `--solo-fetch` baja y cachea las páginas sin llamar a Claude (útil para probar el
-descubrimiento sin gastar tokens). Necesita `SUPABASE_URL`,
+descubrimiento sin gastar tokens). Esas páginas quedan con `normalizada_en` en null, así
+que la corrida real siguiente las normaliza aunque el hash no haya cambiado. Necesita `SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY` y `ANTHROPIC_API_KEY` en el entorno.
 
 Cada página se guarda en `pagina_cruda` con un hash: si en la corrida siguiente el
