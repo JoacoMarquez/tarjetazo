@@ -24,7 +24,7 @@ export default async function ColaDeRevision({
   const [cola, alias, ignorar] = await Promise.all([
     db
       .from("beneficio_revision")
-      .select("id, fuente_id, motivo, url_fuente, created_at, descartados")
+      .select("id, fuente_id, motivo, url_fuente, external_id, created_at, descartados")
       .eq("resuelto", false)
       .order("created_at", { ascending: false })
       .limit(5000),
@@ -178,8 +178,8 @@ function GrupoTarjeta({ g }: { g: Grupo }) {
                 </div>
               </fieldset>
               <p className="text-humo-oscuro mt-3 text-xs">
-                Guarda la regla y marca {numero(g.urls.length)}{" "}
-                {g.urls.length === 1 ? "página" : "páginas"} para re-normalizar
+                Guarda la regla y marca {numero(g.paginas.length)}{" "}
+                {g.paginas.length === 1 ? "página" : "páginas"} para re-normalizar
                 en la próxima corrida (una llamada al modelo por página).
               </p>
               <div className="mt-2">
@@ -213,8 +213,8 @@ function Cabecera({ g }: { g: Grupo }) {
     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
       <p className="min-w-0 text-sm font-semibold break-words">{g.etiqueta}</p>
       <p className="text-humo-oscuro text-xs whitespace-nowrap">
-        {NOMBRE_FUENTE.get(g.fuenteId) ?? g.fuenteId} · {numero(g.urls.length)}{" "}
-        {g.urls.length === 1 ? "página" : "páginas"}
+        {NOMBRE_FUENTE.get(g.fuenteId) ?? g.fuenteId} · {numero(g.paginas.length)}{" "}
+        {g.paginas.length === 1 ? "página" : "páginas"}
       </p>
     </div>
   );

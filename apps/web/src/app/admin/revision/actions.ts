@@ -13,7 +13,7 @@ import { armarCubiertos, pendientesDe, type Revision } from "@/lib/admin/revisio
 
 type Db = ReturnType<typeof createSupabaseAdmin>;
 
-const COLUMNAS = "id, fuente_id, motivo, url_fuente, created_at, descartados";
+const COLUMNAS = "id, fuente_id, motivo, url_fuente, external_id, created_at, descartados";
 
 function volver(mensaje: string, error = false): never {
   revalidatePath("/admin/revision");
@@ -91,26 +91,29 @@ export async function asignarTarjeta(form: FormData) {
     );
   if (error) volver(`No se pudo guardar el alias: ${error.message}`, true);
 
-  const urls = [
-    ...new Set(
-      conNombre(await pendientesDeFuente(db, fuenteId), texto)
-        .map((r) => r.url_fuente)
-        .filter((u): u is string => Boolean(u)),
-    ),
+  // Por `external_id`, que es la clave de la página. Por URL no: Itaú publica
+  // 247 beneficios bajo 2 URLs y se re-normalizarían (y pagarían) todas.
+  const afectadas = conNombre(await pendientesDeFuente(db, fuenteId), texto);
+  const paginas = [
+    ...new Set(afectadas.map((r) => r.external_id).filter((id): id is string => Boolean(id))),
   ];
-  if (urls.length > 0) {
+  const sinClave = afectadas.filter((r) => !r.external_id).length;
+  if (paginas.length > 0) {
     // Hash vacío = "cambió": la próxima corrida la vuelve a normalizar.
     const { error: e } = await db
       .from("pagina_cruda")
       .update({ hash: "" })
       .eq("fuente_id", fuenteId)
-      .in("url_fuente", urls);
+      .in("external_id", paginas);
     if (e) volver(`Alias guardado, pero no se pudieron marcar las páginas: ${e.message}`, true);
   }
 
   const cerradas = await cerrarResueltas(db, fuenteId);
   volver(
-    `Alias guardado. ${cerradas} en la cola resueltas; ${urls.length} páginas se re-normalizan en la próxima corrida.`,
+    `Alias guardado. ${cerradas} en la cola resueltas; ${paginas.length} páginas se re-normalizan en la próxima corrida.` +
+      (sinClave > 0
+        ? ` ${sinClave} entradas viejas no dicen de qué página son: sus beneficios se corrigen cuando la fuente cambie esa página.`
+        : ""),
   );
 }
 

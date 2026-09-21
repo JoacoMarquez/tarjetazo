@@ -11,6 +11,8 @@ export type Revision = {
   fuente_id: string;
   motivo: string;
   url_fuente: string | null;
+  /** Clave de la página en `pagina_cruda`. Null en filas anteriores a la columna. */
+  external_id: string | null;
   created_at: string;
   descartados: string[];
 };
@@ -54,8 +56,13 @@ export type Grupo = {
   esTramo: boolean;
   /** Ids de las filas donde aparece. */
   filas: string[];
-  /** Páginas distintas: una página re-normalizada puede tener varias filas. */
+  /** Links de ejemplo a la fuente (varias páginas pueden compartir una URL). */
   urls: string[];
+  /**
+   * Páginas distintas afectadas, por `external_id`. Una página re-normalizada
+   * puede tener varias filas; las filas viejas sin clave cuentan por URL.
+   */
+  paginas: string[];
 };
 
 /** Un grupo por problema y fuente, de más páginas afectadas a menos. */
@@ -74,16 +81,19 @@ export function agrupar(revisiones: Revision[], cubiertos: Cubiertos): Grupo[] {
         esTramo,
         filas: [],
         urls: [],
+        paginas: [],
       };
       g.filas.push(r.id);
       if (r.url_fuente && !g.urls.includes(r.url_fuente)) g.urls.push(r.url_fuente);
+      const pagina = r.external_id ?? `url:${r.url_fuente ?? r.id}`;
+      if (!g.paginas.includes(pagina)) g.paginas.push(pagina);
       grupos.set(k, g);
     }
   }
   return [...grupos.values()].sort(
     (a, b) =>
       Number(a.esTramo) - Number(b.esTramo) ||
-      b.urls.length - a.urls.length ||
+      b.paginas.length - a.paginas.length ||
       a.fuenteId.localeCompare(b.fuenteId) ||
       a.clave.localeCompare(b.clave),
   );

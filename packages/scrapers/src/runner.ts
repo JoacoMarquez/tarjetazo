@@ -188,7 +188,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
 
       // La página se volvió a leer entera: lo que tenía pendiente en la cola ya
       // no vale (si algo sigue sin resolverse, se encola de nuevo acá abajo).
-      await resolverRevisionesDePagina(db, fuenteId, crudo.url_fuente);
+      await resolverRevisionesDePagina(db, fuenteId, crudo.external_id);
 
       if (extraido.productos_desconocidos.length > 0) {
         reporte.a_revisar++;
