@@ -125,7 +125,7 @@ export async function marcarVencidos(
 
 export async function encolarRevision(
   db: SupabaseClient,
-  fila: { fuente_id: string; raw: unknown; motivo: string; url_fuente: string },
+  fila: { fuente_id: string; external_id: string; raw: unknown; motivo: string; url_fuente: string },
 ): Promise<void> {
   const { error } = await db.from("beneficio_revision").insert(fila);
   if (error) throw new Error(`encolando revisión: ${error.message}`);
