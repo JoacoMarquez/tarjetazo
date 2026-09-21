@@ -1,9 +1,21 @@
 "use client";
 
+import { Analytics, type BeforeSend } from "@vercel/analytics/next";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { iniciarAnalitica } from "@/lib/analitica";
+import { esRutaAdmin, iniciarAnalitica } from "@/lib/analitica";
 
 export function Analitica() {
-  useEffect(iniciarAnalitica, []);
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!esRutaAdmin(pathname)) iniciarAnalitica();
+  }, [pathname]);
   return null;
+}
+
+const excluirAdmin: BeforeSend = (evento) =>
+  esRutaAdmin(evento.url) ? null : evento;
+
+export function AnaliticaVercel() {
+  return <Analytics beforeSend={excluirAdmin} />;
 }
