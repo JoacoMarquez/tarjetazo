@@ -71,7 +71,6 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   const { fuenteId, fetch, normalizar: propio, soloFetch = false, limite } = opciones;
   const db = crearCliente();
   const claude = new Anthropic();
-  usarReglasDb(await cargarReglasDb(db));
   if (await hayCorridaAbierta(db, fuenteId)) {
     throw new Error(
       `ya hay una corrida de ${fuenteId} sin terminar; esperá a que cierre o marcala como terminada`,
@@ -92,6 +91,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   };
 
   try {
+    // Adentro del try: si las reglas no se pueden leer, la corrida queda
+    // registrada con su error y se ve en el dashboard.
+    usarReglasDb(await cargarReglasDb(db));
+
     // El tope también llega al fetch por entorno: las fuentes que bajan cientos
     // de fichas (BBVA) lo usan para no bajar todo cuando solo se prueban unas pocas.
     if (limite !== undefined) process.env.SCRAPER_LIMITE = String(limite);
