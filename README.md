@@ -28,6 +28,15 @@ pnpm dev                     # http://localhost:3000
 
 Otros comandos: `pnpm build`, `pnpm typecheck`, `pnpm lint`.
 
+## Backoffice
+
+`/admin` es el panel interno (decisiones en [`docs/04-backoffice.md`](docs/04-backoffice.md)).
+Entra solo quien tenga el email **confirmado** y listado en `ADMIN_EMAILS` (separados por
+coma; vacío = nadie); al resto le responde 404. El middleware corta la ruta y cada página o
+server action vuelve a llamar a `exigirAdmin()` (`apps/web/src/lib/admin.ts`). Lee y escribe
+con `SUPABASE_SERVICE_ROLE_KEY`, solo del lado del servidor. En Vercel hay que cargar las
+dos variables.
+
 ## Base de datos
 
 Con la [CLI de Supabase](https://supabase.com/docs/guides/local-development):
