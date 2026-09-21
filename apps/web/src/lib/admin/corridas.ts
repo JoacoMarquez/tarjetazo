@@ -30,25 +30,32 @@ export function estadoCorrida(c: Corrida, ahora: number): EstadoCorrida {
   return ahora - Date.parse(c.empezo_en) > MS_VIVA ? "trabada" : "en_curso";
 }
 
-export type EstadoFuente = EstadoCorrida | "sin_correr";
+/**
+ * "sin_correr": la última corrida terminó bien pero es de hace más de un día.
+ * "sin_historial": la fuente está en el catálogo y nunca corrió (no tiene
+ * scraper en el cron, o es nueva). Se muestra, pero no cuenta como problema.
+ */
+export type EstadoFuente = EstadoCorrida | "sin_correr" | "sin_historial";
 
 export type FuenteConCorridas = {
   fuenteId: string;
-  /** "sin_correr": la última corrida terminó bien pero es de hace más de un día. */
   estado: EstadoFuente;
   corridas: Corrida[];
 };
 
 /**
  * Agrupa por fuente (las corridas llegan de más nueva a más vieja) y deja
- * primero las fuentes con problemas, que es lo que se entra a mirar.
+ * primero las fuentes con problemas, que es lo que se entra a mirar. La lista
+ * parte de `esperadas` y no de las corridas: una fuente que dejó de correr, o
+ * que nunca corrió, tiene que seguir apareciendo.
  */
 export function agruparPorFuente(
   corridas: Corrida[],
   ahora: number,
   porFuente: number,
+  esperadas: string[] = [],
 ): FuenteConCorridas[] {
-  const grupos = new Map<string, Corrida[]>();
+  const grupos = new Map<string, Corrida[]>(esperadas.map((id) => [id, []]));
   for (const c of corridas) {
     const lista = grupos.get(c.fuente_id) ?? [];
     if (lista.length < porFuente) lista.push(c);
@@ -56,7 +63,8 @@ export function agruparPorFuente(
   }
 
   const fuentes = [...grupos].map(([fuenteId, lista]): FuenteConCorridas => {
-    const ultima = lista[0]!;
+    const ultima = lista[0];
+    if (!ultima) return { fuenteId, estado: "sin_historial", corridas: [] };
     const estado = estadoCorrida(ultima, ahora);
     const vieja = ahora - Date.parse(ultima.empezo_en) > MS_DIARIA;
     return {
@@ -66,7 +74,8 @@ export function agruparPorFuente(
     };
   });
 
-  const peso = (e: EstadoFuente) => (e === "ok" || e === "en_curso" ? 1 : 0);
+  const peso = (e: EstadoFuente) =>
+    e === "sin_historial" ? 2 : e === "ok" || e === "en_curso" ? 1 : 0;
   return fuentes.sort(
     (a, b) => peso(a.estado) - peso(b.estado) || a.fuenteId.localeCompare(b.fuenteId),
   );
@@ -86,4 +95,16 @@ export const ETIQUETA_ESTADO: Record<EstadoFuente, string> = {
   en_curso: "En curso",
   trabada: "Trabada",
   sin_correr: "No corrió",
+  sin_historial: "Sin corridas",
 };
+
+/** Los que cuentan en "fuentes con problema". */
+export function esProblema(e: EstadoFuente): boolean {
+  return e === "error" || e === "trabada" || e === "sin_correr";
+}
+
+/** Primera línea del error, recortada: el texto completo está en el detalle. */
+export function resumenError(error: string, max = 70): string {
+  const linea = error.split("\n")[0]!.trim();
+  return linea.length > max ? `${linea.slice(0, max - 1)}…` : linea;
+}

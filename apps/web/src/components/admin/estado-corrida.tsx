@@ -7,6 +7,7 @@ const CLASE: Record<EstadoFuente, string> = {
   error: "bg-coral-s text-coral-ink border-coral-ln",
   trabada: "bg-coral-s text-coral-ink border-coral-ln",
   sin_correr: "bg-sol-s text-sol-ink border-sol-ln",
+  sin_historial: "bg-papel-1 text-humo-oscuro border-linea",
 };
 
 export function EstadoCorridaBadge({ estado }: { estado: EstadoFuente }) {
