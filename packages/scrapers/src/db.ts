@@ -131,6 +131,21 @@ export async function encolarRevision(
   if (error) throw new Error(`encolando revisión: ${error.message}`);
 }
 
+/** Da por resuelto lo que la página tenía en la cola antes de volver a normalizarla. */
+export async function resolverRevisionesDePagina(
+  db: SupabaseClient,
+  fuenteId: string,
+  urlFuente: string,
+): Promise<void> {
+  const { error } = await db
+    .from("beneficio_revision")
+    .update({ resuelto: true })
+    .eq("fuente_id", fuenteId)
+    .eq("url_fuente", urlFuente)
+    .eq("resuelto", false);
+  if (error) throw new Error(`resolviendo revisiones de ${urlFuente}: ${error.message}`);
+}
+
 /**
  * Dos corridas de la misma fuente a la vez se pisan: una invalida el caché que
  * la otra está escribiendo y se gastan llamadas al modelo de más. Una corrida

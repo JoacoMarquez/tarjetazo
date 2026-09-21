@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { hash } from "./http.js";
-import { normalizar } from "./normalizador.js";
+import { normalizar, usarReglasDb } from "./normalizador.js";
+import { cargarReglasDb } from "./reglas-db.js";
 import {
   abrirCorrida,
   asegurarComercio,
@@ -14,6 +15,7 @@ import {
   hashesGuardados,
   idsDeBeneficios,
   marcarVencidos,
+  resolverRevisionesDePagina,
   upsertBeneficios,
 } from "./db.js";
 import { reversaIde } from "./geo/ide.js";
@@ -68,6 +70,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   const { fuenteId, fetch, normalizar: propio, soloFetch = false, limite } = opciones;
   const db = crearCliente();
   const claude = new Anthropic();
+  usarReglasDb(await cargarReglasDb(db));
   if (await hayCorridaAbierta(db, fuenteId)) {
     throw new Error(
       `ya hay una corrida de ${fuenteId} sin terminar; esperá a que cierre o marcala como terminada`,
@@ -182,6 +185,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         else reporte.nuevos++;
       }
       await upsertBeneficios(db, filas);
+
+      // La página se volvió a leer entera: lo que tenía pendiente en la cola ya
+      // no vale (si algo sigue sin resolverse, se encola de nuevo acá abajo).
+      await resolverRevisionesDePagina(db, fuenteId, crudo.url_fuente);
 
       if (extraido.productos_desconocidos.length > 0) {
         reporte.a_revisar++;

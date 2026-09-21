@@ -89,7 +89,11 @@ export default async function Corridas() {
           alerta={(alertas ?? 0) > 0}
           href="/admin/salud"
         />
-        <Dato titulo="Cola de revisión" valor={numero(cola.count ?? 0)} />
+        <Dato
+          titulo="Cola de revisión"
+          valor={numero(cola.count ?? 0)}
+          href="/admin/revision"
+        />
         <Dato
           titulo="Beneficios publicados"
           valor={numero(beneficios.count ?? 0)}
@@ -175,7 +179,7 @@ function Dato({
   valor: string;
   detalle?: string;
   alerta?: boolean;
-  href?: "/admin/salud";
+  href?: "/admin/salud" | "/admin/revision";
 }) {
   return (
     <div
