@@ -18,7 +18,8 @@ export async function revalidarRevisiones(db: SupabaseClient): Promise<{
 
   const { data, error } = await db
     .from("beneficio_revision")
-    .select("id, fuente_id, motivo")
+    // `motivo` está cortado a 500 caracteres; la lista completa vive en `raw.problemas`.
+    .select("id, fuente_id, motivo, problemas:raw->problemas")
     .eq("resuelto", false);
   if (error) throw new Error(`leyendo revisiones: ${error.message}`);
 
@@ -26,7 +27,10 @@ export async function revalidarRevisiones(db: SupabaseClient): Promise<{
   const pendientes: { fuente_id: string; motivo: string }[] = [];
 
   for (const r of data ?? []) {
-    const nombres = problemasDeMotivo(String(r.motivo));
+    const guardados = (r as { problemas?: unknown }).problemas;
+    const nombres = Array.isArray(guardados)
+      ? guardados.filter((p): p is string => typeof p === "string" && p.trim() !== "")
+      : problemasDeMotivo(String(r.motivo));
     // Los motivos que no son nombres de tarjeta (errores de validación) no se
     // pueden reevaluar así: quedan pendientes.
     const esDeProductos = nombres.length > 0 && !nombres.some(esErrorDeTramo);

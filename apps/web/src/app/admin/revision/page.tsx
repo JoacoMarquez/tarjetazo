@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { FUENTES, PRODUCTOS } from "@tarjetazo/core";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
 import { numero } from "@/lib/admin/formato";
-import { agrupar, armarCubiertos, type Grupo, type Revision } from "@/lib/admin/revision";
+import {
+  COLUMNAS_REVISION,
+  agrupar,
+  armarCubiertos,
+  type Grupo,
+  type Revision,
+} from "@/lib/admin/revision";
 import { asignarTarjeta, descartar, ignorarSiempre } from "./actions";
 
 export const metadata: Metadata = { title: "Cola de revisión" };
@@ -24,7 +30,7 @@ export default async function ColaDeRevision({
   const [cola, alias, ignorar] = await Promise.all([
     db
       .from("beneficio_revision")
-      .select("id, fuente_id, motivo, url_fuente, external_id, created_at, descartados")
+      .select(COLUMNAS_REVISION)
       .eq("resuelto", false)
       .order("created_at", { ascending: false })
       .limit(5000),

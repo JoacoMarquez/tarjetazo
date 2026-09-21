@@ -1,19 +1,18 @@
 "use server";
 
-import {
-  PRODUCTOS,
-  esErrorDeTramo,
-  normalizarNombreTarjeta,
-  problemasDeMotivo,
-} from "@tarjetazo/core";
+import { PRODUCTOS, esErrorDeTramo, normalizarNombreTarjeta } from "@tarjetazo/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
-import { armarCubiertos, pendientesDe, type Revision } from "@/lib/admin/revision";
+import {
+  COLUMNAS_REVISION,
+  armarCubiertos,
+  pendientesDe,
+  problemasDe,
+  type Revision,
+} from "@/lib/admin/revision";
 
 type Db = ReturnType<typeof createSupabaseAdmin>;
-
-const COLUMNAS = "id, fuente_id, motivo, url_fuente, external_id, created_at, descartados";
 
 function volver(mensaje: string, error = false): never {
   revalidatePath("/admin/revision");
@@ -24,7 +23,7 @@ function volver(mensaje: string, error = false): never {
 async function pendientesDeFuente(db: Db, fuenteId: string): Promise<Revision[]> {
   const { data, error } = await db
     .from("beneficio_revision")
-    .select(COLUMNAS)
+    .select(COLUMNAS_REVISION)
     .eq("fuente_id", fuenteId)
     .eq("resuelto", false);
   if (error) throw new Error(`leyendo la cola: ${error.message}`);
@@ -53,7 +52,7 @@ async function cerrarResueltas(db: Db, fuenteId: string): Promise<number> {
 /** Filas pendientes de la fuente donde aparece ese nombre de tarjeta. */
 function conNombre(filas: Revision[], texto: string): Revision[] {
   return filas.filter((r) =>
-    problemasDeMotivo(r.motivo).some(
+    problemasDe(r).some(
       (p) => !esErrorDeTramo(p) && normalizarNombreTarjeta(p) === texto,
     ),
   );
@@ -142,7 +141,7 @@ export async function descartar(form: FormData) {
   const filas = await pendientesDeFuente(db, fuenteId);
   let tocadas = 0;
   for (const r of filas) {
-    const suyos = problemasDeMotivo(r.motivo).filter((p) =>
+    const suyos = problemasDe(r).filter((p) =>
       esTramo ? p === clave : !esErrorDeTramo(p) && normalizarNombreTarjeta(p) === clave,
     );
     const nuevos = suyos.filter((p) => !r.descartados.includes(p));

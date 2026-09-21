@@ -135,6 +135,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         return;
       }
 
+      // Las reglas del backoffice (alias, ignorar) actúan en `mapearProductos`.
+      // Un normalizador propio no pasa por ahí, pero tampoco manda nombres de
+      // tarjeta a la cola: el de BBVA resuelve todo con su plantilla y nunca
+      // informa desconocidos, así que no hay nada a lo que ponerle un alias.
       const extraido = propio ? propio(crudo) : await normalizar(crudo, claude);
 
       // Solo creamos el comercio si la página dejó al menos un beneficio: si

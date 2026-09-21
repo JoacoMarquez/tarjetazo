@@ -9,13 +9,32 @@ import {
 export type Revision = {
   id: string;
   fuente_id: string;
+  /** Resumen legible, **truncado a 500 caracteres** por el runner. */
   motivo: string;
+  /** `raw.problemas`: la lista completa. Null en filas que no la guardaron. */
+  problemas: string[] | null;
   url_fuente: string | null;
   /** Clave de la página en `pagina_cruda`. Null en filas anteriores a la columna. */
   external_id: string | null;
   created_at: string;
   descartados: string[];
 };
+
+/** Para el select de PostgREST: trae solo la lista, no el contenido de la página. */
+export const COLUMNAS_REVISION =
+  "id, fuente_id, motivo, problemas:raw->problemas, url_fuente, external_id, created_at, descartados";
+
+/**
+ * Los problemas de una fila. Salen de `raw.problemas` y no de `motivo`, que el
+ * runner corta a 500 caracteres: si el corte cae en medio de un nombre, un
+ * alias creado para ese fragmento nunca coincide con el nombre real.
+ */
+export function problemasDe(r: Pick<Revision, "motivo" | "problemas">): string[] {
+  if (Array.isArray(r.problemas)) {
+    return r.problemas.filter((p): p is string => typeof p === "string" && p.trim() !== "").map((p) => p.trim());
+  }
+  return problemasDeMotivo(r.motivo);
+}
 
 /** Textos normalizados que ya tienen alias o regla de ignorar, por fuente. */
 export type Cubiertos = Map<string, Set<string>>;
@@ -40,7 +59,7 @@ export function armarCubiertos(
 export function pendientesDe(r: Revision, cubiertos: Cubiertos): string[] {
   const reglas = cubiertos.get(r.fuente_id);
   const descartados = new Set(r.descartados);
-  return problemasDeMotivo(r.motivo).filter((p) => {
+  return problemasDe(r).filter((p) => {
     if (descartados.has(p)) return false;
     if (esErrorDeTramo(p)) return true;
     return !reglas?.has(normalizarNombreTarjeta(p));

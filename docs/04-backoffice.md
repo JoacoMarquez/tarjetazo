@@ -83,6 +83,9 @@ Cómo quedó implementado (#16):
 - Los errores de validación de un tramo ("tramo N: …") solo se pueden descartar.
 - Al re-normalizar una página, el runner da por resueltas sus filas viejas y encola de nuevo lo que siga sin resolverse: no se acumulan duplicados.
 - Si las tablas de reglas no existen todavía, el runner avisa y sigue solo con las reglas de código.
+- La página se identifica por `(fuente_id, external_id)`, nunca por URL: Itaú publica 247 beneficios bajo 2 URLs. La cola guarda `external_id`; el cierre de ítems y la re-normalización van por esa clave.
+- Los problemas de una fila se leen de `raw.problemas`; `motivo` es un resumen cortado a 500 caracteres y solo sirve de respaldo.
+- Las reglas actúan en `mapearProductos`. Los normalizadores propios (BBVA) no pasan por ahí, pero tampoco mandan nombres de tarjeta a la cola, así que no hay nada a lo que ponerle un alias. Si un parser propio empieza a informar desconocidos, tiene que delegar en `mapearProductos`.
 
 ### Registro de beneficios (F2)
 Tabla filtrable del **estado actual** de `beneficio` (fuente, comercio, tipo, vigencia, `estado_revision`, origen, semáforo de frescura) con link al inspector y a la URL de la fuente. Sin historial de cambios.
