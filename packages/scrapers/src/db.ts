@@ -51,23 +51,14 @@ export async function hashesGuardados(
     .select("external_id, hash, normalizada_en")
     .eq("fuente_id", fuenteId);
   if (error) throw new Error(`leyendo pagina_cruda: ${error.message}`);
-  const filas = data ?? [];
-  const normalizadas = filas.filter((r) => r.normalizada_en !== null);
-
-  // Hasta 2026-09 el runner pisaba `normalizada_en` con null en cada página sin
-  // cambios: en producción lo tenían 6 de 1.300. Si la mayoría no lo tiene es
-  // que falta aplicar el backfill (20260924120000), y tomarlo al pie de la
-  // letra re-normalizaría —y pagaría— la fuente entera. En ese caso se sigue
-  // como antes. Con el backfill aplicado esto no vuelve a dispararse salvo que
-  // se haga `--solo-fetch` de más de media fuente, donde el aviso queda en el log.
-  if (normalizadas.length < filas.length / 2) {
-    console.error(
-      `  ${fuenteId}: solo ${normalizadas.length} de ${filas.length} páginas tienen normalizada_en; ` +
-        "falta el backfill, se comparan todos los hashes",
-    );
-    return new Map(filas.map((r) => [r.external_id as string, r.hash as string]));
-  }
-  return new Map(normalizadas.map((r) => [r.external_id as string, r.hash as string]));
+  // Sin atajos: no hay forma de distinguir "falta el backfill" de páginas que
+  // están legítimamente pendientes (una fuente nueva bajada con --solo-fetch).
+  // El backfill de las filas viejas es la migración 20260924120000.
+  return new Map(
+    (data ?? [])
+      .filter((r) => r.normalizada_en !== null)
+      .map((r) => [r.external_id as string, r.hash as string]),
+  );
 }
 
 export async function guardarPagina(
