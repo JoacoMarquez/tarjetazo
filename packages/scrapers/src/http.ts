@@ -19,6 +19,16 @@ async function esperarTurno() {
 const UA_NAVEGADOR =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
 
+/** La página ya no existe: reintentar no sirve y el que llama puede saltearla. */
+export class PaginaInexistente extends Error {
+  constructor(
+    readonly url: string,
+    readonly status: number,
+  ) {
+    super(`HTTP ${status} en ${url}`);
+  }
+}
+
 export async function bajarTexto(
   url: string,
   intentos = 3,
@@ -42,9 +52,11 @@ export async function bajarTexto(
           : { "user-agent": UA, accept: "text/html,application/xhtml+xml" },
         signal: AbortSignal.timeout(30_000),
       });
+      if (res.status === 404 || res.status === 410) throw new PaginaInexistente(url, res.status);
       if (!res.ok) throw new Error(`HTTP ${res.status} en ${url}`);
       return await res.text();
     } catch (e) {
+      if (e instanceof PaginaInexistente) throw e;
       ultimoError = e;
       // Backoff exponencial: 1s, 2s, 4s.
       await new Promise((r) => setTimeout(r, 1000 * 2 ** i));

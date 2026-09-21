@@ -1,4 +1,4 @@
-import { bajarTexto } from "../http.js";
+import { PaginaInexistente, bajarTexto } from "../http.js";
 import { slugificar } from "../slug.js";
 import { htmlATexto, recortarBrou } from "../texto.js";
 import type { Crudo } from "../tipos.js";
@@ -84,7 +84,18 @@ export async function fetchBrou(): Promise<Crudo[]> {
   const crudos: Crudo[] = [];
   for (const path of paths) {
     const url = `${BASE}${path}`;
-    const html = await bajarTexto(url);
+    let html: string;
+    try {
+      html = await bajarTexto(url);
+    } catch (e) {
+      // BROU saca una página (una promo que terminó) y la deja días en el
+      // sitemap: un 404 suelto no puede tirar abajo la fuente. Al no verla, el
+      // runner da de baja sus beneficios, que es lo correcto. Cualquier otro
+      // error sí corta: no sabemos si la página sigue existiendo.
+      if (!(e instanceof PaginaInexistente)) throw e;
+      console.error(`  ${e.message}: la página ya no existe, se saltea`);
+      continue;
+    }
     crudos.push({
       fuente_id: "brou",
       external_id: slugDePath(path),

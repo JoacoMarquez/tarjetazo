@@ -23,8 +23,9 @@ interface Beneficio {
   title_list?: string;
   description_list?: string;
   description_terms?: string;
-  important?: string;
-  important_tc?: string;
+  // Desde 2026-09-16 llegan como booleanos ("destacar el aviso"), no como texto.
+  important?: unknown;
+  important_tc?: unknown;
   date_ini?: string;
   date_end?: string;
   days?: string[];
@@ -68,8 +69,12 @@ function href(valor: unknown): string | null {
   return null;
 }
 
-function limpiar(html: string | undefined): string {
-  return html ? htmlATexto(html).trim() : "";
+/**
+ * OCA cambia el tipo de sus campos sin aviso (un rich text pasó a ser un
+ * booleano): lo que no sea texto se ignora en vez de tirar abajo la fuente.
+ */
+function limpiar(html: unknown): string {
+  return typeof html === "string" && html ? htmlATexto(html).trim() : "";
 }
 
 export async function fetchOca(): Promise<Crudo[]> {
