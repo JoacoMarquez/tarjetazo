@@ -115,11 +115,16 @@ Formulario que crea beneficios con `origen = 'manual'` pasando por el mismo sche
 ### Fusión de comercios (F3)
 Unir dos `comercio` y dejar la regla en `comercio_alias` para las corridas siguientes.
 
-### Fichas de tarjeta (F4, paralelizable: solo depende del auth)
-- `producto_ficha`, **siempre manual**. Campos: costo anual, costo bonificado, ingreso mínimo, requisitos, tasa, programa de puntos/millas, seguros, salas VIP, link de solicitud.
-- Imagen: **foto frente y dorso** en Supabase Storage, subida desde el backoffice; en la web, flip/tilt con CSS 3D. No modelos `.glb`.
-- Carga inicial a mano (pocas decenas de tarjetas).
-- Después: scraper de **sugerencias** solo desde los sitios oficiales de cada banco (no agregadores). Nunca escribe en la ficha: deja "Itaú Platinum: costo anual 4.200 → 4.800, ¿aceptar?". Mismo patrón que `beneficio_revision`.
+### Fichas de tarjeta (F4, paralelizable: solo depende del auth y de #40)
+Cambio de orden decidido el 2026-09-22: **el catálogo se scrapea del sitio oficial de cada banco primero**, y la carga manual queda para completar, no para arrancar de cero.
+
+- Requisito: el rediseño del catálogo (#40): `producto` = producto comercial (lo que el banco vende, con imagen y ficha), separado de red + tier (a lo que se mapean los beneficios).
+- **Scraper de catálogo por banco** (#27): lee el sitio oficial (p. ej. `santander.com.uy/todas-las-tarjetas`), un módulo por fuente, sin modelo cuando la plantilla es fija. Nunca escribe en `producto` ni en `producto_ficha`: deja filas en `producto_ficha_sugerencia (producto_id | null, campo, valor_actual, valor_visto, url, imagen_url, estado)`. Una tarjeta nueva llega como sugerencia de alta; una retirada, como sugerencia de baja.
+- **Bandeja en el backoffice** (#26): aceptar / ignorar por sugerencia, o en bloque para la carga inicial. Al aceptar una imagen se baja del banco a Supabase Storage (bucket `tarjetas`), porque las URLs de los bancos cambian.
+- `producto_ficha` **siempre manual** en el sentido de que solo cambia cuando el operador acepta: campos costo anual, costo bonificado, ingreso mínimo, requisitos, tasa, programa de puntos/millas, seguros, salas VIP, link de solicitud, más los que muestre cada banco.
+- Formulario de edición para lo que el banco no publica; preview del flip/tilt en CSS 3D con frente y dorso. No modelos `.glb`.
+- **No se scrapean agregadores** (tarjetasdecredito.com.uy): competidor directo, datos curados, términos de uso restrictivos. Sirve solo como checklist de qué tarjetas existen por banco y qué campos vale la pena tener.
+- Página pública `/tarjeta/[id]` sigue siendo proyecto aparte (#11).
 
 ## Resumen diario por Telegram (F2)
 Paso final de `.github/workflows/scrapers.yml`. Una línea por fuente (ok / error, nuevos, bajas), cola de revisión, alertas de salud y frescura nuevas, manuales por vencer, link a `/admin`. Secrets nuevos: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
@@ -134,7 +139,7 @@ Paso final de `.github/workflows/scrapers.yml`. Una línea por fuente (ok / erro
 | F2 | `regla_ocultar (fuente_id, external_id, hash_al_ocultar)`; `verificacion (beneficio_id, verificado_hasta)`. |
 | F2 | `auditoria (beneficio_id, semana, resultado, nota)`. |
 | F3 | `beneficio.origen` (`scraper` \| `manual`); `comercio_alias (alias_key → comercio_key)`; `busqueda_sin_resultado (q, filtros, created_at)`. |
-| F4 | `producto_ficha (producto_id, …campos, imagen_frente, imagen_dorso, updated_at)`; `producto_ficha_sugerencia (producto_id, campo, valor_actual, valor_visto, url, estado)`; bucket `tarjetas`. |
+| F4 | Rediseño de `producto` (#40); `producto_ficha (producto_id, …campos, imagen_frente, imagen_dorso, updated_at)`; `producto_ficha_sugerencia (producto_id | null, campo, valor_actual, valor_visto, url, imagen_url, estado)`; bucket `tarjetas`. |
 
 Nombres tentativos; se cierran en cada issue.
 
@@ -142,7 +147,7 @@ Nombres tentativos; se cierran en cada issue.
 - **F1** — Auth + layout, dashboard de corridas, salud de datos, cola de revisión con alias.
 - **F2** — Registro, inspector, novedades, auditoría, frescura, Telegram, tokens por corrida.
 - **F3** — Carga manual, búsquedas sin resultado, fusión de comercios.
-- **F4** — Fichas de tarjeta + Storage; luego scraper de sugerencias.
+- **F4** — Rediseño del catálogo (#40) → scraper de catálogo por banco a sugerencias (#27) → bandeja de aceptar + ficha y Storage (#26).
 
 ## Fuera de este proyecto
 - Issues de la web pública: página `/tarjeta/[id]`; "Actualizado: <último fetch OK>" y aviso "sin fecha de fin publicada, confirmá en el local" en cada beneficio.
