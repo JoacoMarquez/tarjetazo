@@ -39,6 +39,15 @@ export const ProductoSchema = z.object({
   instrumento: Instrumento,
   red: Red,
   tier: Tier.nullable().default(null),
+  /**
+   * Agrupa los plásticos que el banco vende juntos (Pack Trilogy Select = Visa
+   * Infinite + Mastercard Black + débito). Null = el producto es su propia
+   * familia. Los beneficios apuntan a plásticos; el usuario elige por familia.
+   */
+  familia: Slug.nullable().optional(),
+  /** Un producto dado de baja no se borra: los beneficios viejos lo referencian. */
+  activo: z.boolean().optional(),
+  url_oficial: z.string().url().nullable().optional(),
 });
 
 export const CategoriaSchema = z.object({

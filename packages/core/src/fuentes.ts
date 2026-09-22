@@ -26,17 +26,28 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "brou-mi-brou", fuente_id: "brou", nombre: "MI BROU Tarjeta Joven", instrumento: "prepaga", red: "propia", tier: null },
   { id: "brou-tuapp", fuente_id: "brou", nombre: "TuApp", instrumento: "saldo", red: "propia", tier: null },
 
-  // Santander — además de las tarjetas, segmenta por paquete (Select, Private).
-  { id: "santander-select", fuente_id: "santander", nombre: "Santander Select", instrumento: "credito", red: "visa", tier: "platinum" },
-  { id: "santander-private", fuente_id: "santander", nombre: "Santander Private Banking", instrumento: "credito", red: "visa", tier: "black" },
-  { id: "santander-mastercard-platinum", fuente_id: "santander", nombre: "Mastercard Platinum Santander", instrumento: "credito", red: "mastercard", tier: "platinum" },
-  { id: "santander-farmacard", fuente_id: "santander", nombre: "Farmacard Santander", instrumento: "credito", red: "mastercard", tier: null },
-  { id: "santander-hipermas", fuente_id: "santander", nombre: "Hipermás Santander", instrumento: "credito", red: "mastercard", tier: null },
-  { id: "santander-debito", fuente_id: "santander", nombre: "Débito Santander", instrumento: "debito", red: "mastercard", tier: null },
-  { id: "santander-visa", fuente_id: "santander", nombre: "Visa Santander", instrumento: "credito", red: "visa", tier: null },
-  { id: "santander-visa-platinum", fuente_id: "santander", nombre: "Visa Platinum Santander", instrumento: "credito", red: "visa", tier: "platinum" },
-  { id: "santander-mastercard", fuente_id: "santander", nombre: "Mastercard Santander", instrumento: "credito", red: "mastercard", tier: null },
+  // Santander — catálogo oficial (santander.com.uy/todas-las-tarjetas, 2026-09-22),
+  // una fila por plástico. "Soy Santander" se emite Visa o Mastercard; los packs
+  // Trilogy traen Visa Infinite + Mastercard Black + débito.
+  { id: "santander-visa", fuente_id: "santander", nombre: "Soy Santander Internacional Visa", instrumento: "credito", red: "visa", tier: null, familia: "santander-soy", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/tarjeta-soy-santander" },
+  { id: "santander-mastercard", fuente_id: "santander", nombre: "Soy Santander Internacional Mastercard", instrumento: "credito", red: "mastercard", tier: null, familia: "santander-soy", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/tarjeta-soy-santander" },
+  { id: "santander-visa-platinum", fuente_id: "santander", nombre: "Soy Santander Platinum Visa", instrumento: "credito", red: "visa", tier: "platinum", familia: "santander-soy-platinum", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/tarjeta-soy-santander" },
+  { id: "santander-mastercard-platinum", fuente_id: "santander", nombre: "Soy Santander Platinum Mastercard", instrumento: "credito", red: "mastercard", tier: "platinum", familia: "santander-soy-platinum", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/tarjeta-soy-santander" },
+  { id: "santander-debito", fuente_id: "santander", nombre: "Débito Soy Santander", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "santander-farmacard", fuente_id: "santander", nombre: "Farmacard Santander", instrumento: "credito", red: "mastercard", tier: null, url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/farmacard" },
+  { id: "santander-hipermas", fuente_id: "santander", nombre: "Hipermás Santander", instrumento: "credito", red: "mastercard", tier: null, url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/hipermas" },
   { id: "santander-amex", fuente_id: "santander", nombre: "American Express Santander", instrumento: "credito", red: "amex", tier: null },
+  { id: "santander-aadvantage-visa", fuente_id: "santander", nombre: "AAdvantage Visa", instrumento: "credito", red: "visa", tier: null, familia: "santander-aadvantage", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/Tarjeta-Aadvantage" },
+  { id: "santander-aadvantage-mastercard", fuente_id: "santander", nombre: "AAdvantage Mastercard", instrumento: "credito", red: "mastercard", tier: null, familia: "santander-aadvantage", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/Tarjeta-Aadvantage" },
+  { id: "santander-select", fuente_id: "santander", nombre: "Select Visa Infinite", instrumento: "credito", red: "visa", tier: "infinite", familia: "santander-select", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-soy" },
+  { id: "santander-select-mastercard-black", fuente_id: "santander", nombre: "Select Mastercard Black", instrumento: "credito", red: "mastercard", tier: "black", familia: "santander-select", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-soy" },
+  { id: "santander-select-debito", fuente_id: "santander", nombre: "Débito Select", instrumento: "debito", red: "visa", tier: null, familia: "santander-select", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-soy" },
+  { id: "santander-private", fuente_id: "santander", nombre: "Private Banking Visa Infinite", instrumento: "credito", red: "visa", tier: "infinite", familia: "santander-private", url_oficial: "https://www.santander.com.uy/tarjetas/pack-trilogy-soy-private-banking" },
+  { id: "santander-private-mastercard-black", fuente_id: "santander", nombre: "Private Banking Mastercard Black", instrumento: "credito", red: "mastercard", tier: "black", familia: "santander-private", url_oficial: "https://www.santander.com.uy/tarjetas/pack-trilogy-soy-private-banking" },
+  { id: "santander-private-debito", fuente_id: "santander", nombre: "Débito Private Banking", instrumento: "debito", red: "visa", tier: null, familia: "santander-private", url_oficial: "https://www.santander.com.uy/tarjetas/pack-trilogy-soy-private-banking" },
+  { id: "santander-aadvantage-visa-infinite", fuente_id: "santander", nombre: "AAdvantage Visa Infinite", instrumento: "credito", red: "visa", tier: "infinite", familia: "santander-aadvantage-trilogy", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-aadvantage" },
+  { id: "santander-aadvantage-mastercard-black", fuente_id: "santander", nombre: "AAdvantage Mastercard Black", instrumento: "credito", red: "mastercard", tier: "black", familia: "santander-aadvantage-trilogy", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-aadvantage" },
+  { id: "santander-aadvantage-debito", fuente_id: "santander", nombre: "Débito Select AAdvantage", instrumento: "debito", red: "visa", tier: null, familia: "santander-aadvantage-trilogy", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-aadvantage" },
 
   // Scotiabank — nombra por tier y sello; la débito Premium va con los tiers altos.
   { id: "scotiabank-visa-gold", fuente_id: "scotiabank", nombre: "Visa Gold Scotiabank", instrumento: "credito", red: "visa", tier: "gold" },

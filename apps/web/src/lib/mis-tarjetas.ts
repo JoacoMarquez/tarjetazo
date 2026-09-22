@@ -1,5 +1,6 @@
 "use client";
 
+import { expandirProductos } from "@tarjetazo/core";
 import { useCallback, useEffect, useState } from "react";
 
 const CLAVE = "tarjetazo:mis-tarjetas";
@@ -19,7 +20,7 @@ function leer(): MisTarjetas {
     const v = JSON.parse(crudo) as Partial<MisTarjetas>;
     return {
       bancos: Array.isArray(v.bancos) ? v.bancos : [],
-      productos: Array.isArray(v.productos) ? v.productos : [],
+      productos: Array.isArray(v.productos) ? expandirProductos(v.productos) : [],
     };
   } catch {
     // Modo privado, storage bloqueado o JSON corrupto: seguimos sin tarjetas.

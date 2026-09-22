@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { FAMILIA_POR_ID, expandirProductos } from "@tarjetazo/core";
 import { bancosDe } from "./marca";
 
 const CLAVE = "tarjetazo:mis-tarjetas";
@@ -22,6 +23,8 @@ interface Billetera {
   misBancos: string[];
   cargado: boolean;
   alternar: (productoId: string) => void;
+  /** Agrega o quita todos los plásticos de una familia (lo que el usuario elige). */
+  alternarFamilia: (familiaId: string) => void;
   estado: EstadoBilletera;
   abrir: (opciones?: { agregar?: boolean; banco?: string }) => void;
   cerrar: () => void;
@@ -47,7 +50,9 @@ function leer(): string[] {
     const crudo = window.localStorage.getItem(CLAVE);
     if (!crudo) return [];
     const v = JSON.parse(crudo) as { productos?: unknown };
-    return Array.isArray(v.productos) ? (v.productos as string[]) : [];
+    // Ids guardados antes del rediseño del catálogo (#40) pueden haber cambiado
+    // de significado: "santander-select" era el pack entero, hoy es un plástico.
+    return Array.isArray(v.productos) ? expandirProductos(v.productos as string[]) : [];
   } catch {
     // Modo privado o JSON corrupto: se sigue sin tarjetas.
     return [];
@@ -86,6 +91,20 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
     (id: string) => {
       setDestacada(null);
       guardar(mis.includes(id) ? mis.filter((x) => x !== id) : [...mis, id]);
+    },
+    [mis, guardar],
+  );
+
+  const alternarFamilia = useCallback(
+    (familiaId: string) => {
+      setDestacada(null);
+      const ids = FAMILIA_POR_ID[familiaId]?.productos.map((p) => p.id) ?? [familiaId];
+      const tengoTodos = ids.every((id) => mis.includes(id));
+      guardar(
+        tengoTodos
+          ? mis.filter((x) => !ids.includes(x))
+          : [...mis, ...ids.filter((x) => !mis.includes(x))],
+      );
     },
     [mis, guardar],
   );
@@ -181,6 +200,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
       misBancos: bancosDe(mis),
       cargado,
       alternar,
+      alternarFamilia,
       estado,
       abrir,
       cerrar,
@@ -199,6 +219,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
       mis,
       cargado,
       alternar,
+      alternarFamilia,
       estado,
       abrir,
       cerrar,

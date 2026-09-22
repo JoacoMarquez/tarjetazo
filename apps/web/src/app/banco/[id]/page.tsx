@@ -7,7 +7,8 @@ import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { LinkSaliente } from "@/components/link-saliente";
 import { CardBeneficio } from "@/components/card-beneficio";
-import { fuente, productosDe, comparar } from "@/lib/comparar";
+import { fuente, comparar } from "@/lib/comparar";
+import { familiasDe, pieDeFamilia } from "@/lib/marca";
 import { listarBeneficios } from "@/lib/consultas";
 import { FILTROS_VACIOS, NOMBRES_DIA, diaEnUruguay } from "@/lib/filtros";
 import { labelCategoria } from "@/lib/comercio";
@@ -42,7 +43,7 @@ export default async function PaginaBanco({ params }: Props) {
   ]);
   const mio = ranking.find((r) => r.fuente_id === id);
   const posicion = ranking.findIndex((r) => r.fuente_id === id) + 1;
-  const productos = productosDe(id);
+  const familias = familiasDe(id);
   const porRubro = new Map<string, number>();
   for (const r of mio?.rubros ?? []) porRubro.set(r.categoria, (porRubro.get(r.categoria) ?? 0) + Number(r.n_beneficios));
   const rubros = [...porRubro].sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -89,14 +90,14 @@ export default async function PaginaBanco({ params }: Props) {
           </LinkSaliente>
         </div>
 
-        {productos.length > 0 && (
+        {familias.length > 0 && (
           <section className="mt-8">
             <h2 className="text-humo text-xs font-semibold uppercase tracking-widest">Tarjetas y medios de pago</h2>
             <ul className="mt-3 flex flex-wrap gap-2">
-              {productos.map((p) => (
-                <li key={p.id} className="border-linea bg-card rounded-pill border px-3 py-1 text-sm">
-                  {p.nombre}
-                  <span className="text-humo ml-1 text-xs">{p.instrumento}{p.tier ? ` · ${p.tier}` : ""}</span>
+              {familias.map((fam) => (
+                <li key={fam.id} className="border-linea bg-card rounded-pill border px-3 py-1 text-sm">
+                  {fam.nombre}
+                  <span className="text-humo ml-1 text-xs">{pieDeFamilia(fam)}</span>
                 </li>
               ))}
             </ul>

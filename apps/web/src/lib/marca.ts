@@ -1,4 +1,17 @@
-import { FUENTES, PRODUCTOS, type Instrumento, type Producto, type Red } from "@tarjetazo/core";
+import {
+  FAMILIA_POR_ID,
+  FUENTES,
+  PRODUCTOS,
+  familiaDe,
+  familiasDe,
+  type Familia,
+  type Instrumento,
+  type Producto,
+  type Red,
+  type Tier,
+} from "@tarjetazo/core";
+
+export { familiasDe };
 
 /**
  * Cada fuente pinta con un color de la paleta: es lo que hace que una mini
@@ -72,6 +85,52 @@ export function nombreCorto(p: Producto): string {
     .replace(new RegExp(`\\s+${banco}$`, "i"), "")
     .trim();
   return corto || p.nombre;
+}
+
+const TIERS: Record<Tier, string> = {
+  gold: "Gold",
+  platinum: "Platinum",
+  black: "Black",
+  signature: "Signature",
+  infinite: "Infinite",
+  world: "World",
+  world_elite: "World Elite",
+};
+
+/** "Visa Infinite + Mastercard Black + Débito": qué plásticos trae la familia. */
+export function pieDeFamilia(f: Familia): string {
+  if (f.productos.length === 1) return pieDeTarjeta(f.productos[0]!);
+  return f.productos
+    .map((p) => {
+      if (p.instrumento !== "credito") return INSTRUMENTOS[p.instrumento];
+      const red = REDES[p.red] || FUENTE_POR_ID[p.fuente_id]?.nombre || "";
+      return [red, p.tier ? TIERS[p.tier] : ""].filter(Boolean).join(" ");
+    })
+    .join(" + ");
+}
+
+export function nombreCortoFamilia(f: Familia): string {
+  if (f.productos.length === 1) return nombreCorto(f.productos[0]!);
+  const banco = FUENTE_POR_ID[f.fuente_id]?.nombre;
+  if (!banco) return f.nombre;
+  const corto = f.nombre.replace(new RegExp(`\\s*${banco}\\s*`, "i"), " ").replace(/\s+/g, " ").trim();
+  return corto || f.nombre;
+}
+
+/** Las familias presentes en la billetera, en el orden en que se agregaron. */
+export function familiasEnBilletera(mis: readonly string[]): Familia[] {
+  const vistas = new Set<string>();
+  const out: Familia[] = [];
+  for (const id of mis) {
+    const p = PRODUCTO_POR_ID[id];
+    if (!p) continue;
+    const fid = familiaDe(p);
+    if (vistas.has(fid)) continue;
+    vistas.add(fid);
+    const f = FAMILIA_POR_ID[fid];
+    if (f) out.push(f);
+  }
+  return out;
 }
 
 export function productosDe(fuenteId: string): readonly Producto[] {
