@@ -115,6 +115,12 @@ Formulario que crea beneficios con `origen = 'manual'` pasando por el mismo sche
 ### Fusión de comercios (F3)
 Unir dos `comercio` y dejar la regla en `comercio_alias` para las corridas siguientes.
 
+### Catálogo de tarjetas (#40, grill del 2026-09-22)
+- `producto` = **un plástico** (red + tier), con `familia` que agrupa los packs (Pack Trilogy Select = Visa Infinite + Mastercard Black, dos filas). Los beneficios apuntan a plásticos; la ficha, la foto y la elección del usuario son por familia.
+- Ids actuales se conservan; los genéricos sin producto real pasan a `activo = false` con un mapa viejo → nuevo que migra beneficios y la billetera del usuario.
+- El scraper mapea tiers por red + tier ("infinite" → productos de la fuente con Visa Infinite) y productos por nombre. Tiers nuevos: `infinite`, `world`, `world_elite`.
+- Piloto Santander desde su sitio oficial; el resto llega por #27. El catálogo sigue en código hasta #26/#27.
+
 ### Fichas de tarjeta (F4, paralelizable: solo depende del auth y de #40)
 Cambio de orden decidido el 2026-09-22: **el catálogo se scrapea del sitio oficial de cada banco primero**, y la carga manual queda para completar, no para arrancar de cero.
 
