@@ -6,10 +6,13 @@ import {
   FUENTE_POR_ID,
   GRADIENTE,
   PRODUCTO_POR_ID,
+  familiasDe,
+  familiasEnBilletera,
+  nombreCortoFamilia,
+  pieDeFamilia,
   colorFuente,
   nombreCorto,
   pieDeTarjeta,
-  productosDe,
 } from "@/lib/marca";
 
 const SUAVE = "cubic-bezier(.2,.8,.2,1)";
@@ -27,7 +30,9 @@ export function Billetera() {
   if (b.estado === 0) return null;
 
   const abierta = b.estado === 2;
-  const n = b.mis.length;
+  // Una tarjeta por familia: un pack de tres plásticos es una sola en la pila.
+  const familias = familiasEnBilletera(b.mis);
+  const n = familias.length;
   // Con muchas tarjetas la escalera se comprime para no salirse del alto.
   const paso = n <= 6 ? 30 : Math.floor(180 / n);
   // En la confirmación no se destaca ni se quita nada: solo se dice sí o no.
@@ -110,10 +115,9 @@ export function Billetera() {
           <div style={{ position: "absolute", inset: 8, borderRadius: 12, border: "1.5px dashed rgba(255,255,255,.18)" }} />
         </div>
 
-        {b.mis.map((id, i) => {
-          const p = PRODUCTO_POR_ID[id];
-          if (!p) return null;
-          const f = FUENTE_POR_ID[p.fuente_id];
+        {familias.map((fam, i) => {
+          const id = fam.id;
+          const f = FUENTE_POR_ID[fam.fuente_id];
           const destacada = abierta && hov === i;
           const otra = abierta && hov != null && hov !== i;
           // Las de arriba se separan y las de abajo bajan: siempre queda una
@@ -141,17 +145,17 @@ export function Billetera() {
             >
               <button
                 type="button"
-                aria-label={`Quitar ${p.nombre}`}
+                aria-label={`Quitar ${fam.nombre}`}
                 disabled={Boolean(confirmando)}
                 onClick={(e) => {
                   e.stopPropagation();
-                  b.alternar(id);
+                  b.alternarFamilia(id);
                 }}
                 style={{
                   width: "100%",
                   height: "100%",
                   borderRadius: 12,
-                  background: colorFuente(p.fuente_id).color,
+                  background: colorFuente(fam.fuente_id).color,
                   border: "1.5px dashed transparent",
                   boxSizing: "border-box",
                   boxShadow: "0 -3px 10px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.25)",
@@ -170,7 +174,7 @@ export function Billetera() {
               >
                 <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
                   <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {nombreCorto(p)}
+                    {nombreCortoFamilia(fam)}
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.8 }}>{f?.nombre}</span>
                 </span>
@@ -194,7 +198,7 @@ export function Billetera() {
                     opacity: 0.85,
                   }}
                 >
-                  {pieDeTarjeta(p)}
+                  {pieDeFamilia(fam)}
                 </span>
               </button>
             </div>
@@ -433,14 +437,14 @@ function PanelDeAlta() {
         })}
       </div>
       <div style={{ display: "flex", flexDirection: "column" }}>
-        {productosDe(b.banco).map((p) => {
-          const tengo = b.mis.includes(p.id);
+        {familiasDe(b.banco).map((fam) => {
+          const tengo = fam.productos.every((p) => b.mis.includes(p.id));
           return (
             <button
-              key={p.id}
+              key={fam.id}
               type="button"
               aria-pressed={tengo}
-              onClick={() => b.alternar(p.id)}
+              onClick={() => b.alternarFamilia(fam.id)}
               className="hover:bg-hueso"
               style={{
                 display: "flex",
@@ -462,13 +466,13 @@ function PanelDeAlta() {
                   width: 34,
                   height: 22,
                   borderRadius: 4,
-                  background: colorFuente(p.fuente_id).color,
+                  background: colorFuente(fam.fuente_id).color,
                   opacity: tengo ? 1 : 0.35,
                 }}
               />
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 14, fontWeight: 500 }}>{p.nombre}</span>
-                <span style={{ display: "block", fontSize: 12, color: "#6b7683" }}>{pieDeTarjeta(p)}</span>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 500 }}>{fam.nombre}</span>
+                <span style={{ display: "block", fontSize: 12, color: "#6b7683" }}>{pieDeFamilia(fam)}</span>
               </span>
               <span
                 style={{

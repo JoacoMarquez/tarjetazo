@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FUENTES, PRODUCTOS } from "@tarjetazo/core";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
 import { numero } from "@/lib/admin/formato";
+import { pieDeTarjeta } from "@/lib/marca";
 import {
   COLUMNAS_REVISION,
   agrupar,
@@ -179,6 +180,7 @@ function GrupoTarjeta({ g }: { g: Grupo }) {
                         className="size-4"
                       />
                       {p.nombre}
+                      <span className="text-humo-oscuro text-xs">{pieDeTarjeta(p)}</span>
                     </label>
                   ))}
                 </div>

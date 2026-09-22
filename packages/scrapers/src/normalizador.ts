@@ -83,10 +83,37 @@ Categorías disponibles: ${CATEGORIAS.map((c) => `${c.slug} (${c.label})`).join(
  * específico a más general (para que "recompensa mastercard black" no caiga en
  * "recompensa mastercard").
  */
-/** Todos los productos de una fuente que usan cierto instrumento. */
+/** Todos los productos activos de una fuente que usan cierto instrumento. */
 function porInstrumento(fuenteId: string, ...instrumentos: string[]): string[] {
   return PRODUCTOS.filter(
-    (p) => p.fuente_id === fuenteId && instrumentos.includes(p.instrumento),
+    (p) => p.fuente_id === fuenteId && p.activo !== false && instrumentos.includes(p.instrumento),
+  ).map((p) => p.id);
+}
+
+/**
+ * Los productos activos de una fuente con cierto plástico. Es como las páginas
+ * de descuentos nombran las tarjetas ("15% con Infinite"): por red y tier, no
+ * por producto comercial. Un tier puede estar en varios productos (la Visa
+ * Infinite de Santander viene en tres packs) y el beneficio vale para todos.
+ */
+function porPlastico(
+  fuenteId: string,
+  plastico: { red?: string; tier?: string | null; instrumento?: string },
+): string[] {
+  return PRODUCTOS.filter(
+    (p) =>
+      p.fuente_id === fuenteId &&
+      p.activo !== false &&
+      (plastico.red === undefined || p.red === plastico.red) &&
+      (plastico.tier === undefined || p.tier === plastico.tier) &&
+      (plastico.instrumento === undefined || p.instrumento === plastico.instrumento),
+  ).map((p) => p.id);
+}
+
+/** Todos los plásticos de una familia (un "Select" vale para el pack entero). */
+function porFamilia(fuenteId: string, ...familias: string[]): string[] {
+  return PRODUCTOS.filter(
+    (p) => p.fuente_id === fuenteId && p.activo !== false && familias.includes(p.familia ?? p.id),
   ).map((p) => p.id);
 }
 
@@ -123,11 +150,19 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
   santander: [
     [/farmacard/, ["santander-farmacard"]],
     [/hiperm[aá]s/, ["santander-hipermas"]],
-    [/private/, ["santander-private"]],
-    [/select/, ["santander-select"]],
     [/amex|american express/, ["santander-amex"]],
-    [/mastercard.*platinum|platinum.*mastercard/, ["santander-mastercard-platinum"]],
-    [/visa.*platinum|platinum/, ["santander-visa-platinum"]],
+    // Segmentos: vale para todos los plásticos del pack.
+    [/private/, porFamilia("santander", "santander-private")],
+    [/select/, porFamilia("santander", "santander-select")],
+    [/a{1,2}dvantage/, porFamilia("santander", "santander-aadvantage", "santander-aadvantage-trilogy")],
+    // Tiers: por red + tier, en todos los productos que lo tengan.
+    [/mastercard.*black|black.*mastercard/, porPlastico("santander", { red: "mastercard", tier: "black" })],
+    [/visa.*infinite|infinite.*visa|infinite/, porPlastico("santander", { red: "visa", tier: "infinite" })],
+    [/black/, porPlastico("santander", { tier: "black" })],
+    [/mastercard.*platinum|platinum.*mastercard/, porPlastico("santander", { red: "mastercard", tier: "platinum" })],
+    [/visa.*platinum|platinum.*visa/, porPlastico("santander", { red: "visa", tier: "platinum" })],
+    [/platinum/, porPlastico("santander", { tier: "platinum" })],
+    // Red a secas: la clásica de esa red.
     [/mastercard/, ["santander-mastercard"]],
     [/visa/, ["santander-visa"]],
     [/debito/, porInstrumento("santander", "debito")],
@@ -206,7 +241,9 @@ export function mapearProductos(
   const reglas = ALIAS[fuenteId] ?? [];
   const aliasDb = reglasDb.alias.get(fuenteId);
   const ignorarDb = reglasDb.ignorar.get(fuenteId);
-  const idsValidos = new Set(PRODUCTOS.filter((p) => p.fuente_id === fuenteId).map((p) => p.id));
+  const idsValidos = new Set(
+    PRODUCTOS.filter((p) => p.fuente_id === fuenteId && p.activo !== false).map((p) => p.id),
+  );
   const ids = new Set<string>();
   const desconocidos: string[] = [];
 

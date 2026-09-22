@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, ChevronLeft, Lock } from "lucide-react";
-import { FUENTES, PRODUCTOS } from "@tarjetazo/core";
+import { FUENTES, PRODUCTOS, familiasDe, type Familia } from "@tarjetazo/core";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,7 +52,16 @@ export function MisTarjetasModal({
     onAbrir(false);
   }
 
-  const productosDeMisBancos = PRODUCTOS.filter((p) => bancos.includes(p.fuente_id));
+  // El usuario elige por familia (un pack de tres plásticos es una opción).
+  const alternarFamilia = (f: Familia) => {
+    const ids = f.productos.map((p) => p.id);
+    const tengo = ids.every((id) => productos.includes(id));
+    setProductos(
+      tengo
+        ? productos.filter((x) => !ids.includes(x))
+        : [...productos, ...ids.filter((x) => !productos.includes(x))],
+    );
+  };
 
   return (
     <Dialog open={abierto} onOpenChange={onAbrir}>
@@ -100,15 +109,13 @@ export function MisTarjetasModal({
                   {f.nombre}
                 </p>
                 <ul className="flex flex-wrap gap-2">
-                  {productosDeMisBancos
-                    .filter((p) => p.fuente_id === f.id)
-                    .map((p) => {
-                      const activo = productos.includes(p.id);
+                  {familiasDe(f.id).map((fam) => {
+                      const activo = fam.productos.every((p) => productos.includes(p.id));
                       return (
-                        <li key={p.id}>
+                        <li key={fam.id}>
                           <button
                             type="button"
-                            onClick={() => setProductos(alternar(productos, p.id))}
+                            onClick={() => alternarFamilia(fam)}
                             aria-pressed={activo}
                             className={cn(
                               "rounded-pill border px-3 py-1.5 text-sm transition-colors",
@@ -117,7 +124,7 @@ export function MisTarjetasModal({
                                 : "border-linea bg-card hover:bg-secondary",
                             )}
                           >
-                            {p.nombre}
+                            {fam.nombre}
                           </button>
                         </li>
                       );

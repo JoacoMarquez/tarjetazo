@@ -1,4 +1,4 @@
-import { CATEGORIAS, Departamento, TipoBeneficio } from "@tarjetazo/core";
+import { CATEGORIAS, Departamento, TipoBeneficio, expandirProductos } from "@tarjetazo/core";
 
 export type Orden = "relevancia" | "porcentaje" | "cuotas";
 /** "hoy" y "manana" se resuelven en el cliente contra la fecha de Uruguay. */
@@ -49,7 +49,8 @@ export function leerFiltros(params: URLSearchParams): Filtros {
   const orden = params.get("orden");
   return {
     bancos: lista(params.get("bancos")),
-    productos: lista(params.get("productos")),
+    // Un link viejo puede traer ids que cambiaron de significado (#40).
+    productos: expandirProductos(lista(params.get("productos"))),
     categorias: lista(params.get("cat"), CATS),
     departamentos: lista(params.get("depto"), DEPTOS),
     tipos: lista(params.get("tipo"), TIPOS),
