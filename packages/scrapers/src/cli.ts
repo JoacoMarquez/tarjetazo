@@ -8,7 +8,7 @@ import { fetchScotiabank } from "./fuentes/scotiabank.js";
 import { fetchBbva } from "./fuentes/bbva.js";
 import { correr } from "./runner.js";
 import { revalidarRevisiones } from "./revision.js";
-import { crearCliente } from "./db.js";
+import { crearCliente, recalcularDerivados } from "./db.js";
 
 type Crudo = import("./tipos.js").Crudo;
 type Extraido = import("./tipos.js").Extraido;
@@ -43,6 +43,13 @@ async function main() {
     return;
   }
 
+  // Recalcular a mano los derivados de comercio (el cron ya lo hace al cerrar).
+  if (fuenteId === "derivados") {
+    const n = await recalcularDerivados(crearCliente());
+    console.log(`derivados recalculados en ${n} comercios`);
+    return;
+  }
+
   if (fuenteId === "revisiones") {
     const r = await revalidarRevisiones(crearCliente());
     console.log(`revisadas: ${r.revisadas} | resueltas: ${r.resueltas} | pendientes: ${r.pendientes.length}`);
@@ -59,6 +66,7 @@ async function main() {
     console.error(`Uso: scraper <fuente> [--solo-fetch] [--limite=N]
 Fuentes: ${Object.keys(SCRAPERS).join(", ")}
 También: scraper revisiones   (revalida la cola de revisión manual)
+         scraper derivados    (recalcula best_pct / conteos de cada comercio)
          scraper destrabar    (cierra corridas que quedaron interrumpidas)`);
     process.exit(1);
   }

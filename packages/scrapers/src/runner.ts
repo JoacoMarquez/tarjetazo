@@ -16,6 +16,7 @@ import {
   idsDeBeneficios,
   marcarPaginaVista,
   marcarVencidos,
+  recalcularDerivados,
   resolverRevisionesDePagina,
   upsertBeneficios,
 } from "./db.js";
@@ -238,6 +239,13 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       const vencidos = [...existentes].filter((id) => !vistos.has(id));
       await marcarVencidos(db, vencidos);
       reporte.vencidos = vencidos.length;
+    }
+
+    // Después de las bajas: lo que venció por fecha desde ayer sale de los
+    // derivados de su comercio aunque la página no haya cambiado.
+    if (!soloFetch) {
+      const cambiados = await recalcularDerivados(db);
+      if (cambiados > 0) console.error(`  derivados recalculados en ${cambiados} comercios`);
     }
 
     await cerrarCorrida(db, corridaId, {

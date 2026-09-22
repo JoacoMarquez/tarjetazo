@@ -155,6 +155,17 @@ export async function marcarVencidos(
   if (error) throw new Error(`marcando vencidos: ${error.message}`);
 }
 
+/**
+ * Recalcula best_pct / n_beneficios / n_fuentes de todos los comercios. El
+ * trigger de `beneficio` no alcanza: un beneficio que vence por fecha sin que
+ * su página cambie no toca ninguna fila (#30). Devuelve cuántos cambiaron.
+ */
+export async function recalcularDerivados(db: SupabaseClient): Promise<number> {
+  const { data, error } = await db.rpc("recalcular_derivados_todos");
+  if (error) throw new Error(`recalculando derivados: ${error.message}`);
+  return Number(data ?? 0);
+}
+
 export async function encolarRevision(
   db: SupabaseClient,
   fila: { fuente_id: string; external_id: string; raw: unknown; motivo: string; url_fuente: string },
