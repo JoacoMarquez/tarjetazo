@@ -36,16 +36,29 @@ export function crearCliente(): SupabaseClient {
 }
 
 
+/**
+ * Hashes de las páginas que ya pasaron por el normalizador. Una página que
+ * solo se bajó (`--solo-fetch`) o que se marcó para re-normalizar tiene
+ * `normalizada_en` en null y no cuenta: si contara, la corrida siguiente la
+ * vería "sin cambios" y no la normalizaría nunca.
+ */
 export async function hashesGuardados(
   db: SupabaseClient,
   fuenteId: string,
 ): Promise<Map<string, string>> {
   const { data, error } = await db
     .from("pagina_cruda")
-    .select("external_id, hash")
+    .select("external_id, hash, normalizada_en")
     .eq("fuente_id", fuenteId);
   if (error) throw new Error(`leyendo pagina_cruda: ${error.message}`);
-  return new Map((data ?? []).map((r) => [r.external_id as string, r.hash as string]));
+  // Sin atajos: no hay forma de distinguir "falta el backfill" de páginas que
+  // están legítimamente pendientes (una fuente nueva bajada con --solo-fetch).
+  // El backfill de las filas viejas es la migración 20260924120000.
+  return new Map(
+    (data ?? [])
+      .filter((r) => r.normalizada_en !== null)
+      .map((r) => [r.external_id as string, r.hash as string]),
+  );
 }
 
 export async function guardarPagina(
@@ -64,6 +77,25 @@ export async function guardarPagina(
     const { error } = await db
       .from("pagina_cruda")
       .upsert(pagina, { onConflict: "fuente_id,external_id" });
+    if (error) throw new Error(error.message);
+  });
+}
+
+/**
+ * La página llegó igual que la última vez: se registra que la vimos, sin tocar
+ * `hash` ni `normalizada_en`. Antes esto pasaba por el upsert de `guardarPagina`
+ * con `normalizada_en: null`, que borraba cuándo se había normalizado.
+ */
+export async function marcarPaginaVista(
+  db: SupabaseClient,
+  pagina: { fuente_id: string; external_id: string; url_fuente: string; fetched_at: string },
+): Promise<void> {
+  await conReintentos("actualizando pagina_cruda", async () => {
+    const { error } = await db
+      .from("pagina_cruda")
+      .update({ url_fuente: pagina.url_fuente, fetched_at: pagina.fetched_at })
+      .eq("fuente_id", pagina.fuente_id)
+      .eq("external_id", pagina.external_id);
     if (error) throw new Error(error.message);
   });
 }

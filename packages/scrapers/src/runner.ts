@@ -14,6 +14,7 @@ import {
   hayCorridaAbierta,
   hashesGuardados,
   idsDeBeneficios,
+  marcarPaginaVista,
   marcarVencidos,
   resolverRevisionesDePagina,
   upsertBeneficios,
@@ -70,7 +71,6 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   const { fuenteId, fetch, normalizar: propio, soloFetch = false, limite } = opciones;
   const db = crearCliente();
   const claude = new Anthropic();
-  usarReglasDb(await cargarReglasDb(db));
   if (await hayCorridaAbierta(db, fuenteId)) {
     throw new Error(
       `ya hay una corrida de ${fuenteId} sin terminar; esperá a que cierre o marcala como terminada`,
@@ -91,6 +91,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   };
 
   try {
+    // Adentro del try: si las reglas no se pueden leer, la corrida queda
+    // registrada con su error y se ve en el dashboard.
+    usarReglasDb(await cargarReglasDb(db));
+
     // El tope también llega al fetch por entorno: las fuentes que bajan cientos
     // de fichas (BBVA) lo usan para no bajar todo cuando solo se prueban unas pocas.
     if (limite !== undefined) process.env.SCRAPER_LIMITE = String(limite);
@@ -126,11 +130,13 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         // La página no cambió: sus beneficios siguen vigentes tal cual están.
         const prefijo = `${fuenteId}:${crudo.external_id}:`;
         for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
-        await guardarPagina(db, filaDePagina(crudo, h, null));
+        await marcarPaginaVista(db, crudo);
         return;
       }
 
       if (soloFetch) {
+        // Queda con `normalizada_en` en null: la próxima corrida real la
+        // normaliza aunque el hash coincida.
         await guardarPagina(db, filaDePagina(crudo, h, null));
         return;
       }

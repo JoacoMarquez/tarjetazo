@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { conReintentos } from "./db.js";
 
 /** Reglas creadas desde el backoffice, por fuente y por texto ya normalizado. */
 export interface ReglasDb {
@@ -8,19 +9,32 @@ export interface ReglasDb {
 
 export const SIN_REGLAS: ReglasDb = { alias: new Map(), ignorar: new Map() };
 
+/** PostgREST (tabla fuera del schema cache) y Postgres (relación inexistente). */
+const TABLA_INEXISTENTE = new Set(["PGRST205", "42P01"]);
+
 /**
  * Si las tablas todavía no existen (la migración se aplica aparte del deploy
- * del cron) o la lectura falla, la corrida sigue solo con las reglas de código:
- * un alias de menos manda algo a revisión, no rompe nada.
+ * del cron), la corrida sigue solo con las reglas de código.
+ *
+ * Cualquier otro error se reintenta y, si persiste, **corta la corrida**. No se
+ * puede seguir sin reglas: una página marcada para re-normalizar por un alias
+ * se normalizaría sin él, se guardaría su hash y el alias no se aplicaría
+ * nunca, después de haber pagado la llamada al modelo. Pasó en una prueba con
+ * un "JWT issued at future" pasajero de Supabase.
  */
 export async function cargarReglasDb(db: SupabaseClient): Promise<ReglasDb> {
-  const [alias, ignorar] = await Promise.all([
-    db.from("producto_alias").select("fuente_id, texto, producto_ids"),
-    db.from("regla_ignorar").select("fuente_id, texto"),
-  ]);
-  const fallo = alias.error ?? ignorar.error;
-  if (fallo) {
-    console.error(`  reglas del backoffice no disponibles (${fallo.message}): sigo con las de código`);
+  const leer = async () => {
+    const [alias, ignorar] = await Promise.all([
+      db.from("producto_alias").select("fuente_id, texto, producto_ids"),
+      db.from("regla_ignorar").select("fuente_id, texto"),
+    ]);
+    const fallo = alias.error ?? ignorar.error;
+    if (fallo && !TABLA_INEXISTENTE.has(fallo.code ?? "")) throw new Error(fallo.message);
+    return { alias, ignorar, faltanTablas: Boolean(fallo) };
+  };
+  const { alias, ignorar, faltanTablas } = await conReintentos("leyendo reglas del backoffice", leer);
+  if (faltanTablas) {
+    console.error("  las tablas de reglas del backoffice no existen todavía: sigo con las de código");
     return SIN_REGLAS;
   }
 
