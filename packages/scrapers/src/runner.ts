@@ -39,7 +39,20 @@ export interface Reporte {
 }
 
 /** Solo las columnas de `pagina_cruda`: el crudo trae además sus sucursales. */
-function filaDePagina(crudo: Crudo, hash: string, normalizada_en: string | null) {
+type Resultado = "beneficios" | "no_es_beneficio" | "sin_tramos";
+
+/** Por qué una página dejó (o no) beneficios; lo muestra Salud de datos (#35). */
+function resultadoDe(e: Extraido): Resultado {
+  if (e.es_beneficio === false) return "no_es_beneficio";
+  return e.beneficios.length > 0 ? "beneficios" : "sin_tramos";
+}
+
+function filaDePagina(
+  crudo: Crudo,
+  hash: string,
+  normalizada_en: string | null,
+  resultado: { resultado: Resultado; tramos: number } | null = null,
+) {
   return {
     fuente_id: crudo.fuente_id,
     external_id: crudo.external_id,
@@ -48,6 +61,8 @@ function filaDePagina(crudo: Crudo, hash: string, normalizada_en: string | null)
     hash,
     fetched_at: crudo.fetched_at,
     normalizada_en,
+    resultado: resultado?.resultado ?? null,
+    tramos: resultado?.tramos ?? null,
   };
 }
 
@@ -222,7 +237,13 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         });
       }
 
-      await guardarPagina(db, filaDePagina(crudo, h, new Date().toISOString()));
+      await guardarPagina(
+        db,
+        filaDePagina(crudo, h, new Date().toISOString(), {
+          resultado: resultadoDe(extraido),
+          tramos: extraido.beneficios.length,
+        }),
+      );
     }
 
     // Con muchas páginas caídas no se puede distinguir "la fuente lo quitó" de

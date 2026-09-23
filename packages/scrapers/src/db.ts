@@ -71,6 +71,8 @@ export async function guardarPagina(
     hash: string;
     fetched_at: string;
     normalizada_en: string | null;
+    resultado: string | null;
+    tramos: number | null;
   },
 ): Promise<void> {
   await conReintentos("guardando pagina_cruda", async () => {

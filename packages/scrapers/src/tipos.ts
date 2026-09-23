@@ -31,6 +31,11 @@ export interface Extraido {
   beneficios: BeneficioNormalizado[];
   /** Productos que el normalizador nombró pero no supimos mapear. */
   productos_desconocidos: string[];
+  /**
+   * `false` cuando el normalizador decidió que la página no es un beneficio
+   * (institucional, sorteo, listado). Distinto de "no le pudo sacar tramos".
+   */
+  es_beneficio?: boolean;
   /** Tokens del modelo. Ausente en normalizadores propios (sin modelo). */
   uso?: UsoModelo;
 }

@@ -159,8 +159,8 @@ export default async function Salud() {
 
       <Seccion tipo="paginas_sin_beneficios" total={cuenta.paginas_sin_beneficios}>
         <Tabla
-          cabeceras={["Fuente", "Páginas", "Con beneficios", "Sin beneficios"]}
-          numericas={[1, 2, 3]}
+          cabeceras={["Fuente", "Páginas", "Con beneficios", "No son beneficio", "Sin beneficios"]}
+          numericas={[1, 2, 3, 4]}
           filas={dPaginas.map((p) => ({
             key: p.fuente_id,
             alerta: false,
@@ -168,13 +168,14 @@ export default async function Salud() {
               fuente(p.fuente_id),
               numero(p.paginas),
               numero(p.con_beneficios),
+              numero(p.no_son_beneficio),
               numero(p.sin_beneficios),
             ],
           }))}
         />
         <Detalle n={dVacias.length} total={cuenta.paginas_sin_beneficios}>
           <Tabla
-            cabeceras={["Fuente", "Página", "Bajada"]}
+            cabeceras={["Fuente", "Página", "Motivo", "Bajada"]}
             filas={dVacias.map((v) => ({
               key: `${v.fuente_id}:${v.external_id}`,
               alerta: false,
@@ -186,6 +187,7 @@ export default async function Salud() {
                   </Link>
                   <Externo href={v.url_fuente}>fuente</Externo>
                 </span>,
+                v.resultado === "sin_tramos" ? "Sin tramos" : "Sin clasificar",
                 fechaHora(v.fetched_at),
               ],
             }))}

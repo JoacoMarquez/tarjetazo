@@ -288,7 +288,7 @@ export async function normalizar(crudo: Crudo, cliente = new Anthropic()): Promi
   };
   const pagina = res.parsed_output;
   if (!pagina || !pagina.es_beneficio) {
-    return { crudo, comercio: null, beneficios: [], productos_desconocidos: [], uso };
+    return { crudo, comercio: null, beneficios: [], productos_desconocidos: [], es_beneficio: false, uso };
   }
 
   const comercio_key = slugificar(pagina.comercio_nombre);
