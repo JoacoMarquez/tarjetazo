@@ -99,15 +99,15 @@ Beneficios nuevos, modificados y dados de baja por la última corrida de cada fu
 ### Auditoría por muestreo (F2)
 10 beneficios por semana, vista lado a lado del inspector, ✓ / ✗. Muestra ponderada hacia fuentes nuevas, páginas que cambiaron hace poco y porcentajes altos; casi nada para fuentes con parser determinista (BBVA). Resultado: **precisión estimada por fuente**. Un ✗ no edita: abre el inspector o deja anotado el bug. Un segundo modelo como auditor queda descartado hasta que este número diga que hace falta.
 
-### Frescura (F2; sube a F1 según conteo, ver Pendientes)
-Responde "¿venció?" y "¿la página del banco quedó vieja?". Semáforo calculado por beneficio:
-- **Verde**: vigencia futura, o la página cambió hace poco.
-- **Amarillo**: sin `vigencia_hasta` y hash sin cambios hace > 180 días.
-- **Rojo**: el texto (`legales_raw` / `contenido`) menciona una fecha de fin ya pasada y figura vigente; o `url_fuente` da 404 / redirige a la home.
+### Frescura (F2, recortada en el grill del 2026-09-23)
+Responde "¿la página del banco quedó vieja?" para los beneficios sin `vigencia_hasta` (480, 439 de Santander). Lo que había en el diseño original y se descartó con datos: el detector de fechas en el texto (3 casos en 480) y el chequeo de links (el fetch diario ya da de baja las páginas que desaparecen; Itaú, Scotiabank y OCA comparten URLs).
 
-Además: ranking de fuentes que dejan publicadas páginas con vigencia vencida (para desconfiar más de sus beneficios sin fecha). Acciones:
-- **Ocultar** → regla por `(fuente_id, external_id)`; se levanta sola si la página cambia de hash.
-- **Verificado hasta** → no vuelve a la lista por 90 días.
+- `pagina_cruda.hash_desde`: desde cuándo la página tiene ese hash. Arranca de cero (el backfill de `normalizada_en` fue el 21/9): la señal sirve recién a los ~6 meses.
+- Semáforo por beneficio: **verde** con vigencia futura o página cambiada hace poco; **amarillo** sin `vigencia_hasta` y hash sin cambios hace > 180 días (a recalibrar); **rojo** reservado para señales que hoy no hay.
+- Se ve como sección en Salud de datos y como columna + filtro en el registro de beneficios.
+- **Ocultar** = `estado_revision = 'oculto'`: la web ya filtra por `ok`; cuando la página cambia, el runner re-normaliza y vuelve a `ok`.
+- **Verificado hasta** = `beneficio.verificado_hasta` (90 días por defecto): no vuelve a la lista hasta esa fecha.
+- Telegram avisa solo rojos nuevos.
 
 ### Carga manual (F3)
 Formulario que crea beneficios con `origen = 'manual'` pasando por el mismo schema Zod y guardas que `scrape ingerir`. `external_id` propio, así las bajas automáticas (que son por página de cada fuente) nunca los tocan. **`vigencia_hasta` obligatoria**, 60 días por defecto. Alerta "manuales por vencer" para renovar o dejar caer.
