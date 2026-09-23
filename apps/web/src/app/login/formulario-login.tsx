@@ -108,10 +108,13 @@ export function FormularioLogin({
   modoInicial,
   destino,
   errorInicial,
+  conGoogle,
 }: {
   modoInicial: Modo;
   destino: string;
   errorInicial?: string;
+  /** Solo si el proveedor está habilitado en Supabase (#36). */
+  conGoogle: boolean;
 }) {
   const router = useRouter();
   const idError = useId();
@@ -159,7 +162,7 @@ export function FormularioLogin({
     router.refresh();
   }
 
-  async function conGoogle() {
+  async function entrarConGoogle() {
     setError(null);
     setCargando(true);
     try {
@@ -302,24 +305,30 @@ export function FormularioLogin({
             {esLogin ? "Hola de nuevo" : "Creá tu cuenta"}
           </h1>
 
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={conGoogle}
-            disabled={cargando}
-            /* `secondary` y no `outline`: outline trae utilidades `dark:` que en
+          {conGoogle ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={entrarConGoogle}
+                disabled={cargando}
+                /* `secondary` y no `outline`: outline trae utilidades `dark:` que en
                este proyecto (sin tema oscuro) se activan igual por el sistema. */
-            className="border-linea hover:bg-papel-1 text-tinta mt-6 h-12 w-full gap-2.5 border bg-white text-[15px] font-semibold disabled:opacity-60"
-          >
-            <LogoGoogle />
-            {esLogin ? "Continuar con Google" : "Registrarme con Google"}
-          </Button>
+                className="border-linea hover:bg-papel-1 text-tinta mt-6 h-12 w-full gap-2.5 border bg-white text-[15px] font-semibold disabled:opacity-60"
+              >
+                <LogoGoogle />
+                {esLogin ? "Continuar con Google" : "Registrarme con Google"}
+              </Button>
 
-          <div className="text-humo-oscuro my-5 flex items-center gap-3 text-xs">
-            <span className="bg-linea h-px flex-1" />
-            o con tu email
-            <span className="bg-linea h-px flex-1" />
-          </div>
+              <div className="text-humo-oscuro my-5 flex items-center gap-3 text-xs">
+                <span className="bg-linea h-px flex-1" />
+                o con tu email
+                <span className="bg-linea h-px flex-1" />
+              </div>
+            </>
+          ) : (
+            <div className="mt-6" />
+          )}
 
           <form onSubmit={enviar} noValidate>
             <div className="flex flex-col gap-3">

@@ -107,3 +107,28 @@ export function destinoSeguro(
     return porDefecto;
   return next;
 }
+
+/**
+ * Qué proveedores de login tiene habilitados el proyecto de Supabase. Si
+ * Google no está habilitado, `signInWithOAuth` manda al usuario a una página
+ * de Supabase que solo muestra un JSON de error (#36): mejor no ofrecerlo.
+ * Se consulta el endpoint público de settings y se cachea una hora, así que al
+ * habilitar Google en Supabase el botón aparece solo.
+ */
+export async function loginConGoogleHabilitado(): Promise<boolean> {
+  const cred = credencialesAuth();
+  if (!cred) return false;
+  try {
+    const res = await fetch(`${cred.url}/auth/v1/settings`, {
+      headers: { apikey: cred.anonKey },
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) return false;
+    const datos = (await res.json()) as { external?: Record<string, boolean> };
+    return datos.external?.google === true;
+  } catch {
+    // Sin respuesta, no ofrecerlo: un botón que lleva a un error es peor que ninguno.
+    return false;
+  }
+}

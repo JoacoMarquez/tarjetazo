@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { destinoSeguro } from "@/lib/supabase-auth";
+import { destinoSeguro, loginConGoogleHabilitado } from "@/lib/supabase-auth";
 import { FormularioLogin } from "./formulario-login";
 import { PanelMarca } from "./panel-marca";
 
@@ -14,7 +14,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = await searchParams;
+  const [params, conGoogle] = await Promise.all([searchParams, loginConGoogleHabilitado()]);
   const uno = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v;
 
@@ -26,6 +26,7 @@ export default async function LoginPage({
           modoInicial={uno(params.modo) === "registro" ? "registro" : "login"}
           destino={destinoSeguro(uno(params.next))}
           errorInicial={uno(params.error)}
+          conGoogle={conGoogle}
         />
       </div>
     </main>
