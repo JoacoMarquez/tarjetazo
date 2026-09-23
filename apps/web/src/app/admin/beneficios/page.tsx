@@ -14,6 +14,7 @@ import {
   type FilaRegistro,
 } from "@/lib/admin/beneficios";
 import { fechaCorta, hoyUy, numero } from "@/lib/admin/formato";
+import { paginaDeBeneficio, urlInspector } from "@/lib/admin/paginas";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Beneficios" };
@@ -167,7 +168,7 @@ export default async function Beneficios({
                     <Th>Tarjetas</Th>
                     <Th>Vigencia</Th>
                     <Th>Estado</Th>
-                    <Th>Fuente original</Th>
+                    <Th>Página</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -215,14 +216,25 @@ export default async function Beneficios({
                         <td className="px-4 py-2">
                           <Estado estado={b.estado_revision} />
                         </td>
-                        <td className="px-4 py-2 text-xs">
+                        <td className="px-4 py-2 text-xs whitespace-nowrap">
+                          {(() => {
+                            const pag = paginaDeBeneficio(b.id);
+                            return pag ? (
+                              <Link
+                                href={urlInspector(pag.fuenteId, pag.externalId)}
+                                className="text-cielo-ink mr-3 hover:underline"
+                              >
+                                Inspector
+                              </Link>
+                            ) : null;
+                          })()}
                           <a
                             href={b.url_fuente}
                             target="_blank"
                             rel="noreferrer noopener"
                             className="text-cielo-ink hover:underline"
                           >
-                            Ver en {NOMBRE_FUENTE.get(b.fuente_id) ?? "la fuente"} ↗
+                            {NOMBRE_FUENTE.get(b.fuente_id) ?? "Fuente"} ↗
                           </a>
                         </td>
                       </tr>

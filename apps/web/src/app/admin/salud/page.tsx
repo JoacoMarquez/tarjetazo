@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FUENTES } from "@tarjetazo/core";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
 import { fechaHora, numero } from "@/lib/admin/formato";
+import { urlInspector } from "@/lib/admin/paginas";
 import {
   ACCIONABLES,
   HALLAZGOS,
@@ -179,9 +180,12 @@ export default async function Salud() {
               alerta: false,
               celdas: [
                 fuente(v.fuente_id),
-                <Externo key="u" href={v.url_fuente}>
-                  {v.external_id}
-                </Externo>,
+                <span key="u" className="flex flex-wrap gap-x-3">
+                  <Link href={urlInspector(v.fuente_id, v.external_id)} className="text-cielo-ink hover:underline">
+                    {v.external_id}
+                  </Link>
+                  <Externo href={v.url_fuente}>fuente</Externo>
+                </span>,
                 fechaHora(v.fetched_at),
               ],
             }))}
