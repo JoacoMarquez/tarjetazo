@@ -36,7 +36,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Anotar inicio
+        run: echo "INICIO=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
       - name: Correr scraper
+        id: scrapers
         working-directory: packages/scrapers
         shell: bash
         env:
@@ -55,6 +59,23 @@ jobs:
             pnpm scrape "$f" $LIMITE 2>&1 | tee -a "$RUNNER_TEMP/reporte.txt" || estado=1
           done
           exit $estado
+
+      # Siempre, haya fallado o no: si el mensaje no llega, esa es la alerta.
+      # Las pruebas manuales con límite no mandan nada, para no llenar el chat.
+      - name: Resumen a Telegram
+        if: always() && (github.event_name == 'schedule' || inputs.limite == '')
+        working-directory: packages/scrapers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RESUMEN_DESDE: ${{ env.INICIO }}
+          RESUMEN_FUENTES: ${{ inputs.fuente || 'todas' }}
+          RESUMEN_ESTADO: ${{ steps.scrapers.outcome }}
+          RESUMEN_MANUAL: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
+          RESUMEN_URL_LOG: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: pnpm scrape resumen
 
       - name: Reporte
         if: always()

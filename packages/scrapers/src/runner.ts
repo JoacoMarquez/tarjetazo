@@ -22,6 +22,7 @@ import {
 } from "./db.js";
 import { reversaIde } from "./geo/ide.js";
 import { slugDepartamento } from "./geo/departamentos.js";
+import type { UsoModelo } from "@tarjetazo/core";
 import type { Crudo, Extraido } from "./tipos.js";
 
 export interface Reporte {
@@ -34,6 +35,7 @@ export interface Reporte {
   a_revisar: number;
   sucursales: number;
   fallidas: number;
+  tokens: UsoModelo;
 }
 
 /** Solo las columnas de `pagina_cruda`: el crudo trae además sus sucursales. */
@@ -89,6 +91,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     a_revisar: 0,
     sucursales: 0,
     fallidas: 0,
+    tokens: { entrada: 0, cache_escritura: 0, cache_lectura: 0, salida: 0 },
   };
 
   try {
@@ -147,6 +150,12 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // tarjeta a la cola: el de BBVA resuelve todo con su plantilla y nunca
       // informa desconocidos, así que no hay nada a lo que ponerle un alias.
       const extraido = propio ? propio(crudo) : await normalizar(crudo, claude);
+      if (extraido.uso) {
+        reporte.tokens.entrada += extraido.uso.entrada;
+        reporte.tokens.cache_escritura += extraido.uso.cache_escritura;
+        reporte.tokens.cache_lectura += extraido.uso.cache_lectura;
+        reporte.tokens.salida += extraido.uso.salida;
+      }
 
       // Solo creamos el comercio si la página dejó al menos un beneficio: si
       // no, quedaría un comercio vacío en la web (pasa con las páginas de
@@ -255,10 +264,21 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       actualizados: reporte.actualizados,
       vencidos: reporte.vencidos,
       a_revisar: reporte.a_revisar,
+      tokens_entrada: reporte.tokens.entrada,
+      tokens_cache_escritura: reporte.tokens.cache_escritura,
+      tokens_cache_lectura: reporte.tokens.cache_lectura,
+      tokens_salida: reporte.tokens.salida,
     });
     return reporte;
   } catch (e) {
-    await cerrarCorrida(db, corridaId, { error: String(e) });
+    // Lo gastado en el modelo antes de fallar también cuenta.
+    await cerrarCorrida(db, corridaId, {
+      error: String(e),
+      tokens_entrada: reporte.tokens.entrada,
+      tokens_cache_escritura: reporte.tokens.cache_escritura,
+      tokens_cache_lectura: reporte.tokens.cache_lectura,
+      tokens_salida: reporte.tokens.salida,
+    });
     throw e;
   }
 }

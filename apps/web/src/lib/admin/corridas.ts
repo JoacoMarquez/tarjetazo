@@ -1,3 +1,5 @@
+import { costoEstimadoUsd } from "@tarjetazo/core";
+
 /**
  * Lectura del registro de corridas para el dashboard. Lógica pura: las queries
  * viven en las páginas, que son las que llaman a `exigirAdmin()`.
@@ -15,6 +17,10 @@ export type Corrida = {
   vencidos: number;
   a_revisar: number;
   error: string | null;
+  tokens_entrada?: number;
+  tokens_cache_escritura?: number;
+  tokens_cache_lectura?: number;
+  tokens_salida?: number;
 };
 
 export type EstadoCorrida = "ok" | "error" | "en_curso" | "trabada";
@@ -91,6 +97,17 @@ export function duracion(c: Corrida): string | null {
   const s = Math.max(0, Math.round((Date.parse(c.termino_en) - Date.parse(c.empezo_en)) / 1000));
   if (s < 60) return `${s} s`;
   return `${Math.floor(s / 60)} min ${s % 60} s`;
+}
+
+/** Costo del modelo en la corrida, **estimado**: la referencia es el saldo de la consola. */
+export function costoCorrida(c: Corrida): number | null {
+  if (c.tokens_entrada === undefined) return null;
+  return costoEstimadoUsd({
+    entrada: c.tokens_entrada ?? 0,
+    cache_escritura: c.tokens_cache_escritura ?? 0,
+    cache_lectura: c.tokens_cache_lectura ?? 0,
+    salida: c.tokens_salida ?? 0,
+  });
 }
 
 export const ETIQUETA_ESTADO: Record<EstadoFuente, string> = {

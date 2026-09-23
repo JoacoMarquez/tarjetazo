@@ -280,9 +280,15 @@ export async function normalizar(crudo: Crudo, cliente = new Anthropic()): Promi
     output_config: { format: zodOutputFormat(PaginaSchema) },
   });
 
+  const uso = {
+    entrada: res.usage.input_tokens,
+    cache_escritura: res.usage.cache_creation_input_tokens ?? 0,
+    cache_lectura: res.usage.cache_read_input_tokens ?? 0,
+    salida: res.usage.output_tokens,
+  };
   const pagina = res.parsed_output;
   if (!pagina || !pagina.es_beneficio) {
-    return { crudo, comercio: null, beneficios: [], productos_desconocidos: [] };
+    return { crudo, comercio: null, beneficios: [], productos_desconocidos: [], uso };
   }
 
   const comercio_key = slugificar(pagina.comercio_nombre);
@@ -332,6 +338,7 @@ export async function normalizar(crudo: Crudo, cliente = new Anthropic()): Promi
     comercio: { key: comercio_key, nombre: pagina.comercio_nombre, categoria: pagina.categoria },
     beneficios,
     productos_desconocidos: desconocidos,
+    uso,
   };
 }
 
