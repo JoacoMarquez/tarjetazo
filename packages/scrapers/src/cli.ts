@@ -10,6 +10,7 @@ import { correr } from "./runner.js";
 import { revalidarRevisiones } from "./revision.js";
 import { crearCliente, recalcularDerivados } from "./db.js";
 import { armarResumen, enviarTelegram } from "./resumen.js";
+import { correrCatalogo } from "./catalogo/runner.js";
 
 type Crudo = import("./tipos.js").Crudo;
 type Extraido = import("./tipos.js").Extraido;
@@ -41,6 +42,18 @@ async function main() {
       .is("termino_en", null);
     if (error) throw new Error(error.message);
     console.log(`corridas interrumpidas cerradas: ${count}`);
+    return;
+  }
+
+  // Catálogo de tarjetas (#27): semanal, deja sugerencias para la bandeja.
+  if (fuenteId === "catalogo") {
+    const limiteArg = args.find((a) => a.startsWith("--limite="));
+    const fuentes = args.slice(1).filter((a) => !a.startsWith("--"));
+    const r = await correrCatalogo(crearCliente(), {
+      fuentes: fuentes.length && fuentes[0] !== "todas" ? fuentes : undefined,
+      limite: limiteArg ? Number(limiteArg.split("=")[1]) : undefined,
+    });
+    console.log(`páginas: ${r.paginas} | extraídas: ${r.extraidas} | tarjetas: ${r.tarjetas} | sugerencias nuevas: ${r.sugerencias} | fallidas: ${r.fallidas}`);
     return;
   }
 
@@ -94,6 +107,7 @@ Fuentes: ${Object.keys(SCRAPERS).join(", ")}
 También: scraper revisiones   (revalida la cola de revisión manual)
          scraper derivados    (recalcula best_pct / conteos de cada comercio)
          scraper resumen      (arma y manda el resumen diario a Telegram)
+         scraper catalogo [santander|brou|bbva] [--limite=N]  (catálogo de tarjetas → sugerencias)
          scraper destrabar    (cierra corridas que quedaron interrumpidas)`);
     process.exit(1);
   }

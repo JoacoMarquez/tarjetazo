@@ -13,7 +13,7 @@ import { slugificar } from "./slug.js";
 import type { Crudo, Extraido } from "./tipos.js";
 
 /** Fijado en docs/03-spec.md. */
-const MODELO = "claude-sonnet-5";
+export const MODELO = "claude-sonnet-5";
 
 const SLUGS_CATEGORIA = CATEGORIAS.map((c) => c.slug) as [string, ...string[]];
 
