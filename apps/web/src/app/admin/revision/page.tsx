@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { FUENTES, PRODUCTOS } from "@tarjetazo/core";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
+import Link from "next/link";
 import { numero } from "@/lib/admin/formato";
+import { urlInspector } from "@/lib/admin/paginas";
 import { pieDeTarjeta } from "@/lib/marca";
 import {
   COLUMNAS_REVISION,
@@ -228,8 +230,25 @@ function Cabecera({ g }: { g: Grupo }) {
   );
 }
 
-/** Hasta que exista el inspector (F2), el link va a la página de la fuente. */
+/** Inspector de cada página con clave; las filas viejas sin clave, a la fuente. */
 function Paginas({ g }: { g: Grupo }) {
+  const conClave = g.paginas.filter((p) => !p.startsWith("url:"));
+  if (conClave.length > 0) {
+    return (
+      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+        {conClave.slice(0, URLS_VISIBLES).map((p) => (
+          <li key={p}>
+            <Link href={urlInspector(g.fuenteId, p)} className="text-cielo-ink hover:underline">
+              {p}
+            </Link>
+          </li>
+        ))}
+        {conClave.length > URLS_VISIBLES ? (
+          <li className="text-humo-oscuro">y {numero(conClave.length - URLS_VISIBLES)} más</li>
+        ) : null}
+      </ul>
+    );
+  }
   if (g.urls.length === 0) return null;
   return (
     <ul className="mt-2 flex flex-col gap-0.5 text-xs">
