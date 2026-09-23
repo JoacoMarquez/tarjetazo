@@ -38,7 +38,9 @@ export default function Privacidad() {
         <p className="mt-2">
           Medimos de forma agregada qué se usa —cuántas visitas tiene una página, qué filtros se
           aplican— para saber qué mejorar. No creamos perfiles de personas ni vendemos datos a
-          nadie. Si tu navegador pide no ser rastreado, lo respetamos.
+          nadie. Si tu navegador pide no ser rastreado, lo respetamos. Cuando una búsqueda no
+          encuentra ningún comercio, guardamos el texto buscado —sin nada que te identifique—
+          para saber qué comercios faltan.
         </p>
       </section>
       <section>

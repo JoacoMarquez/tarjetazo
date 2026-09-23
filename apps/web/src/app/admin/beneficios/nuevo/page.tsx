@@ -8,8 +8,14 @@ import { opcionesFormulario } from "../datos-formulario";
 
 export const metadata: Metadata = { title: "Cargar beneficio" };
 
-export default async function NuevoBeneficio() {
+export default async function NuevoBeneficio({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await exigirAdmin();
+  // Desde "Búsquedas sin resultado" llega con el comercio que la gente buscó.
+  const comercio = (await searchParams).comercio;
   const opciones = await opcionesFormulario();
   return (
     <div className="mx-auto max-w-5xl">
@@ -24,7 +30,7 @@ export default async function NuevoBeneficio() {
       <FormularioManual
         accion={guardarManual}
         inicial={{
-          fuente_id: "", comercio: "", categoria: "", titulo: "", descuento_raw: "", tipo: "porcentaje",
+          fuente_id: "", comercio: typeof comercio === "string" ? comercio.slice(0, 80) : "", categoria: "", titulo: "", descuento_raw: "", tipo: "porcentaje",
           porcentaje: "", cuotas: "", dias_semana: [], productos_elegibles: [], vigencia_desde: "",
           vigencia_hasta: fechaUy(DIAS_DEFAULT), tope_monto: "", tope_periodo: "", canal: "presencial",
           url_fuente: "", nota_manual: "",
