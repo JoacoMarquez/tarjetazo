@@ -58,15 +58,17 @@ function productos(frase: string): { ids: string[]; desconocidos: string[] } {
   if (/platinum/.test(f)) ids.add("bbva-platinum");
   if (/black/.test(f)) ids.add("bbva-black");
   if (/infinite/.test(f)) ids.add("bbva-infinite");
-  // "Tarjetas de Crédito BBVA" a secas: todas las de crédito.
-  if (/credito/.test(f) && ids.size === 0) {
-    for (const id of ["bbva-credito", "bbva-oro", "bbva-platinum", "bbva-black", "bbva-infinite"]) ids.add(id);
-  }
-  // Pymes y corporativas van siempre junto a Internacional/Oro; no son
-  // tarjetas de consumo y no se listan aparte.
+  // Tarjetas de marca: van antes del "crédito a secas" para que "Tarjetas de
+  // Crédito BBVA Sodimac" sea solo la Sodimac y no todas las de crédito.
   if (/comunidad plus/.test(f)) ids.add("bbva-comunidad-plus");
   if (/sodimac/.test(f)) ids.add("bbva-sodimac");
   if (/consolid/.test(f)) ids.add("bbva-consolid-travel");
+  // "Tarjetas de Crédito BBVA" a secas: todas las de crédito.
+  // Pymes y corporativas van siempre junto a Internacional/Oro; no son
+  // tarjetas de consumo y no se listan aparte.
+  if (/credito/.test(f) && ids.size === 0) {
+    for (const id of ["bbva-credito", "bbva-oro", "bbva-platinum", "bbva-black", "bbva-infinite"]) ids.add(id);
+  }
   return { ids: [...ids], desconocidos };
 }
 
@@ -140,12 +142,23 @@ export function normalizarBbva(crudo: Crudo): Extraido {
   const desconocidos: string[] = [];
   let diasActuales: number[] = [];
   let calificador = "";
-  for (const l of lineas) {
+  // Los legales repiten los porcentajes en prosa ("20% en el total de la
+  // compra…"): la forma sin "Off" solo se acepta antes de ellos.
+  const inicioLegales = lineas.findIndex((l) => /^Legales:?/i.test(l));
+  // Tarjetas de crédito de los tramos ya leídos: las cuotas sin tarjeta
+  // nombrada ("Hasta 12 cuotas sin interés en pesos") valen para esas.
+  const creditoDeLaPagina = new Set<string>();
+  for (const [k, l] of lineas.entries()) {
+    const enLegales = inicioLegales >= 0 && k >= inicioLegales;
     if (/^Descuentos?\b/i.test(l) && /:$/.test(l)) { diasActuales = dias(l); continue; }
     if (/^(Productos|Solo|Sólo|Únicamente|Excepto)\b/i.test(l) && !/% ?Off/i.test(l)) { calificador = l.replace(/:$/, ""); continue; }
-    const cuotas = l.match(/^Hasta (\d{1,2}) cuotas sin inter[eé]s.*con (.+?)\.?$/i);
-    if (cuotas) {
-      const { ids } = productos(cuotas[2]!);
+    // "Hasta 12 cuotas sin interés con Tarjetas…", o "Hasta 12 cuotas sin
+    // recargo en pesos y 18 … en dólares" (se toma la primera: la de pesos).
+    // Sin tarjeta nombrada vale para las de crédito de los tramos anteriores.
+    const cuotas = l.match(/^Hasta (\d{1,2}) cuotas sin (?:inter[eé]s|recargo)(.*)$/i);
+    if (cuotas && !enLegales) {
+      const tarjetas = cuotas[2]!.match(/con (.+?)\.?$/)?.[1];
+      const ids = tarjetas ? productos(tarjetas).ids : (creditoDeLaPagina.size > 0 ? [...creditoDeLaPagina] : ["bbva-credito", "bbva-oro", "bbva-platinum", "bbva-black", "bbva-infinite"]);
       tramos.push({
         comercio_key: slugificar(nombre), titulo: `${cuotas[1]} cuotas sin interés`, descuento_raw: l,
         porcentaje: null, cuotas: Number(cuotas[1]), tipo: "cuotas", dias_semana: diasActuales,
@@ -157,11 +170,21 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     }
     // "15% Off en Alquiler de autos en Uruguay" (sin tarjeta): todas las de crédito.
     // Lo que aplica en otro país no es un beneficio de acá.
-    const m = l.match(/^(?:(.*?)\s)?(\d{1,2})\s*%\s*Off (?:con|en|sobre) (.+)$/i);
+    // "20% en membresías…" (sin "Off") es un tramo, pero solo fuera de los legales.
+    const m =
+      l.match(/^(?:(.*?)\s)?(\d{1,2})\s*%\s*Off (?:con|en|sobre) (.+)$/i) ??
+      (enLegales ? null : l.match(/^(?:(Hasta)\s)?(\d{1,2})\s*%\s*(?:de descuento\s+)?(?:en|con|sobre) (.+)$/i));
     if (!m) continue;
+    // "25% en la primera compra con Tarjeta…": promo para sacar la tarjeta, no
+    // un beneficio en un comercio. Solo en la forma nueva, sin "Off": la de
+    // siempre ya publicaba "10% Off en primera compra" (Consolid) y se mantiene.
+    if (!/% ?Off/i.test(l) && /primera compra/i.test(l)) continue;
+    // "Hasta 40% Off…": el porcentaje es un máximo; se guarda y el "hasta"
+    // queda en `descuento_raw`.
+    const hasta = /^hasta$/i.test(m[1] ?? "");
     // A veces los días van adelante del tramo: "Martes y Jueves 10% Off con…".
-    const diasDelTramo = m[1] ? dias(m[1]) : [];
-    if (m[1] && diasDelTramo.length === 0) continue;
+    const diasDelTramo = m[1] && !hasta ? dias(m[1]) : [];
+    if (m[1] && !hasta && diasDelTramo.length === 0) continue;
     if (/estados unidos|argentina|brasil|chile|exterior/i.test(m[2]!)) continue;
     const porcentaje = Number(m[2]);
     const { ids, desconocidos: d } = /tarjeta/i.test(m[3]!)
@@ -170,10 +193,11 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     desconocidos.push(...d);
     const f = sinAcentos(m[3]!);
     const clave = /platinum|black|infinite/.test(f) ? "alto" : /debito/.test(f) ? "debito" : "credito";
+    for (const id of ids) if (id !== "bbva-debito") creditoDeLaPagina.add(id);
     const tope_monto = tope.get(clave) ?? null;
     tramos.push({
       comercio_key: slugificar(nombre),
-      titulo: `${porcentaje}% de descuento${calificador ? ` (${calificador.toLowerCase()})` : ""}`,
+      titulo: `${hasta ? "Hasta " : ""}${porcentaje}% de descuento${calificador ? ` (${calificador.toLowerCase()})` : ""}`,
       descuento_raw: calificador ? `${calificador}: ${l}` : l,
       porcentaje,
       cuotas: null,
