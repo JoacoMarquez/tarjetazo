@@ -9,6 +9,7 @@ import { fetchBbva } from "./fuentes/bbva.js";
 import { correr } from "./runner.js";
 import { revalidarRevisiones } from "./revision.js";
 import { crearCliente, recalcularDerivados } from "./db.js";
+import { armarResumen, enviarTelegram } from "./resumen.js";
 
 type Crudo = import("./tipos.js").Crudo;
 type Extraido = import("./tipos.js").Extraido;
@@ -43,6 +44,31 @@ async function main() {
     return;
   }
 
+  // Resumen para Telegram: lo corre el workflow al final, pase lo que pase.
+  if (fuenteId === "resumen") {
+    const cron = Object.keys(SCRAPERS);
+    const pedidas = (process.env.RESUMEN_FUENTES ?? "todas").trim();
+    let texto: string;
+    try {
+      texto = await armarResumen(crearCliente(), {
+        // Sin inicio conocido, las últimas 12 horas.
+        desde: process.env.RESUMEN_DESDE || new Date(Date.now() - 12 * 3600e3).toISOString(),
+        fuentes: pedidas === "todas" ? cron : pedidas.split(/[\s,]+/).filter(Boolean),
+        urlAdmin: process.env.ADMIN_URL ?? "https://tarjetazo-one.vercel.app/admin",
+        urlLog: process.env.RESUMEN_URL_LOG || undefined,
+        estadoWorkflow: process.env.RESUMEN_ESTADO || undefined,
+        manual: process.env.RESUMEN_MANUAL === "1",
+      });
+    } catch (e) {
+      // Si no se puede ni leer la base, igual avisar: eso también es un problema.
+      texto = `🔴 Tarjetazo: no pude armar el resumen\n\n${String(e).slice(0, 300)}\n\n${process.env.RESUMEN_URL_LOG ?? ""}`;
+    }
+    console.log(texto);
+    const enviado = await enviarTelegram(texto);
+    console.log(enviado ? "\nenviado a Telegram" : "\n(sin TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID: no se envió)");
+    return;
+  }
+
   // Recalcular a mano los derivados de comercio (el cron ya lo hace al cerrar).
   if (fuenteId === "derivados") {
     const n = await recalcularDerivados(crearCliente());
@@ -67,6 +93,7 @@ async function main() {
 Fuentes: ${Object.keys(SCRAPERS).join(", ")}
 También: scraper revisiones   (revalida la cola de revisión manual)
          scraper derivados    (recalcula best_pct / conteos de cada comercio)
+         scraper resumen      (arma y manda el resumen diario a Telegram)
          scraper destrabar    (cierra corridas que quedaron interrumpidas)`);
     process.exit(1);
   }

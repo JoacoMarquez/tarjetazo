@@ -4,6 +4,7 @@ export { CATEGORIAS, SLUGS_CATEGORIAS } from "./categorias";
 export { FUENTES, PRODUCTOS } from "./fuentes";
 export { origenSupabase } from "./supabase";
 export { esErrorDeTramo, normalizarNombreTarjeta, problemasDeMotivo } from "./revision";
+export { COSTO_MODELO_USD_POR_MTOK, costoEstimadoUsd, type UsoModelo } from "./costo";
 export {
   EQUIVALENCIAS_PRODUCTO,
   FAMILIAS,

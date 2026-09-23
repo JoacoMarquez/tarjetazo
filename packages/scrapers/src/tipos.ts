@@ -1,4 +1,4 @@
-import type { BeneficioNormalizado } from "@tarjetazo/core";
+import type { BeneficioNormalizado, UsoModelo } from "@tarjetazo/core";
 
 /** Material crudo de una página, antes de interpretarlo. Se guarda siempre. */
 export interface Crudo {
@@ -31,6 +31,8 @@ export interface Extraido {
   beneficios: BeneficioNormalizado[];
   /** Productos que el normalizador nombró pero no supimos mapear. */
   productos_desconocidos: string[];
+  /** Tokens del modelo. Ausente en normalizadores propios (sin modelo). */
+  uso?: UsoModelo;
 }
 
 export interface Scraper {

@@ -98,6 +98,11 @@ corrida igual termina con éxito. Los
 tramos que no validan, o cuyas tarjetas no supimos mapear, van a
 `beneficio_revision`. Cada corrida queda registrada en `corrida`.
 
+Al final de cada corrida del cron, el workflow manda un resumen a Telegram (`scrape resumen`):
+una línea por fuente, la cola de revisión, las alertas de salud y el costo estimado del
+modelo. Se manda siempre: si un día no llega, esa es la alerta. Necesita los secrets
+`TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`; las corridas manuales con `limite` no mandan nada.
+
 Corre solo con el workflow `.github/workflows/scrapers.yml` (cron diario a las
 06:00 de Uruguay), que además mantiene despierto el proyecto de Supabase Free.
 Secrets del repo: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`.
