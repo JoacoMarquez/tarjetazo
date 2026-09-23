@@ -11,7 +11,7 @@ import {
   resumenError,
   type Corrida,
 } from "@/lib/admin/corridas";
-import { fechaHora, numero } from "@/lib/admin/formato";
+import { fechaHora, hoyUy, numero } from "@/lib/admin/formato";
 import { armarResumen, totalAccionables } from "@/lib/admin/salud";
 
 export const metadata: Metadata = { title: "Corridas" };
@@ -51,10 +51,7 @@ async function corridasPorFuente(db: ReturnType<typeof createSupabaseAdmin>) {
 export default async function Corridas() {
   await exigirAdmin();
   const db = createSupabaseAdmin();
-  // Uruguay no tiene horario de verano: la fecha local es siempre UTC-3.
-  const hoy = new Date(Date.now() - 3 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+  const hoy = hoyUy();
 
   const [corridas, cola, beneficios, salud] = await Promise.all([
     corridasPorFuente(db),
