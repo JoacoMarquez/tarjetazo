@@ -109,6 +109,11 @@ export interface ResultadoBusqueda {
   n_beneficios: number;
 }
 
+/** Anota una búsqueda sin resultados (la función normaliza, acota y descarta ruido). */
+export async function registrarBusquedaVacia(q: string) {
+  await createSupabaseClient().rpc("registrar_busqueda_vacia", { p_q: q });
+}
+
 export async function buscarComercios(q: string, f: Filtros) {
   const db = createSupabaseClient();
   const { data, error } = await db.rpc("buscar_comercios", {
