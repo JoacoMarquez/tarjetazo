@@ -1,0 +1,45 @@
+name: Catálogo de tarjetas
+
+# Revisa las páginas oficiales de tarjetas de Santander, BROU y BBVA y deja
+# sugerencias para la bandeja del backoffice (#27). Semanal: el catálogo
+# cambia poco. "Revisar ahora" en el backoffice linkea acá.
+on:
+  schedule:
+    # Lunes 12:00 UTC = 09:00 en Uruguay.
+    - cron: "0 12 * * 1"
+  workflow_dispatch:
+    inputs:
+      fuente:
+        description: Banco
+        type: choice
+        options: [todas, santander, brou, bbva]
+        default: todas
+      limite:
+        description: Máximo de páginas por banco (vacío = todas)
+        type: string
+
+concurrency:
+  group: catalogo
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Revisar catálogo
+        working-directory: packages/scrapers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FUENTE: ${{ inputs.fuente || 'todas' }}
+          LIMITE: ${{ inputs.limite && format('--limite={0}', inputs.limite) || '' }}
+        run: pnpm scrape catalogo "$FUENTE" $LIMITE
