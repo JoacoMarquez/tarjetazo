@@ -16,7 +16,8 @@ function vigentes(hoy: string) {
 
 export async function resumen(): Promise<Resumen> {
   const db = createSupabaseClient();
-  const hoy = new Date().toISOString().slice(0, 10);
+  // En Uruguay (UTC-3): en UTC, a las 21:00 ya es el día siguiente.
+  const hoy = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const cuenta = { count: "exact" as const, head: true };
 
   const [beneficios, comercios, fuentes, sucursales] = await Promise.all([
