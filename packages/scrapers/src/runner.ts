@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { hash } from "./http.js";
 import { normalizar, usarReglasDb } from "./normalizador.js";
 import { cargarReglasDb } from "./reglas-db.js";
+import { aRestaurar } from "./restaurar.js";
 import {
   abrirCorrida,
   asegurarComercio,
@@ -16,6 +17,9 @@ import {
   idsDeBeneficios,
   marcarPaginaVista,
   marcarVencidos,
+  idsDescartados,
+  restaurarBeneficios,
+  tramosGuardados,
   recalcularDerivados,
   resolverRevisionesDePagina,
   upsertBeneficios,
@@ -122,7 +126,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
 
     const previos = await hashesGuardados(db, fuenteId);
     const existentes = await idsDeBeneficios(db, fuenteId);
+    const descartados = await idsDescartados(db, fuenteId);
+    const tramosPrevios = await tramosGuardados(db, fuenteId);
     const vistos = new Set<string>();
+    const restaurar: string[] = [];
 
     for (const crudo of crudos) {
       try {
@@ -149,6 +156,11 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         // La página no cambió: sus beneficios siguen vigentes tal cual están.
         const prefijo = `${fuenteId}:${crudo.external_id}:`;
         for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
+        // Si faltó un día y se dio de baja, vuelve a publicarse (#48).
+        for (const id of aRestaurar(fuenteId, crudo.external_id, tramosPrevios.get(crudo.external_id), descartados)) {
+          vistos.add(id);
+          restaurar.push(id);
+        }
         await marcarPaginaVista(db, crudo);
         return;
       }
@@ -249,6 +261,13 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     // Con muchas páginas caídas no se puede distinguir "la fuente lo quitó" de
     // "no pudimos leerlo": dar de baja media fuente por una caída sería peor
     // que no dar de baja nada.
+    // Lo restaurado cuenta como actualizado: volvió a la web.
+    if (restaurar.length > 0) {
+      await restaurarBeneficios(db, restaurar);
+      reporte.actualizados += restaurar.length;
+      console.error(`  ${restaurar.length} beneficios vuelven a publicarse (sus páginas reaparecieron)`);
+    }
+
     const proporcionCaida = crudos.length > 0 ? reporte.fallidas / crudos.length : 0;
     if (limite !== undefined) {
       // Una corrida con tope mira solo unas pocas páginas: el resto no está

@@ -141,6 +141,53 @@ export async function idsDeBeneficios(
 }
 
 /**
+ * Ids de beneficios descartados de una fuente. Paginado: los descartados se
+ * acumulan (no se borran) y PostgREST corta en 1.000 filas por consulta.
+ */
+export async function idsDescartados(db: SupabaseClient, fuenteId: string): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await db
+      .from("beneficio")
+      .select("id")
+      .eq("fuente_id", fuenteId)
+      .eq("estado_revision", "descartado")
+      .order("id")
+      .range(desde, desde + 999);
+    if (error) throw new Error(`leyendo descartados: ${error.message}`);
+    for (const r of data ?? []) ids.add(r.id as string);
+    if ((data ?? []).length < 1000) return ids;
+  }
+}
+
+/**
+ * Cuántos tramos dejó cada página en su última normalización, solo para las
+ * que dejaron beneficios. Es lo que dice qué ids de una página son "actuales":
+ * los de índice menor a este número.
+ */
+export async function tramosGuardados(db: SupabaseClient, fuenteId: string): Promise<Map<string, number>> {
+  const { data, error } = await db
+    .from("pagina_cruda")
+    .select("external_id, tramos")
+    .eq("fuente_id", fuenteId)
+    .eq("resultado", "beneficios")
+    .not("tramos", "is", null);
+  if (error) throw new Error(`leyendo tramos: ${error.message}`);
+  return new Map((data ?? []).map((r) => [r.external_id as string, Number(r.tramos)]));
+}
+
+/** Vuelve a publicar beneficios que se habían dado de baja (ver `aRestaurar`). */
+export async function restaurarBeneficios(db: SupabaseClient, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await db
+    .from("beneficio")
+    .update({ estado_revision: "ok", updated_at: new Date().toISOString() })
+    .in("id", ids)
+    .eq("estado_revision", "descartado");
+  if (error) throw new Error(`restaurando beneficios: ${error.message}`);
+}
+
+/**
  * Lo que la fuente dejó de publicar no se borra: se marca `descartado`, que la
  * policy de RLS ya excluye de la web y el trigger de derivados no cuenta. Así
  * queda el rastro si vuelve.
