@@ -12,11 +12,14 @@ export function LadoALado({
   contenido,
   tramos,
   aparte,
+  acciones,
 }: {
   contenido: string;
   tramos: Tramo[];
   /** Algo más para mostrar debajo de los tramos (la cola de revisión, un formulario). */
   aparte?: React.ReactNode;
+  /** Botones debajo de cada tramo (ocultar, verificar). */
+  acciones?: (t: Tramo) => React.ReactNode;
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -45,7 +48,7 @@ export function LadoALado({
             normalizador no entendió el texto.
           </p>
         ) : (
-          <ListaTramos tramos={tramos} />
+          <ListaTramos tramos={tramos} acciones={acciones} />
         )}
         {aparte}
       </section>
@@ -53,12 +56,19 @@ export function LadoALado({
   );
 }
 
-export function ListaTramos({ tramos }: { tramos: Tramo[] }) {
+export function ListaTramos({
+  tramos,
+  acciones,
+}: {
+  tramos: Tramo[];
+  acciones?: (t: Tramo) => React.ReactNode;
+}) {
   return (
     <ol className="mt-2 flex flex-col gap-3">
       {tramos.map((t) => (
         <li key={t.id}>
           <TarjetaTramo t={t} />
+          {acciones ? <div className="mt-1 flex flex-wrap gap-2">{acciones(t)}</div> : null}
         </li>
       ))}
     </ol>
@@ -92,7 +102,7 @@ function TarjetaTramo({ t }: { t: Tramo }) {
     <article
       className={cn(
         "border-linea bg-papel rounded-xl border px-4 py-3",
-        t.estado_revision === "descartado" && "opacity-60",
+        (t.estado_revision === "descartado" || t.estado_revision === "oculto") && "opacity-60",
       )}
     >
       <header className="flex flex-wrap items-baseline justify-between gap-2">
@@ -102,7 +112,8 @@ function TarjetaTramo({ t }: { t: Tramo }) {
         </p>
         <span className="text-humo-oscuro font-mono text-xs">
           {t.id.slice(t.id.lastIndexOf(":") + 1)} ·{" "}
-          {t.estado_revision === "ok" ? "publicado" : t.estado_revision}
+          {t.estado_revision === "ok" ? "publicado" : t.estado_revision === "oculto" ? "oculto a mano" : t.estado_revision}
+          {t.verificado_hasta ? ` · verificado hasta ${fechaCorta(t.verificado_hasta)}` : ""}
         </span>
       </header>
       <p className="text-humo-oscuro mt-1 text-xs">Texto original: «{t.descuento_raw}»</p>

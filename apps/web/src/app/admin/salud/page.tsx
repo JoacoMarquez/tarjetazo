@@ -14,6 +14,7 @@ import {
   type PaginaVacia,
   type PaginasFuente,
   type ParParecido,
+  type Sospechoso,
   type Salto,
   type TipoHallazgo,
 } from "@/lib/admin/salud";
@@ -51,7 +52,7 @@ export default async function Salud() {
   await exigirAdmin();
   const db = createSupabaseAdmin();
 
-  const [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo] =
+  const [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo, frescura] =
     await Promise.all([
       db.rpc("salud_resumen"),
       db.rpc("salud_paginas"),
@@ -63,9 +64,10 @@ export default async function Salud() {
       db
         .rpc("salud_comercios_sin_sucursal", { p_limite: LIMITE }),
       db.rpc("salud_geocoding"),
+      db.rpc("salud_frescura", { p_dias: 180, p_limite: LIMITE }),
     ]);
 
-  const fallo = [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo].find(
+  const fallo = [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo, frescura].find(
     (r) => r.error,
   )?.error;
   if (fallo) {
@@ -242,6 +244,28 @@ export default async function Salud() {
                 <EnlaceComercio key="a" k={p.key_a} nombre={p.nombre_a} n={p.n_a} />,
                 <EnlaceComercio key="b" k={p.key_b} nombre={p.nombre_b} n={p.n_b} />,
                 `${Math.round(p.similitud * 100)} %`,
+              ],
+            }))}
+          />
+        </Detalle>
+      </Seccion>
+
+      <Seccion tipo="frescura" total={cuenta.frescura}>
+        <Detalle n={((frescura.data ?? []) as Sospechoso[]).length} total={cuenta.frescura} abierto>
+          <Tabla
+            cabeceras={["Comercio", "Fuente", "Beneficio", "Sin cambios", ""]}
+            numericas={[3]}
+            filas={((frescura.data ?? []) as Sospechoso[]).map((x) => ({
+              key: x.beneficio_id,
+              alerta: false,
+              celdas: [
+                <EnlaceComercio key="c" k={x.comercio_key} nombre={x.comercio} />,
+                fuente(x.fuente_id),
+                x.titulo,
+                `${numero(x.dias)} días`,
+                <Link key="i" href={urlInspector(x.fuente_id, x.external_id)} className="text-cielo-ink hover:underline">
+                  Inspector
+                </Link>,
               ],
             }))}
           />

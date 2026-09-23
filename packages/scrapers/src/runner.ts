@@ -67,6 +67,9 @@ function filaDePagina(
     hash,
     fetched_at: crudo.fetched_at,
     normalizada_en,
+    // Solo se llega acá con contenido nuevo (o forzado a re-normalizar): el
+    // camino "sin cambios" usa `marcarPaginaVista`, que no toca esto.
+    hash_desde: new Date().toISOString(),
     resultado: resultado?.resultado ?? null,
     tramos: resultado?.tramos ?? null,
   };
