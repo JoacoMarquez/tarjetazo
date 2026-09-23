@@ -7,6 +7,7 @@ import { NavInferior, PieSitio } from "@/components/nav";
 import { CopiarLink } from "@/components/copiar-link";
 import { cifra, fichaComercio, labelCategoria, nombreFuente, nombreProducto, pesos, type BeneficioFicha } from "@/lib/comercio";
 import { NOMBRES_DIA } from "@/lib/filtros";
+import { createSupabaseClient } from "@/lib/supabase";
 import { FUENTES } from "@tarjetazo/core";
 
 export const revalidate = 3600;
@@ -22,7 +23,18 @@ async function cargar(key: string, fuente: string) {
   if (!ficha) return null;
   const lista = ficha.beneficios.filter((b) => b.fuente_id === fuente);
   if (lista.length === 0) return null;
-  return { ...ficha, lista };
+  return { ...ficha, lista, vistoEn: await vistoEn(lista.map((b) => b.id)) };
+}
+
+/**
+ * Cuándo se vio por última vez en la fuente la página de estos beneficios: la
+ * más vieja, para no prometer de más. `fetched_at` del beneficio es cuándo se
+ * normalizó, que puede ser de hace semanas aunque el banco se revise a diario.
+ */
+async function vistoEn(ids: string[]): Promise<string | null> {
+  const { data, error } = await createSupabaseClient().rpc("beneficios_vistos_en", { p_ids: ids });
+  if (error || !data?.length) return null;
+  return (data as { visto_en: string }[]).map((r) => r.visto_en).sort()[0] ?? null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -58,9 +70,14 @@ function Tramo({ b, comercioNombre }: { b: BeneficioFicha; comercioNombre: strin
   const dias = b.dias_semana.length === 0 || b.dias_semana.length === 7
     ? "Todos los días"
     : b.dias_semana.map((d) => NOMBRES_DIA[d]!).join(", ");
-  const vigencia = b.vigencia_hasta
-    ? `Hasta el ${new Date(b.vigencia_hasta + "T12:00:00").toLocaleDateString("es-UY", { day: "numeric", month: "long", year: "numeric" })}`
-    : "Sin fecha de fin publicada";
+  const vigencia = b.vigencia_hasta ? (
+    `Hasta el ${new Date(b.vigencia_hasta + "T12:00:00").toLocaleDateString("es-UY", { day: "numeric", month: "long", year: "numeric" })}`
+  ) : (
+    <>
+      Sin fecha de fin publicada
+      <span className="text-humo block text-xs">Confirmá en el local antes de pagar.</span>
+    </>
+  );
   const tarjetas = b.productos_elegibles.length === 0
     ? `Todas las tarjetas de ${nombreFuente(b.fuente_id)}`
     : b.productos_elegibles.map(nombreProducto).join(", ");
@@ -120,10 +137,14 @@ export default async function PaginaBeneficio({ params }: Props) {
   const { key, fuente } = await params;
   const datos = await cargar(key, fuente);
   if (!datos) notFound();
-  const { comercio, lista } = datos;
+  const { comercio, lista, vistoEn: visto } = datos;
   const url = `${BASE}/comercio/${key}/${fuente}`;
   const oficial = lista[0]!.url_fuente || URL_FUENTE.get(fuente) || "#";
-  const leido = new Date(lista[0]!.fetched_at).toLocaleDateString("es-UY", { day: "numeric", month: "long" });
+  const leido = new Date(visto ?? lista[0]!.fetched_at).toLocaleDateString("es-UY", {
+    day: "numeric",
+    month: "long",
+    timeZone: "America/Montevideo",
+  });
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -174,7 +195,7 @@ export default async function PaginaBeneficio({ params }: Props) {
           Ver en el sitio de {nombreFuente(fuente)} <ExternalLink className="size-4" />
         </a>
         <p className="text-humo mt-3 text-xs">
-          Leído de la fuente el {leido}. El beneficio pertenece a {nombreFuente(fuente)}; la publicación oficial es la que vale.
+          Actualizado: {leido}, según la publicación de {nombreFuente(fuente)}. El beneficio pertenece a {nombreFuente(fuente)}; la publicación oficial es la que vale.
           Si sos el comercio o la fuente y querés corregir o quitar algo, escribinos a hola@tarjetazo.uy.
         </p>
       </main>
