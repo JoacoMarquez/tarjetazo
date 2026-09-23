@@ -119,12 +119,20 @@ async function guardarSugerencias(
     const previas = existentes.get(k) ?? [];
     if (previas.some((p) => mismo(p.valor, s.valor))) continue;
     const pendiente = previas.find((p) => p.estado === "pendiente");
-    const { error } = pendiente
-      ? await db.from("producto_ficha_sugerencia").update({ valor: s.valor, valor_actual: s.valor_actual, url: s.url, creada_en: new Date().toISOString() }).eq("id", pendiente.id)
-      : await db.from("producto_ficha_sugerencia").insert(s);
-    if (error) throw new Error(`guardando sugerencia: ${error.message}`);
-    if (pendiente) pendiente.valor = s.valor;
-    else existentes.set(k, [...previas, { id: "", valor: s.valor, estado: "pendiente" }]);
+    if (pendiente) {
+      const { error } = await db
+        .from("producto_ficha_sugerencia")
+        .update({ valor: s.valor, valor_actual: s.valor_actual, url: s.url, creada_en: new Date().toISOString() })
+        .eq("id", pendiente.id);
+      if (error) throw new Error(`guardando sugerencia: ${error.message}`);
+      pendiente.valor = s.valor;
+    } else {
+      // Con su id real: la misma tarjeta puede volver a aparecer en otra página
+      // de la misma corrida y hay que poder actualizarla.
+      const { data, error } = await db.from("producto_ficha_sugerencia").insert(s).select("id").single();
+      if (error) throw new Error(`guardando sugerencia: ${error.message}`);
+      existentes.set(k, [...previas, { id: data.id as string, valor: s.valor, estado: "pendiente" }]);
+    }
     n++;
   }
   return n;
