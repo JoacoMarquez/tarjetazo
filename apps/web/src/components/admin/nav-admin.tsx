@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, HeartPulse, Inbox, Sparkles, Tags } from "lucide-react";
+import { Activity, ClipboardCheck, HeartPulse, Inbox, Sparkles, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Item = {
   label: string;
   icono: typeof Activity;
   /** Sin `href` la pantalla todavía no existe y el ítem queda deshabilitado. */
-  href?: "/admin" | "/admin/salud" | "/admin/revision" | "/admin/beneficios" | "/admin/novedades";
+  href?: "/admin" | "/admin/salud" | "/admin/revision" | "/admin/beneficios" | "/admin/novedades" | "/admin/auditoria";
 };
 
 const ITEMS: Item[] = [
@@ -18,6 +18,7 @@ const ITEMS: Item[] = [
   { label: "Salud de datos", icono: HeartPulse, href: "/admin/salud" },
   { label: "Cola de revisión", icono: Inbox, href: "/admin/revision" },
   { label: "Beneficios", icono: Tags, href: "/admin/beneficios" },
+  { label: "Auditoría", icono: ClipboardCheck, href: "/admin/auditoria" },
 ];
 
 export function NavAdmin() {

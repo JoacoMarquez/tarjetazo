@@ -54,7 +54,7 @@ export default async function Corridas() {
   const db = createSupabaseAdmin();
   const hoy = hoyUy();
 
-  const [corridas, cola, beneficios, salud] = await Promise.all([
+  const [corridas, cola, beneficios, salud, precision] = await Promise.all([
     corridasPorFuente(db),
     db
       .from("beneficio_revision")
@@ -67,6 +67,7 @@ export default async function Corridas() {
       .or(`vigencia_desde.is.null,vigencia_desde.lte.${hoy}`)
       .or(`vigencia_hasta.is.null,vigencia_hasta.gte.${hoy}`),
     db.rpc("salud_resumen"),
+    db.rpc("auditoria_precision"),
   ]);
 
   const fallo = corridas.error ?? cola.error ?? beneficios.error;
@@ -98,6 +99,11 @@ export default async function Corridas() {
   const ultima = corridas.data[0];
   // Si la migración de salud todavía no se aplicó, el dashboard igual tiene que abrir.
   const alertas = salud.error ? null : totalAccionables(armarResumen(salud.data));
+  // Precisión de la auditoría por muestreo, sumando todas las fuentes.
+  const auditadas = ((precision.data ?? []) as { respondidas: number; bien: number }[]).reduce(
+    (a, p) => ({ n: a.n + Number(p.respondidas), bien: a.bien + Number(p.bien) }),
+    { n: 0, bien: 0 },
+  );
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -108,7 +114,7 @@ export default async function Corridas() {
         09:30 y las 13:00).
       </p>
 
-      <dl className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <dl className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Dato
           titulo="Fuentes con problema"
           valor={`${conProblema} de ${fuentes.length}`}
@@ -124,6 +130,13 @@ export default async function Corridas() {
           titulo="Cola de revisión"
           valor={numero(cola.count ?? 0)}
           href="/admin/revision"
+        />
+        <Dato
+          titulo="Auditoría"
+          valor={auditadas.n === 0 ? "—" : `${Math.round((100 * auditadas.bien) / auditadas.n)} %`}
+          detalle={auditadas.n === 0 ? "Sin respuestas todavía" : `${numero(auditadas.bien)} de ${numero(auditadas.n)} bien`}
+          alerta={auditadas.n >= 10 && auditadas.bien / auditadas.n < 0.9}
+          href="/admin/auditoria"
         />
         <Dato
           titulo="Beneficios publicados"
@@ -237,7 +250,7 @@ function Dato({
   valor: string;
   detalle?: string;
   alerta?: boolean;
-  href?: "/admin/salud" | "/admin/revision";
+  href?: "/admin/salud" | "/admin/revision" | "/admin/auditoria";
 }) {
   return (
     <div
