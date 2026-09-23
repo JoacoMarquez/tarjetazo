@@ -49,8 +49,13 @@ const INCONSISTENCIAS: TipoHallazgo[] = [
   "comercio_en_otros",
 ];
 
-export default async function Salud() {
+export default async function Salud({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await exigirAdmin();
+  const ok = (await searchParams).ok;
   const db = createSupabaseAdmin();
 
   const [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo, frescura, manuales] =
@@ -110,6 +115,10 @@ export default async function Salud() {
         Chequeos sobre lo que ya está en la base. Los primeros cuatro piden
         hacer algo; el resto es contexto.
       </p>
+
+      {typeof ok === "string" ? (
+        <p role="status" className="border-menta-ln bg-menta-s text-menta-ink mt-4 rounded-lg border px-4 py-3 text-sm">{ok}</p>
+      ) : null}
 
       <ul className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
         {orden.map((t) => {
@@ -266,7 +275,7 @@ export default async function Salud() {
       <Seccion tipo="nombres_parecidos" total={cuenta.nombres_parecidos}>
         <Detalle n={dParecidos.length} total={cuenta.nombres_parecidos}>
           <Tabla
-            cabeceras={["Comercio A", "Comercio B", "Parecido"]}
+            cabeceras={["Comercio A", "Comercio B", "Parecido", ""]}
             numericas={[2]}
             filas={dParecidos.map((p) => ({
               key: `${p.key_a}|${p.key_b}`,
@@ -275,6 +284,13 @@ export default async function Salud() {
                 <EnlaceComercio key="a" k={p.key_a} nombre={p.nombre_a} n={p.n_a} />,
                 <EnlaceComercio key="b" k={p.key_b} nombre={p.nombre_b} n={p.n_b} />,
                 `${Math.round(p.similitud * 100)} %`,
+                <Link
+                  key="f"
+                  href={`/admin/comercios/fusionar?a=${encodeURIComponent(p.key_a)}&b=${encodeURIComponent(p.key_b)}` as Route}
+                  className="text-cielo-ink hover:underline"
+                >
+                  Fusionar…
+                </Link>,
               ],
             }))}
           />

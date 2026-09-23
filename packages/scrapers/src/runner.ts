@@ -121,7 +121,8 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
   try {
     // Adentro del try: si las reglas no se pueden leer, la corrida queda
     // registrada con su error y se ve en el dashboard.
-    usarReglasDb(await cargarReglasDb(db));
+    const reglas = await cargarReglasDb(db);
+    usarReglasDb(reglas);
 
     // El tope también llega al fetch por entorno: las fuentes que bajan cientos
     // de fichas (BBVA) lo usan para no bajar todo cuando solo se prueban unas pocas.
@@ -182,6 +183,13 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // tarjeta a la cola: el de BBVA resuelve todo con su plantilla y nunca
       // informa desconocidos, así que no hay nada a lo que ponerle un alias.
       const extraido = propio ? propio(crudo) : await normalizar(crudo, claude);
+      // Comercio fusionado desde el backoffice: se escribe en el que quedó, así
+      // la corrida no vuelve a crear el duplicado (#25).
+      const destino = extraido.comercio && reglas.comercios.get(extraido.comercio.key);
+      if (destino && extraido.comercio) {
+        extraido.comercio = { ...extraido.comercio, key: destino };
+        extraido.beneficios = extraido.beneficios.map((b) => ({ ...b, comercio_key: destino }));
+      }
       if (extraido.uso) {
         reporte.tokens.entrada += extraido.uso.entrada;
         reporte.tokens.cache_escritura += extraido.uso.cache_escritura;

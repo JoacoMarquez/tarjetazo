@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
@@ -13,8 +13,7 @@ import {
   labelCategoria,
   nombreFuente,
   pesos,
-  type BeneficioFicha,
-} from "@/lib/comercio";
+  type BeneficioFicha, comercioFusionadoEn } from "@/lib/comercio";
 import { NOMBRES_DIA, diaEnUruguay } from "@/lib/filtros";
 
 // El cron corre una vez por día; una hora de caché por página es de sobra y
@@ -71,6 +70,10 @@ function FilaBeneficio({ b }: { b: BeneficioFicha }) {
 export default async function PaginaComercio({ params }: Props) {
   const { key } = await params;
   const ficha = await fichaComercio(key);
+  if (!ficha) {
+    const destino = await comercioFusionadoEn(key);
+    if (destino) permanentRedirect(`/comercio/${destino}`);
+  }
   if (!ficha || ficha.beneficios.length === 0) notFound();
   const { comercio, beneficios, sucursales } = ficha;
 

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { CalendarDays, CreditCard, ExternalLink, Info, MapPin, ShieldCheck, Smartphone, Ticket } from "lucide-react";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { CopiarLink } from "@/components/copiar-link";
-import { cifra, fichaComercio, labelCategoria, nombreFuente, nombreProducto, pesos, type BeneficioFicha } from "@/lib/comercio";
+import { cifra, comercioFusionadoEn, fichaComercio, labelCategoria, nombreFuente, nombreProducto, pesos, type BeneficioFicha } from "@/lib/comercio";
 import { NOMBRES_DIA } from "@/lib/filtros";
 import { createSupabaseClient } from "@/lib/supabase";
 import { FUENTES } from "@tarjetazo/core";
@@ -136,7 +136,11 @@ function Tramo({ b, comercioNombre }: { b: BeneficioFicha; comercioNombre: strin
 export default async function PaginaBeneficio({ params }: Props) {
   const { key, fuente } = await params;
   const datos = await cargar(key, fuente);
-  if (!datos) notFound();
+  if (!datos) {
+    const destino = await comercioFusionadoEn(key);
+    if (destino) permanentRedirect(`/comercio/${destino}/${fuente}`);
+    notFound();
+  }
   const { comercio, lista, vistoEn: visto } = datos;
   const url = `${BASE}/comercio/${key}/${fuente}`;
   const oficial = lista[0]!.url_fuente || URL_FUENTE.get(fuente) || "#";

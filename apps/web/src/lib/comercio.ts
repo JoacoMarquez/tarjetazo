@@ -146,3 +146,16 @@ export function cifra(b: Pick<BeneficioFicha, "tipo" | "porcentaje" | "cuotas">)
 export function pesos(n: number): string {
   return `$ ${n.toLocaleString("es-UY", { maximumFractionDigits: 0 })}`;
 }
+
+/**
+ * Si el comercio se fusionó con otro (#25), la clave del que quedó. La URL
+ * vieja redirige ahí para no perder los links ni el SEO.
+ */
+export async function comercioFusionadoEn(key: string): Promise<string | null> {
+  const { data } = await createSupabaseClient()
+    .from("comercio_alias")
+    .select("comercio_key")
+    .eq("alias_key", key)
+    .maybeSingle<{ comercio_key: string }>();
+  return data?.comercio_key ?? null;
+}
