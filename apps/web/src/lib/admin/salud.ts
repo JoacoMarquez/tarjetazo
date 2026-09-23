@@ -20,8 +20,9 @@ export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> 
   paginas_sin_beneficios: {
     titulo: "Páginas sin beneficios",
     ayuda:
-      "Se bajaron pero no salió ningún tramo ni quedaron en la cola: o no eran un beneficio o el normalizador no entendió nada.",
+      "Se bajaron y no dejaron ningún tramo. «Sin tramos»: el normalizador creyó que era un beneficio pero no le sacó nada, casi siempre un fallo. «Sin clasificar»: se normalizaron antes de que se guardara el motivo; re-normalizarlas las clasifica. Las que no son un beneficio no aparecen.",
   },
+
   porcentaje_alto: {
     titulo: "Porcentaje sospechoso",
     ayuda: "Más de 60 %. Casi siempre es un tope o un monto leído como porcentaje.",
@@ -81,6 +82,7 @@ export type PaginasFuente = {
   fuente_id: string;
   paginas: number;
   con_beneficios: number;
+  no_son_beneficio: number;
   sin_beneficios: number;
 };
 
@@ -89,6 +91,8 @@ export type PaginaVacia = {
   external_id: string;
   url_fuente: string;
   fetched_at: string;
+  /** Null = sin clasificar: se normalizó antes de que el runner lo guardara. */
+  resultado: "sin_tramos" | "beneficios" | null;
 };
 
 export type Salto = {

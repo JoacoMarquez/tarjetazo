@@ -13,7 +13,7 @@ import {
   type Tramo,
 } from "@/lib/admin/paginas";
 import { COLUMNAS_REVISION, problemasDe, type Revision } from "@/lib/admin/revision";
-import { reNormalizar } from "./actions";
+import { marcarNoBeneficio, reNormalizar } from "./actions";
 
 export const metadata: Metadata = { title: "Inspector de página" };
 
@@ -27,6 +27,13 @@ type Pagina = {
   hash: string;
   fetched_at: string;
   normalizada_en: string | null;
+  resultado: "beneficios" | "no_es_beneficio" | "sin_tramos" | null;
+};
+
+const MOTIVO = {
+  beneficios: "Dejó beneficios",
+  no_es_beneficio: "No es un beneficio",
+  sin_tramos: "Sin tramos",
 };
 
 export default async function Inspector({
@@ -47,7 +54,7 @@ export default async function Inspector({
   const [p, tramos, cola] = await Promise.all([
     db
       .from("pagina_cruda")
-      .select("fuente_id, external_id, url_fuente, contenido, hash, fetched_at, normalizada_en")
+      .select("fuente_id, external_id, url_fuente, contenido, hash, fetched_at, normalizada_en, resultado")
       .eq("fuente_id", fuenteId)
       .eq("external_id", externalId)
       .maybeSingle<Pagina>(),
@@ -81,6 +88,7 @@ export default async function Inspector({
     ["Fuente", nombreFuente],
     ["Bajada", fechaHora(pag.fetched_at)],
     ["Normalizada", pag.normalizada_en ? fechaHora(pag.normalizada_en) : "—"],
+    ["Resultado", pag.resultado ? MOTIVO[pag.resultado] : "Sin clasificar"],
     ["Hash", pag.hash ? <code className="text-xs">{pag.hash.slice(0, 12)}…</code> : "vacío"],
   ];
 
@@ -120,6 +128,22 @@ export default async function Inspector({
           ))}
         </dl>
 
+        <div className="flex flex-wrap items-start gap-4">
+        {publicados.length === 0 && pag.resultado !== "no_es_beneficio" ? (
+          <form action={marcarNoBeneficio} className="max-w-xs">
+            <input type="hidden" name="fuente_id" value={pag.fuente_id} />
+            <input type="hidden" name="external_id" value={pag.external_id} />
+            <button
+              type="submit"
+              className="border-linea text-pizarra hover:bg-papel-1 rounded-lg border px-3 py-1.5 text-sm font-medium"
+            >
+              No es un beneficio
+            </button>
+            <p className="text-humo-oscuro mt-1 text-xs">
+              La saca de «Páginas sin beneficios» hasta que el banco la cambie.
+            </p>
+          </form>
+        ) : null}
         {marcada ? (
           <p className="border-sol-ln bg-sol-s text-sol-ink max-w-sm rounded-lg border px-3 py-2 text-xs">
             Marcada para re-normalizar: la próxima corrida de {nombreFuente} la
@@ -142,6 +166,7 @@ export default async function Inspector({
             </p>
           </form>
         )}
+        </div>
       </div>
 
       <div className="mt-6">

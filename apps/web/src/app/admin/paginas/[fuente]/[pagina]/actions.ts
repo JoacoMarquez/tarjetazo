@@ -32,3 +32,30 @@ export async function reNormalizar(form: FormData) {
     )}`,
   );
 }
+
+/**
+ * La página no describe un beneficio (institucional, sorteo, listado): sale de
+ * "Páginas sin beneficios". Vale hasta que la página cambie y se vuelva a
+ * normalizar, que es cuando hay que volver a mirarla.
+ */
+export async function marcarNoBeneficio(form: FormData) {
+  await exigirAdmin();
+  const fuenteId = String(form.get("fuente_id") ?? "");
+  const externalId = String(form.get("external_id") ?? "");
+  const destino = urlInspector(fuenteId, externalId);
+  if (!fuenteId || !externalId) redirect(destino);
+
+  const { error } = await createSupabaseAdmin()
+    .from("pagina_cruda")
+    .update({ resultado: "no_es_beneficio", tramos: 0 })
+    .eq("fuente_id", fuenteId)
+    .eq("external_id", externalId);
+
+  revalidatePath(destino);
+  revalidatePath("/admin/salud");
+  redirect(
+    `${destino}?${error ? "error" : "ok"}=${encodeURIComponent(
+      error ? `No se pudo marcar: ${error.message}` : "Marcada como «no es un beneficio».",
+    )}`,
+  );
+}
