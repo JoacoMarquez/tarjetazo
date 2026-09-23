@@ -10,7 +10,7 @@ on:
       fuente:
         description: Fuente a correr
         type: choice
-        options: [todas, brou, santander, itau, oca, scotiabank, bbva, catalogo]
+        options: [todas, brou, santander, itau, oca, scotiabank, bbva]
         default: todas
       limite:
         description: Máximo de páginas a normalizar (vacío = todas)
