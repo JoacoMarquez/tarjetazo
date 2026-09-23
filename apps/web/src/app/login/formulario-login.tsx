@@ -15,7 +15,7 @@ type Errores = Partial<Record<Campo, string>>;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** Traduce los errores más comunes de Supabase; el resto pasa tal cual. */
-function mensajeDeError(e: unknown): string {
+export function mensajeDeError(e: unknown): string {
   const texto = e instanceof Error ? e.message : String(e);
   const b = texto.toLowerCase();
   if (b.includes("invalid login credentials"))
@@ -24,6 +24,12 @@ function mensajeDeError(e: unknown): string {
     return "Ese email ya tiene cuenta. Probá ingresar.";
   if (b.includes("email not confirmed"))
     return "Todavía no confirmaste el email. Buscá el link que te mandamos.";
+  if (b.includes("should be different from the old password"))
+    return "La contraseña nueva tiene que ser distinta de la anterior.";
+  if (b.includes("password should be at least"))
+    return "La contraseña tiene que tener al menos 8 caracteres.";
+  if (b.includes("auth session missing"))
+    return "El link venció o ya se usó. Pedí uno nuevo desde «¿La olvidaste?».";
   if (b.includes("email rate limit") || b.includes("too many requests"))
     return "Probamos muchas veces seguidas. Esperá un minuto y volvé a intentar.";
   return texto;
@@ -58,10 +64,10 @@ function LogoGoogle() {
   );
 }
 
-const CLASE_INPUT =
+export const CLASE_INPUT =
   "h-12 rounded-md border bg-white px-3.5 text-[15px] text-tinta outline-none transition-colors placeholder:text-humo-oscuro";
 
-function CampoForm({
+export function CampoForm({
   etiqueta,
   error,
   children,
@@ -236,7 +242,11 @@ export function FormularioLogin({
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
         {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(destino)}`,
+          // El link inicia sesión y lleva a elegir la contraseña nueva (#38);
+          // después sigue al destino original.
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+            `/auth/nueva-contrasena?next=${encodeURIComponent(destino)}`,
+          )}`,
         },
       );
       if (error) throw error;
