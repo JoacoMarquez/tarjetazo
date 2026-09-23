@@ -16,3 +16,14 @@ export function fechaHora(iso: string): string {
 export function numero(n: number): string {
   return n.toLocaleString("es-UY");
 }
+
+/** "2026-09-23" en Uruguay. Sin horario de verano: siempre UTC-3. */
+export function hoyUy(): string {
+  return new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/** "2026-10-31" → "31/10/26". */
+export function fechaCorta(iso: string): string {
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a?.slice(2)}`;
+}
