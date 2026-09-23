@@ -22,13 +22,17 @@ export const metadata: Metadata = { title: "Beneficios" };
 const NOMBRE_FUENTE = new Map(FUENTES.map((f) => [f.id as string, f.nombre]));
 const NOMBRE_RUBRO = new Map(CATEGORIAS.map((c) => [c.slug as string, c.label]));
 
-const ETIQUETA_ESTADO = { ok: "Publicados", revisar: "A revisar", descartado: "Descartados", todos: "Todos" };
+const ETIQUETA_ESTADO = { ok: "Publicados", oculto: "Ocultos a mano", revisar: "A revisar", descartado: "Descartados", todos: "Todos" };
 const ETIQUETA_VIGENCIA = {
   todas: "Cualquier vigencia",
   vigentes: "Vigentes hoy",
   vencidos: "Vencidos",
   sin_fin: "Sin fecha de fin",
+  sospechosos: "Sospechosos de viejos",
 };
+
+/** Días sin cambios en la página a partir de los cuales un beneficio sin fecha de fin es sospechoso. */
+const DIAS_AMARILLO = 180;
 
 export default async function Beneficios({
   searchParams,
@@ -43,7 +47,7 @@ export default async function Beneficios({
   let consulta = createSupabaseAdmin()
     .from("beneficio")
     .select(
-      "id, fuente_id, comercio_key, titulo, descuento_raw, tipo, porcentaje, cuotas, vigencia_desde, vigencia_hasta, productos_elegibles, estado_revision, url_fuente, updated_at, comercio!inner(nombre, categoria)",
+      "id, fuente_id, comercio_key, titulo, descuento_raw, tipo, porcentaje, cuotas, vigencia_desde, vigencia_hasta, productos_elegibles, estado_revision, verificado_hasta, url_fuente, updated_at, comercio!inner(nombre, categoria)",
       { count: "exact" },
     );
   if (f.fuente) consulta = consulta.eq("fuente_id", f.fuente);
@@ -57,6 +61,11 @@ export default async function Beneficios({
     consulta = consulta.lt("vigencia_hasta", hoy);
   } else if (f.vigencia === "sin_fin") {
     consulta = consulta.is("vigencia_hasta", null);
+  } else if (f.vigencia === "sospechosos") {
+    // La lista sale de la misma función que usa Salud de datos (tope 500).
+    const { data: sosp } = await createSupabaseAdmin().rpc("salud_frescura", { p_dias: DIAS_AMARILLO, p_limite: 500 });
+    const ids = ((sosp ?? []) as { beneficio_id: string }[]).map((x) => x.beneficio_id);
+    consulta = consulta.in("id", ids.length ? ids : ["-"]);
   }
   const texto = textoSeguro(f.q);
   if (texto) {
@@ -79,6 +88,28 @@ export default async function Beneficios({
     .range(desde, desde + POR_PAGINA - 1);
 
   const filas = (data ?? []) as unknown as FilaRegistro[];
+
+  // Semáforo: hace cuánto no cambia la página de cada beneficio mostrado.
+  const paginasMostradas = filas.map((b) => paginaDeBeneficio(b.id)).filter((x) => x !== null);
+  const { data: hashes } = paginasMostradas.length
+    ? await createSupabaseAdmin()
+        .from("pagina_cruda")
+        .select("fuente_id, external_id, hash_desde")
+        .in("external_id", [...new Set(paginasMostradas.map((p) => p.externalId))])
+    : { data: [] };
+  const hashDesde = new Map(
+    ((hashes ?? []) as { fuente_id: string; external_id: string; hash_desde: string | null }[]).map((h) => [
+      `${h.fuente_id}:${h.external_id}`,
+      h.hash_desde,
+    ]),
+  );
+  const limiteAmarillo = Date.now() - DIAS_AMARILLO * 86400e3;
+  const amarillo = (b: FilaRegistro) => {
+    if (b.estado_revision !== "ok" || b.vigencia_hasta || (b.verificado_hasta && b.verificado_hasta >= hoy)) return false;
+    const pag = paginaDeBeneficio(b.id);
+    const desde = pag ? hashDesde.get(`${pag.fuenteId}:${pag.externalId}`) : null;
+    return desde ? Date.parse(desde) < limiteAmarillo : false;
+  };
   const total = count ?? 0;
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
 
@@ -215,6 +246,14 @@ export default async function Beneficios({
                         </td>
                         <td className="px-4 py-2">
                           <Estado estado={b.estado_revision} />
+                          {amarillo(b) ? (
+                            <span
+                              title={`Sin fecha de fin y la página no cambia hace más de ${DIAS_AMARILLO} días`}
+                              className="bg-sol-s text-sol-ink border-sol-ln mt-1 block w-fit rounded-full border px-2 py-0.5 text-xs font-semibold"
+                            >
+                              ¿Vigente?
+                            </span>
+                          ) : null}
                         </td>
                         <td className="px-4 py-2 text-xs whitespace-nowrap">
                           {(() => {
@@ -310,10 +349,11 @@ function Th({ children }: { children: React.ReactNode }) {
 
 const CLASE_ESTADO = {
   ok: "bg-menta-s text-menta-ink border-menta-ln",
+  oculto: "bg-papel-1 text-pizarra border-linea",
   revisar: "bg-sol-s text-sol-ink border-sol-ln",
   descartado: "bg-papel-1 text-humo-oscuro border-linea",
 };
-const TEXTO_ESTADO = { ok: "Publicado", revisar: "A revisar", descartado: "Descartado" };
+const TEXTO_ESTADO = { ok: "Publicado", oculto: "Oculto", revisar: "A revisar", descartado: "Descartado" };
 
 function Estado({ estado }: { estado: FilaRegistro["estado_revision"] }) {
   return (

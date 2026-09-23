@@ -2,10 +2,10 @@ import { CATEGORIAS, FUENTES } from "@tarjetazo/core";
 
 /** Filtros del registro, leídos de la URL. Lógica pura: la consulta vive en la página. */
 
-export const ESTADOS = ["ok", "revisar", "descartado", "todos"] as const;
+export const ESTADOS = ["ok", "oculto", "revisar", "descartado", "todos"] as const;
 export type EstadoFiltro = (typeof ESTADOS)[number];
 
-export const VIGENCIAS = ["todas", "vigentes", "vencidos", "sin_fin"] as const;
+export const VIGENCIAS = ["todas", "vigentes", "vencidos", "sin_fin", "sospechosos"] as const;
 export type VigenciaFiltro = (typeof VIGENCIAS)[number];
 
 export const POR_PAGINA = 50;
@@ -86,7 +86,8 @@ export type FilaRegistro = {
   vigencia_desde: string | null;
   vigencia_hasta: string | null;
   productos_elegibles: string[];
-  estado_revision: "ok" | "revisar" | "descartado";
+  estado_revision: "ok" | "revisar" | "descartado" | "oculto";
+  verificado_hasta: string | null;
   url_fuente: string;
   updated_at: string;
   comercio: { nombre: string; categoria: string } | null;

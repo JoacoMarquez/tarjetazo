@@ -49,13 +49,14 @@ export type Tramo = {
   compra_minima: number | null;
   requiere_activacion: boolean;
   legales_raw: string | null;
-  estado_revision: "ok" | "revisar" | "descartado";
+  estado_revision: "ok" | "revisar" | "descartado" | "oculto";
+  verificado_hasta: string | null;
   updated_at: string;
   comercio_key: string;
 };
 
 export const COLUMNAS_TRAMO =
-  "id, titulo, descuento_raw, tipo, porcentaje, cuotas, dias_semana, vigencia_desde, vigencia_hasta, departamentos, productos_elegibles, tope_monto, tope_periodo, canal, compra_minima, requiere_activacion, legales_raw, estado_revision, updated_at, comercio_key";
+  "id, titulo, descuento_raw, tipo, porcentaje, cuotas, dias_semana, vigencia_desde, vigencia_hasta, departamentos, productos_elegibles, tope_monto, tope_periodo, canal, compra_minima, requiere_activacion, legales_raw, estado_revision, verificado_hasta, updated_at, comercio_key";
 
 const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 

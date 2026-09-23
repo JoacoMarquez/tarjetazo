@@ -9,7 +9,8 @@ export type TipoHallazgo =
   | "vencido_publicado"
   | "comercio_en_otros"
   | "nombres_parecidos"
-  | "comercios_sin_sucursal";
+  | "comercios_sin_sucursal"
+  | "frescura";
 
 export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> = {
   saltos: {
@@ -48,6 +49,11 @@ export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> 
   nombres_parecidos: {
     titulo: "Comercios con nombre casi igual",
     ayuda: "Candidatos a fusionar.",
+  },
+  frescura: {
+    titulo: "Sospechosos de viejos",
+    ayuda:
+      "Publicados, sin fecha de fin, y su página no cambia hace más de 180 días. Puede que el banco se haya olvidado de sacarlos. En el inspector: «Ocultar» si está muerto, «Sigue vigente» si lo confirmaste.",
   },
   comercios_sin_sucursal: {
     titulo: "Comercios sin ubicación",
@@ -137,3 +143,14 @@ export type ComercioSinSucursal = {
 };
 
 export type MetricaGeo = { metrica: string; cantidad: number };
+
+export type Sospechoso = {
+  beneficio_id: string;
+  fuente_id: string;
+  external_id: string;
+  comercio_key: string;
+  comercio: string;
+  titulo: string;
+  hash_desde: string;
+  dias: number;
+};

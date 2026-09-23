@@ -13,7 +13,13 @@ import {
   type Tramo,
 } from "@/lib/admin/paginas";
 import { COLUMNAS_REVISION, problemasDe, type Revision } from "@/lib/admin/revision";
-import { marcarNoBeneficio, reNormalizar } from "./actions";
+import {
+  marcarNoBeneficio,
+  mostrarBeneficio,
+  ocultarBeneficio,
+  reNormalizar,
+  verificarBeneficio,
+} from "./actions";
 
 export const metadata: Metadata = { title: "Inspector de página" };
 
@@ -173,6 +179,26 @@ export default async function Inspector({
         <LadoALado
           contenido={pag.contenido}
           tramos={publicados}
+          acciones={(t) => {
+            const ocultos = (accion: (f: FormData) => Promise<void>, texto: string, titulo: string) => (
+              <form action={accion}>
+                <input type="hidden" name="fuente_id" value={pag.fuente_id} />
+                <input type="hidden" name="external_id" value={pag.external_id} />
+                <input type="hidden" name="beneficio_id" value={t.id} />
+                <button type="submit" title={titulo} className="text-pizarra hover:bg-papel-1 border-linea rounded-lg border px-2 py-1 text-xs">
+                  {texto}
+                </button>
+              </form>
+            );
+            return t.estado_revision === "oculto" ? (
+              ocultos(mostrarBeneficio, "Mostrar de nuevo", "Vuelve a la web")
+            ) : (
+              <>
+                {ocultos(ocultarBeneficio, "Ocultar", "El banco lo publica pero está muerto: sale de la web hasta que la página cambie")}
+                {ocultos(verificarBeneficio, "Sigue vigente (90 días)", "Sale de los sospechosos de viejos por 90 días")}
+              </>
+            );
+          }}
           aparte={
             <>
               {pendientes.length > 0 ? (

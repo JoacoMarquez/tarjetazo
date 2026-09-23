@@ -71,6 +71,7 @@ export async function guardarPagina(
     hash: string;
     fetched_at: string;
     normalizada_en: string | null;
+    hash_desde: string;
     resultado: string | null;
     tramos: number | null;
   },
