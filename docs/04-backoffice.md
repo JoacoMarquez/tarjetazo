@@ -121,16 +121,16 @@ Unir dos `comercio` y dejar la regla en `comercio_alias` para las corridas sigui
 - El scraper mapea tiers por red + tier ("infinite" → productos de la fuente con Visa Infinite) y productos por nombre. Tiers nuevos: `infinite`, `world`, `world_elite`.
 - Piloto Santander desde su sitio oficial; el resto llega por #27. El catálogo sigue en código hasta #26/#27.
 
-### Fichas de tarjeta (F4, paralelizable: solo depende del auth y de #40)
-Cambio de orden decidido el 2026-09-22: **el catálogo se scrapea del sitio oficial de cada banco primero**, y la carga manual queda para completar, no para arrancar de cero.
+### Fichas de tarjeta (F4, grill del 2026-09-23)
+Sondeo: Santander, BROU y BBVA publican el catálogo server-rendered con datos; Itaú casi sin datos estructurados; OCA y Prex con JavaScript; Scotiabank sin verificar. No hay formato común: cada banco es un scraper.
 
-- Requisito: el rediseño del catálogo (#40): `producto` = producto comercial (lo que el banco vende, con imagen y ficha), separado de red + tier (a lo que se mapean los beneficios).
-- **Scraper de catálogo por banco** (#27): lee el sitio oficial (p. ej. `santander.com.uy/todas-las-tarjetas`), un módulo por fuente, sin modelo cuando la plantilla es fija. Nunca escribe en `producto` ni en `producto_ficha`: deja filas en `producto_ficha_sugerencia (producto_id | null, campo, valor_actual, valor_visto, url, imagen_url, estado)`. Una tarjeta nueva llega como sugerencia de alta; una retirada, como sugerencia de baja.
-- **Bandeja en el backoffice** (#26): aceptar / ignorar por sugerencia, o en bloque para la carga inicial. Al aceptar una imagen se baja del banco a Supabase Storage (bucket `tarjetas`), porque las URLs de los bancos cambian.
-- `producto_ficha` **siempre manual** en el sentido de que solo cambia cuando el operador acepta: campos costo anual, costo bonificado, ingreso mínimo, requisitos, tasa, programa de puntos/millas, seguros, salas VIP, link de solicitud, más los que muestre cada banco.
-- Formulario de edición para lo que el banco no publica; preview del flip/tilt en CSS 3D con frente y dorso. No modelos `.glb`.
-- **No se scrapean agregadores** (tarjetasdecredito.com.uy): competidor directo, datos curados, términos de uso restrictivos. Sirve solo como checklist de qué tarjetas existen por banco y qué campos vale la pena tener.
-- Página pública `/tarjeta/[id]` sigue siendo proyecto aparte (#11).
+- **Alcance**: scraper de catálogo para Santander, BROU y BBVA. Los demás (3 a 8 tarjetas cada uno) se cargan a mano en la bandeja.
+- **Extracción**: nombre, red, tier, imagen y URL oficial determinista; los campos de la ficha con Claude desde el texto de la página oficial, una vez por tarjeta y cuando cambie el hash.
+- **Campos de la ficha**: costo anual (pesos o UI), costo bonificado y condición, ingreso mínimo, requisitos, tasa, puntos/millas, seguros, salas VIP, link de solicitud, "otros" libre.
+- **Todo es sugerencia** (`producto_ficha_sugerencia`), también la imagen: el scraper nunca escribe en `producto_ficha`. La carga inicial se acepta en bloque. Al aceptar, la imagen se baja del banco a Storage (bucket `tarjetas`); subida manual para lo que el banco no publica. Solo frente; sin dorso genérico.
+- **Catálogo híbrido**: ids, red, tier y familia siguen en código; ficha, imagen y `activo` en la base. Una tarjeta nueva es una sugerencia de alta que se agrega en código.
+- **Cadencia**: `catalogo.yml` semanal (lunes). "Revisar ahora" es un link a Actions; el backoffice muestra la última revisión. Corporativas, pymes y agro se descartan por nombre.
+- Orden: #27 → #26. La página pública `/tarjeta/[id]` sigue aparte (#11).
 
 ## Resumen diario por Telegram (F2)
 Paso final de `.github/workflows/scrapers.yml`. Una línea por fuente (ok / error, nuevos, bajas), cola de revisión, alertas de salud y frescura nuevas, manuales por vencer, link a `/admin`. Secrets nuevos: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
