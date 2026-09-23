@@ -136,7 +136,9 @@ export async function idsDeBeneficios(
     .from("beneficio")
     .select("id")
     .eq("fuente_id", fuenteId)
-    .neq("estado_revision", "descartado");
+    .neq("estado_revision", "descartado")
+    // Los cargados a mano no son de ninguna página: el runner no los da de baja.
+    .eq("origen", "scraper");
   if (error) throw new Error(`leyendo beneficios: ${error.message}`);
   return new Set((data ?? []).map((r) => r.id as string));
 }
@@ -153,6 +155,7 @@ export async function idsDescartados(db: SupabaseClient, fuenteId: string): Prom
       .select("id")
       .eq("fuente_id", fuenteId)
       .eq("estado_revision", "descartado")
+      .eq("origen", "scraper")
       .order("id")
       .range(desde, desde + 999);
     if (error) throw new Error(`leyendo descartados: ${error.message}`);

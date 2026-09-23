@@ -10,7 +10,9 @@ export type TipoHallazgo =
   | "comercio_en_otros"
   | "nombres_parecidos"
   | "comercios_sin_sucursal"
-  | "frescura";
+  | "frescura"
+  | "manual_por_vencer"
+  | "manual_duplicado";
 
 export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> = {
   saltos: {
@@ -50,6 +52,14 @@ export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> 
     titulo: "Comercios con nombre casi igual",
     ayuda: "Candidatos a fusionar.",
   },
+  manual_por_vencer: {
+    titulo: "Manuales por vencer",
+    ayuda: "Beneficios cargados a mano que vencen en los próximos 7 días: renovalos (editar → nueva fecha) o dejalos caer.",
+  },
+  manual_duplicado: {
+    titulo: "Manuales que ya publica el banco",
+    ayuda: "Hay un beneficio scrapeado igual (mismo comercio, fuente y descuento): el manual sobra, dalo de baja.",
+  },
   frescura: {
     titulo: "Sospechosos de viejos",
     ayuda:
@@ -66,6 +76,8 @@ export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> 
  * contexto (la mayoría de los bancos no publica direcciones, por ejemplo).
  */
 export const ACCIONABLES: TipoHallazgo[] = [
+  "manual_por_vencer",
+  "manual_duplicado",
   "saltos",
   "paginas_sin_beneficios",
   "porcentaje_alto",
@@ -153,4 +165,14 @@ export type Sospechoso = {
   titulo: string;
   hash_desde: string;
   dias: number;
+};
+
+export type Manual = {
+  tipo: "manual_por_vencer" | "manual_duplicado";
+  beneficio_id: string;
+  comercio_key: string;
+  comercio: string;
+  titulo: string;
+  vigencia_hasta: string;
+  gemelo_id: string | null;
 };

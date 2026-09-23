@@ -14,6 +14,8 @@ const ACCIONABLES: Record<string, string> = {
   paginas_sin_beneficios: "páginas sin beneficios",
   porcentaje_alto: "porcentajes sospechosos",
   derivados_desfasados: "comercios con datos viejos",
+  manual_por_vencer: "manuales por vencer",
+  manual_duplicado: "manuales que ya publica el banco",
 };
 
 type Corrida = {
