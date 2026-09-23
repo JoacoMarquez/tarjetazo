@@ -88,6 +88,7 @@ export type FilaRegistro = {
   productos_elegibles: string[];
   estado_revision: "ok" | "revisar" | "descartado" | "oculto";
   verificado_hasta: string | null;
+  origen: "scraper" | "manual";
   url_fuente: string;
   updated_at: string;
   comercio: { nombre: string; categoria: string } | null;

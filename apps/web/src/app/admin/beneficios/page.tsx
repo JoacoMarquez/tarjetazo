@@ -40,14 +40,17 @@ export default async function Beneficios({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await exigirAdmin();
-  const f = leerFiltrosRegistro(await searchParams);
+  const sp = await searchParams;
+  const f = leerFiltrosRegistro(sp);
+  const aviso = typeof sp.ok === "string" ? sp.ok : null;
+  const avisoError = typeof sp.error === "string" ? sp.error : null;
   const hoy = hoyUy();
 
   // `!inner` para poder filtrar por el rubro del comercio.
   let consulta = createSupabaseAdmin()
     .from("beneficio")
     .select(
-      "id, fuente_id, comercio_key, titulo, descuento_raw, tipo, porcentaje, cuotas, vigencia_desde, vigencia_hasta, productos_elegibles, estado_revision, verificado_hasta, url_fuente, updated_at, comercio!inner(nombre, categoria)",
+      "id, fuente_id, comercio_key, titulo, descuento_raw, tipo, porcentaje, cuotas, vigencia_desde, vigencia_hasta, productos_elegibles, estado_revision, verificado_hasta, origen, url_fuente, updated_at, comercio!inner(nombre, categoria)",
       { count: "exact" },
     );
   if (f.fuente) consulta = consulta.eq("fuente_id", f.fuente);
@@ -115,11 +118,23 @@ export default async function Beneficios({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl">Beneficios</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="text-2xl">Beneficios</h1>
+        <Link href="/admin/beneficios/nuevo" className="bg-tinta text-papel rounded-lg px-3 py-1.5 text-sm font-medium hover:opacity-90">
+          Cargar a mano
+        </Link>
+      </div>
       <p className="text-pizarra mt-1 text-sm">
         Estado actual de cada beneficio, tal como quedó después de la última
         corrida. Solo lectura: lo scrapeado se corrige con reglas, no editando.
       </p>
+
+      {aviso ? (
+        <p role="status" className="border-menta-ln bg-menta-s text-menta-ink mt-4 rounded-lg border px-4 py-3 text-sm">{aviso}</p>
+      ) : null}
+      {avisoError ? (
+        <p role="alert" className="border-coral-ln bg-coral-s text-coral-ink mt-4 rounded-lg border px-4 py-3 text-sm">{avisoError}</p>
+      ) : null}
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
         <Campo etiqueta="Buscar">
@@ -246,6 +261,11 @@ export default async function Beneficios({
                         </td>
                         <td className="px-4 py-2">
                           <Estado estado={b.estado_revision} />
+                          {b.origen === "manual" ? (
+                            <span className="bg-cielo-s text-cielo-ink border-cielo-ln mt-1 block w-fit rounded-full border px-2 py-0.5 text-xs font-semibold">
+                              Manual
+                            </span>
+                          ) : null}
                           {amarillo(b) ? (
                             <span
                               title={`Sin fecha de fin y la página no cambia hace más de ${DIAS_AMARILLO} días`}
@@ -257,6 +277,16 @@ export default async function Beneficios({
                         </td>
                         <td className="px-4 py-2 text-xs whitespace-nowrap">
                           {(() => {
+                            if (b.origen === "manual") {
+                              return (
+                                <Link
+                                  href={`/admin/beneficios/manual/${encodeURIComponent(b.id)}` as Route}
+                                  className="text-cielo-ink mr-3 hover:underline"
+                                >
+                                  Editar
+                                </Link>
+                              );
+                            }
                             const pag = paginaDeBeneficio(b.id);
                             return pag ? (
                               <Link

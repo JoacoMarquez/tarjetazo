@@ -8,7 +8,7 @@ export const TipoBeneficio = z.enum(["porcentaje", "cuotas", "reintegro", "2x1"]
 export const Canal = z.enum(["presencial", "online", "ambos"]);
 export const Mecanica = z.enum(["qr", "nfc", "app"]);
 export const TopePeriodo = z.enum(["dia", "semana", "mes", "compra", "beneficio"]);
-export const EstadoRevision = z.enum(["ok", "revisar", "descartado"]);
+export const EstadoRevision = z.enum(["ok", "revisar", "descartado", "oculto"]);
 
 /** 0 = domingo … 6 = sábado (mismo criterio que Date#getDay). */
 export const DiaSemana = z.number().int().min(0).max(6);
