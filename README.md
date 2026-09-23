@@ -75,7 +75,9 @@ las reglas de ignorar creados desde `/admin/revision` (tablas `producto_alias` y
 `regla_ignorar`), que el runner lee al arrancar.
 
 Otros comandos: `scrape revisiones` revalida la cola de revisión manual contra las
-reglas de mapeo actuales, y `scrape destrabar` cierra corridas que quedaron
+reglas de mapeo actuales, y `scrape derivados` recalcula el mejor descuento y los conteos de
+cada comercio (el cron lo hace al cerrar cada corrida: un beneficio que vence por fecha no
+toca ninguna fila y el trigger no se entera), y `scrape destrabar` cierra corridas que quedaron
 interrumpidas (el runner se niega a arrancar si hay una abierta de hace menos de una
 hora, para que dos corridas no se pisen el caché).
 
