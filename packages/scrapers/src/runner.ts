@@ -16,7 +16,9 @@ import {
   hashesGuardados,
   idsDeBeneficios,
   marcarPaginaVista,
+  firmaTramo,
   marcarVencidos,
+  tramosDePagina,
   idsDescartados,
   restaurarBeneficios,
   tramosGuardados,
@@ -217,19 +219,35 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         );
       }
 
-      const filas = extraido.beneficios.map((b, n) => ({
-        ...b,
-        id: idBeneficio(fuenteId, crudo.external_id, n),
-        fuente_id: fuenteId,
-        fetched_at: crudo.fetched_at,
-        estado_revision: "ok" as const,
-        updated_at: new Date().toISOString(),
-      }));
+      // Qué tramos cambiaron de verdad: una página puede cambiar (un banner, la
+      // fecha del pie) y dejar los mismos beneficios. Solo lo nuevo o distinto
+      // queda marcado con esta corrida (#19).
+      const antes = await tramosDePagina(db, fuenteId, crudo.external_id);
+      const filas = extraido.beneficios.map((b, n) => {
+        const id = idBeneficio(fuenteId, crudo.external_id, n);
+        const fila = {
+          ...b,
+          id,
+          fuente_id: fuenteId,
+          fetched_at: crudo.fetched_at,
+          estado_revision: "ok" as const,
+          updated_at: new Date().toISOString(),
+        };
+        const previo = antes.get(id);
+        const cambio = !previo
+          ? "nuevo"
+          : previo.firma !== firmaTramo(fila)
+            ? previo.firma.includes('"descartado"') ? "restaurado" : "actualizado"
+            : null;
+        return cambio
+          ? { ...fila, corrida_id: corridaId, cambio }
+          : { ...fila, corrida_id: previo!.corrida_id, cambio: previo!.cambio };
+      });
 
       for (const fila of filas) {
         vistos.add(fila.id);
-        if (existentes.has(fila.id)) reporte.actualizados++;
-        else reporte.nuevos++;
+        if (fila.cambio === "nuevo" && fila.corrida_id === corridaId) reporte.nuevos++;
+        else if (fila.corrida_id === corridaId) reporte.actualizados++;
       }
       await upsertBeneficios(db, filas);
 
@@ -263,7 +281,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     // que no dar de baja nada.
     // Lo restaurado cuenta como actualizado: volvió a la web.
     if (restaurar.length > 0) {
-      await restaurarBeneficios(db, restaurar);
+      await restaurarBeneficios(db, restaurar, corridaId);
       reporte.actualizados += restaurar.length;
       console.error(`  ${restaurar.length} beneficios vuelven a publicarse (sus páginas reaparecieron)`);
     }
@@ -286,7 +304,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       );
     } else {
       const vencidos = [...existentes].filter((id) => !vistos.has(id));
-      await marcarVencidos(db, vencidos);
+      await marcarVencidos(db, vencidos, corridaId);
       reporte.vencidos = vencidos.length;
     }
 

@@ -124,6 +124,10 @@ export async function armarResumen(db: SupabaseClient, o: OpcionesResumen): Prom
   const costo = costoEstimadoUsd(uso);
   partes.push(`Modelo: ≈ USD ${costo.toFixed(2)} (estimado; la referencia es el saldo de la consola)`);
   partes.push("", o.urlAdmin);
+  // Si algo cambió, directo a la lista de qué cambió.
+  if ([...ultima.values()].some((c) => c.nuevos || c.actualizados || c.vencidos)) {
+    partes.push(`Novedades: ${o.urlAdmin.replace(/\/$/, "")}/novedades`);
+  }
   if (o.urlLog) partes.push(o.urlLog);
   return partes.join("\n");
 }

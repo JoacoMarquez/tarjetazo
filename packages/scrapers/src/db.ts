@@ -177,14 +177,65 @@ export async function tramosGuardados(db: SupabaseClient, fuenteId: string): Pro
 }
 
 /** Vuelve a publicar beneficios que se habían dado de baja (ver `aRestaurar`). */
-export async function restaurarBeneficios(db: SupabaseClient, ids: string[]): Promise<void> {
+export async function restaurarBeneficios(
+  db: SupabaseClient,
+  ids: string[],
+  corridaId: string,
+): Promise<void> {
   if (ids.length === 0) return;
   const { error } = await db
     .from("beneficio")
-    .update({ estado_revision: "ok", updated_at: new Date().toISOString() })
+    .update({ estado_revision: "ok", updated_at: new Date().toISOString(), corrida_id: corridaId, cambio: "restaurado" })
     .in("id", ids)
     .eq("estado_revision", "descartado");
   if (error) throw new Error(`restaurando beneficios: ${error.message}`);
+}
+
+/** Lo que se compara para saber si un tramo cambió de verdad (#19). */
+const CAMPOS_TRAMO = [
+  "titulo", "descuento_raw", "tipo", "porcentaje", "cuotas", "dias_semana", "vigencia_desde",
+  "vigencia_hasta", "departamentos", "productos_elegibles", "tope_monto", "tope_periodo", "canal",
+  "compra_minima", "requiere_activacion", "estado_revision",
+] as const;
+
+export function firmaTramo(b: Record<string, unknown>): string {
+  return JSON.stringify(
+    CAMPOS_TRAMO.map((k) => {
+      let v = b[k];
+      // Un array de enum puede llegar como literal de Postgres ("{a,b}").
+      if (typeof v === "string" && /^\{.*\}$/.test(v)) v = v.slice(1, -1).split(",").filter(Boolean);
+      if (Array.isArray(v)) return [...v].map(String).sort();
+      if (typeof v === "number" || (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v) && k !== "titulo" && k !== "descuento_raw")) return Number(v);
+      return v ?? null;
+    }),
+  );
+}
+
+export type TramoGuardado = { firma: string; corrida_id: string | null; cambio: string | null };
+
+/** Los tramos que tiene hoy una página, para comparar con los que salen de normalizarla. */
+export async function tramosDePagina(
+  db: SupabaseClient,
+  fuenteId: string,
+  externalId: string,
+): Promise<Map<string, TramoGuardado>> {
+  // `_` y `%` son comodines de LIKE: sin escaparlos se mezclan páginas vecinas.
+  const esc = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const { data, error } = await db
+    .from("beneficio")
+    .select(`id, corrida_id, cambio, ${CAMPOS_TRAMO.join(", ")}`)
+    .eq("fuente_id", fuenteId)
+    .like("id", `${esc(fuenteId)}:${esc(externalId)}:%`);
+  if (error) throw new Error(`leyendo tramos de ${externalId}: ${error.message}`);
+  return new Map(
+    (data ?? []).map((r) => {
+      const fila = r as unknown as Record<string, unknown>;
+      return [
+        fila.id as string,
+        { firma: firmaTramo(fila), corrida_id: (fila.corrida_id as string) ?? null, cambio: (fila.cambio as string) ?? null },
+      ];
+    }),
+  );
 }
 
 /**
@@ -195,11 +246,12 @@ export async function restaurarBeneficios(db: SupabaseClient, ids: string[]): Pr
 export async function marcarVencidos(
   db: SupabaseClient,
   ids: string[],
+  corridaId: string,
 ): Promise<void> {
   if (ids.length === 0) return;
   const { error } = await db
     .from("beneficio")
-    .update({ estado_revision: "descartado", updated_at: new Date().toISOString() })
+    .update({ estado_revision: "descartado", updated_at: new Date().toISOString(), corrida_id: corridaId, cambio: "baja" })
     .in("id", ids);
   if (error) throw new Error(`marcando vencidos: ${error.message}`);
 }
