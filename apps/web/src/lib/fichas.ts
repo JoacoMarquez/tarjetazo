@@ -1,7 +1,8 @@
 /**
  * Fichas de tarjeta (#26): una por familia en `producto_ficha`, la escribe solo
  * el operador (aceptando una sugerencia del scraper de catálogo o editando).
- * Sin `server-only`: el formulario usa las etiquetas y la URL de las fotos.
+ * Sin `server-only`: lo usan el formulario del backoffice y la página pública
+ * `/tarjeta/[id]` (#11).
  */
 import { origenSupabase } from "@tarjetazo/core";
 
@@ -226,4 +227,18 @@ export function lineaProducto(fuenteId: string, nombreFuente: string, alta: Alta
   const red = alta.red === "otra" || !alta.red ? "propia" : alta.red;
   const conFuente = nombre.toLowerCase().includes(nombreFuente.toLowerCase()) ? nombre : `${nombre} ${nombreFuente}`;
   return `{ id: "${fuenteId}-${resto}", fuente_id: "${fuenteId}", nombre: ${JSON.stringify(conFuente)}, instrumento: "${alta.instrumento ?? "credito"}", red: "${red}", tier: ${tier}, url_oficial: ${JSON.stringify(url)} },`;
+}
+
+/** "$ 2.400", "1.308 UI", "US$ 50": un monto con su moneda, a la uruguaya. */
+export function monto(n: number, moneda: string | null = "UYU"): string {
+  const cifra = n.toLocaleString("es-UY", { maximumFractionDigits: 2 });
+  if (moneda === "UI") return `${cifra} UI`;
+  if (moneda === "USD") return `US$ ${cifra}`;
+  return `$ ${cifra}`;
+}
+
+/** El costo anual como se lee en la página pública, o null si no se sabe. */
+export function costoAnual(f: Pick<Ficha, "costo_anual" | "costo_moneda">): string | null {
+  if (f.costo_anual == null) return null;
+  return f.costo_anual === 0 ? "Sin costo" : `${monto(f.costo_anual, f.costo_moneda)} por año`;
 }

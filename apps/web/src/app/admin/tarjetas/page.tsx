@@ -13,7 +13,7 @@ import {
   type Alta,
   type Ficha,
   type Sugerencia,
-} from "@/lib/admin/fichas";
+} from "@/lib/fichas";
 import { fechaHora, numero } from "@/lib/admin/formato";
 import { aceptarSugerencias, ignorarSugerencias, marcarAltaAgregada } from "./actions";
 

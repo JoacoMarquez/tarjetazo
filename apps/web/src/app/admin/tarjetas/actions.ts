@@ -12,7 +12,7 @@ import {
   type EstadoFicha,
   type Ficha,
   type Sugerencia,
-} from "@/lib/admin/fichas";
+} from "@/lib/fichas";
 import { MAX_BYTES, bajarImagen, borrarImagen, leerImagen, subirImagen } from "@/lib/admin/imagenes";
 
 type Db = ReturnType<typeof createSupabaseAdmin>;

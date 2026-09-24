@@ -95,9 +95,11 @@ export default async function PaginaBanco({ params }: Props) {
             <h2 className="text-humo text-xs font-semibold uppercase tracking-widest">Tarjetas y medios de pago</h2>
             <ul className="mt-3 flex flex-wrap gap-2">
               {familias.map((fam) => (
-                <li key={fam.id} className="border-linea bg-card rounded-pill border px-3 py-1 text-sm">
-                  {fam.nombre}
-                  <span className="text-humo ml-1 text-xs">{pieDeFamilia(fam)}</span>
+                <li key={fam.id}>
+                  <Link href={`/tarjeta/${fam.id}`} className="border-linea bg-card hover:bg-secondary rounded-pill inline-block border px-3 py-1 text-sm">
+                    {fam.nombre}
+                    <span className="text-humo ml-1 text-xs">{pieDeFamilia(fam)}</span>
+                  </Link>
                 </li>
               ))}
             </ul>
