@@ -110,7 +110,9 @@ export type Sugerencia = {
 const vacio = (v: unknown) => v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
 const igual = (a: unknown, b: unknown) =>
   JSON.stringify(Array.isArray(a) ? [...a].sort() : a ?? null) === JSON.stringify(Array.isArray(b) ? [...b].sort() : b ?? null) ||
-  (typeof a === "number" || typeof b === "number" ? Number(a) === Number(b) : false);
+  // 1308 y "1308.00" (numeric de Postgres) son el mismo número; 0 y null no:
+  // una tarjeta sin costo no es una tarjeta sin dato.
+  (a != null && b != null && (typeof a === "number" || typeof b === "number") ? Number(a) === Number(b) : false);
 
 /** Sugerencias para una familia vista: un campo por diferencia con la ficha actual. */
 export function sugerenciasDeFamilia(

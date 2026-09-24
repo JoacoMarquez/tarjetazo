@@ -5,6 +5,18 @@ const MAX_BYTES = 4 * 1024 * 1024;
 const EXTENSION: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
 
 /**
+ * El tipo real de una imagen por sus primeros bytes. Itaú sirve las fotos de
+ * sus tarjetas como `binary/octet-stream`: el header no alcanza.
+ */
+function tipoPorContenido(b: Uint8Array): string | null {
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  const ascii = (i: number, n: number) => String.fromCharCode(...b.subarray(i, i + n));
+  if (ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP") return "image/webp";
+  return null;
+}
+
+/**
  * Baja la foto de una sugerencia y la deja en Storage, en `_sugeridas/`. Se
  * hace acá y no al aceptar porque BBVA no le responde a Vercel pero sí a
  * GitHub Actions. El nombre es el hash del contenido: la misma foto (los packs
@@ -30,11 +42,12 @@ export async function guardarFotoSugerida(db: SupabaseClient, url: string, pagin
     signal: AbortSignal.timeout(30_000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const tipo = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
-  const ext = EXTENSION[tipo];
-  if (!ext) throw new Error(`formato no soportado (${tipo || "sin tipo"})`);
   const bytes = new Uint8Array(await res.arrayBuffer());
   if (bytes.byteLength > MAX_BYTES) throw new Error("pesa más de 4 MB");
+  const header = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+  const tipo = EXTENSION[header] ? header : (tipoPorContenido(bytes) ?? header);
+  const ext = EXTENSION[tipo];
+  if (!ext) throw new Error(`formato no soportado (${tipo || "sin tipo"})`);
 
   const buf = await crypto.subtle.digest("SHA-256", bytes);
   const h = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
