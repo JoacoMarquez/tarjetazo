@@ -34,6 +34,15 @@ export async function bajarImagen(url: string): Promise<{ bytes: Uint8Array; tip
   return { bytes, tipo };
 }
 
+/** Lee una foto que ya está en el bucket (la que dejó el scraper en `_sugeridas/`). */
+export async function leerImagen(db: Db, ruta: string): Promise<{ bytes: Uint8Array; tipo: string }> {
+  const { data, error } = await db.storage.from(BUCKET).download(ruta);
+  if (error || !data) throw new Error(`no se pudo leer ${ruta} de Storage: ${error?.message ?? "vacío"}`);
+  const tipo = data.type.split(";")[0]!.trim().toLowerCase();
+  if (!EXTENSION[tipo]) throw new Error(`formato no soportado (${tipo || "sin tipo"})`);
+  return { bytes: new Uint8Array(await data.arrayBuffer()), tipo };
+}
+
 /**
  * Sube una foto al bucket y devuelve la ruta. El nombre lleva el hash del
  * contenido: una foto nueva es otra URL y no queda una vieja en el caché del

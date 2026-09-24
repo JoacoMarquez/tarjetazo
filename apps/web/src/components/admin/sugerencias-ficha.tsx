@@ -68,7 +68,7 @@ export function SugerenciasFicha({
                 <td className="px-4 py-2 font-medium">{etiquetaDe(s.campo ?? "")}</td>
                 <td className="px-4 py-2">
                   {s.campo === "imagen" ? (
-                    <Foto src={String(s.valor)} alt={`Foto sugerida de ${nombre}`} />
+                    <Foto src={urlImagen(s.archivo) ?? String(s.valor)} alt={`Foto sugerida de ${nombre}`} />
                   ) : (
                     <Valor v={mostrar(s.campo ?? "", s.valor)} />
                   )}

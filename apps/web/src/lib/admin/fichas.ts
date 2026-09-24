@@ -66,11 +66,13 @@ export type Sugerencia = {
   valor_actual: unknown;
   nombre_visto: string;
   url: string;
+  /** Solo en una foto: la copia que el scraper dejó en Storage (`_sugeridas/…`). */
+  archivo: string | null;
   creada_en: string;
 };
 
 export const COLUMNAS_SUGERENCIA =
-  "id, fuente_id, familia_id, tipo, campo, valor, valor_actual, nombre_visto, url, creada_en";
+  "id, fuente_id, familia_id, tipo, campo, valor, valor_actual, nombre_visto, url, archivo, creada_en";
 
 export type EstadoFicha = { error?: string; ok?: string; errores?: Record<string, string> };
 

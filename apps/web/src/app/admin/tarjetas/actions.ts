@@ -13,7 +13,7 @@ import {
   type Ficha,
   type Sugerencia,
 } from "@/lib/admin/fichas";
-import { MAX_BYTES, bajarImagen, borrarImagen, subirImagen } from "@/lib/admin/imagenes";
+import { MAX_BYTES, bajarImagen, borrarImagen, leerImagen, subirImagen } from "@/lib/admin/imagenes";
 
 type Db = ReturnType<typeof createSupabaseAdmin>;
 
@@ -52,8 +52,9 @@ async function resolver(db: Db, ids: string[], estado: "aceptada" | "ignorada") 
 
 /**
  * Acepta sugerencias de campo: una, las de una familia o todas (la carga
- * inicial). Cada familia es un upsert parcial de su ficha; la foto se baja del
- * banco a Storage. Lo que falla (foto que no baja, valor que no encaja) queda
+ * inicial). Cada familia es un upsert parcial de su ficha; la foto se copia a
+ * la ficha desde la que dejó el scraper en Storage (o se baja del banco si no
+ * hay). Lo que falla (foto que no baja, valor que no encaja) queda
  * pendiente y se informa.
  */
 export async function aceptarSugerencias(form: FormData) {
@@ -85,7 +86,9 @@ export async function aceptarSugerencias(form: FormData) {
       if (s.campo === "imagen") {
         try {
           const origen = String(s.valor);
-          const ruta = await subirImagen(db, familiaId, "frente", await bajarImagen(origen), ficha?.imagen_frente ?? null);
+          // La copia del scraper si la hay: BBVA no le responde a Vercel.
+          const imagen = s.archivo ? await leerImagen(db, s.archivo) : await bajarImagen(origen);
+          const ruta = await subirImagen(db, familiaId, "frente", imagen, ficha?.imagen_frente ?? null);
           patch.imagen_frente = ruta;
           patch.imagen_origen = origen;
           ok.push(s.id);
