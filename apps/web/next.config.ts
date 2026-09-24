@@ -15,6 +15,12 @@ try {
 const nextConfig: NextConfig = {
   transpilePackages: ["@tarjetazo/core"],
   typedRoutes: true,
+  experimental: {
+    // Las fotos de tarjeta suben por server action (#26). El default es 1 MB;
+    // el recorte sale en ~200 KB, pero un PNG de Safari puede pasar el mega.
+    // Vercel corta en 4,5 MB.
+    serverActions: { bodySizeLimit: "4mb" },
+  },
 };
 
 export default nextConfig;

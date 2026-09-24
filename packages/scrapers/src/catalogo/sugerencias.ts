@@ -71,6 +71,8 @@ export type Sugerencia = {
   valor_actual: unknown;
   nombre_visto: string;
   url: string;
+  /** Solo en una foto: dónde quedó guardada en Storage (`_sugeridas/…`). */
+  archivo?: string | null;
 };
 
 const vacio = (v: unknown) => v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);

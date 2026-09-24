@@ -4,6 +4,7 @@ import { hash } from "../http.js";
 import { extraerTarjetas, type TarjetaVista } from "./extraer.js";
 import { bajarPagina, descubrirPaginas } from "./bajar.js";
 import { FUENTES_CATALOGO, NO_CONSUMO } from "./fuentes.js";
+import { completarFotosPendientes, guardarFotoSugerida } from "./imagen.js";
 import { clave, familiaPara, juntar, sugerenciasDeFamilia, type Ficha, type Sugerencia } from "./sugerencias.js";
 
 export interface ReporteCatalogo {
@@ -92,6 +93,10 @@ export async function correrCatalogo(
       }
     }
     if (r.paginas > 0 && r.fallidas === r.paginas) throw new Error("fallaron todas las páginas");
+    // También las de páginas que no cambiaron: una foto que falló la semana
+    // pasada, o las de antes de que el scraper las bajara.
+    const fotos = await completarFotosPendientes(db);
+    if (fotos.ok + fotos.fallidas > 0) console.error(`fotos pendientes: ${fotos.ok} guardadas, ${fotos.fallidas} fallaron`);
     await db.from("catalogo_revision").update({
       termino_en: new Date().toISOString(), paginas: r.paginas, extraidas: r.extraidas, tarjetas: r.tarjetas,
       sugerencias: r.sugerencias, tokens_entrada: tokens.entrada, tokens_salida: tokens.salida,
@@ -118,11 +123,19 @@ async function guardarSugerencias(
     const k = clave(s);
     const previas = existentes.get(k) ?? [];
     if (previas.some((p) => mismo(p.valor, s.valor))) continue;
+    if (s.campo === "imagen") {
+      try {
+        s.archivo = await guardarFotoSugerida(db, String(s.valor), s.url);
+      } catch (e) {
+        // Queda sin archivo: la reintenta `completarFotosPendientes`, y si no, el backoffice al aceptar.
+        console.error(`  foto ${String(s.valor).slice(0, 100)}: ${String(e).slice(0, 120)}`);
+      }
+    }
     const pendiente = previas.find((p) => p.estado === "pendiente");
     if (pendiente) {
       const { error } = await db
         .from("producto_ficha_sugerencia")
-        .update({ valor: s.valor, valor_actual: s.valor_actual, url: s.url, creada_en: new Date().toISOString() })
+        .update({ valor: s.valor, valor_actual: s.valor_actual, url: s.url, archivo: s.archivo ?? null, creada_en: new Date().toISOString() })
         .eq("id", pendiente.id);
       if (error) throw new Error(`guardando sugerencia: ${error.message}`);
       pendiente.valor = s.valor;
