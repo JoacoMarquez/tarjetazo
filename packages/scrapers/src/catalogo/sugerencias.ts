@@ -57,12 +57,24 @@ export function familiaPara(fuenteId: string, t: TarjetaVista): string | null {
     const texto = sinAcentos(`${nombre} ${plasticos}`);
     return DEBILES.filter((d) => sinAcentos(t.nombre).includes(d) && texto.includes(d)).length;
   };
+  // Último desempate: palabras propias de la familia que no aparecen en lo
+  // visto. "BROU Visa Débito" es la Visa Débito y no MI BROU Tarjeta Joven,
+  // aunque las dos sean Visa de débito.
+  const ajenas = (fid: string) => {
+    const { nombre, plasticos } = textoDe(fid);
+    return [...tokens(`${nombre} ${plasticos}`)].filter((x) => !vistos.has(x)).length;
+  };
   const orden = familias
-    .map((f) => [f, puntaje(f), debil(f)] as const)
-    .sort((a, b) => b[1] - a[1] || b[2] - a[2]);
+    .map((f) => [f, puntaje(f), debil(f), ajenas(f)] as const)
+    .sort((a, b) => b[1] - a[1] || b[2] - a[2] || a[3] - b[3]);
   const [primera, segunda] = orden;
-  const gana = !segunda || primera![1] > segunda[1] || (primera![1] === segunda[1] && primera![2] > segunda[2]);
-  return gana && primera![1] + primera![2] > 0 ? primera![0] : null;
+  const [, p1, d1, a1] = primera!;
+  const gana =
+    !segunda ||
+    p1 > segunda[1] ||
+    (p1 === segunda[1] && (d1 > segunda[2] || (d1 === segunda[2] && a1 < segunda[3])));
+  // Sin ninguna palabra en común, solo si la familia no tiene palabras propias.
+  return gana && (p1 + d1 > 0 || a1 === 0) ? primera![0] : null;
 }
 
 /** Lo que el scraper vio de una familia, juntando las tarjetas de un pack. */
@@ -98,7 +110,9 @@ export type Sugerencia = {
 const vacio = (v: unknown) => v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
 const igual = (a: unknown, b: unknown) =>
   JSON.stringify(Array.isArray(a) ? [...a].sort() : a ?? null) === JSON.stringify(Array.isArray(b) ? [...b].sort() : b ?? null) ||
-  (typeof a === "number" || typeof b === "number" ? Number(a) === Number(b) : false);
+  // 1308 y "1308.00" (numeric de Postgres) son el mismo número; 0 y null no:
+  // una tarjeta sin costo no es una tarjeta sin dato.
+  (a != null && b != null && (typeof a === "number" || typeof b === "number") ? Number(a) === Number(b) : false);
 
 /** Sugerencias para una familia vista: un campo por diferencia con la ficha actual. */
 export function sugerenciasDeFamilia(

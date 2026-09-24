@@ -11,6 +11,18 @@ export const MAX_BYTES = 4 * 1024 * 1024;
 const EXTENSION: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
 
 /**
+ * El tipo real de una imagen por sus primeros bytes. Itaú sirve las fotos de
+ * sus tarjetas como `binary/octet-stream`: el header no alcanza.
+ */
+function tipoPorContenido(b: Uint8Array): string | null {
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  const ascii = (i: number, n: number) => String.fromCharCode(...b.subarray(i, i + n));
+  if (ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP") return "image/webp";
+  return null;
+}
+
+/**
  * Baja la foto del banco. Con headers de navegador: BBVA responde 403 a
  * cualquier otro cliente. Sin `image/avif` en el Accept: BBVA la sirve en AVIF
  * si se lo ofrecen, y el bucket no lo acepta.
@@ -27,10 +39,11 @@ export async function bajarImagen(url: string): Promise<{ bytes: Uint8Array; tip
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`el banco respondió HTTP ${res.status}`);
-  const tipo = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
-  if (!EXTENSION[tipo]) throw new Error(`formato no soportado (${tipo || "sin tipo"})`);
   const bytes = new Uint8Array(await res.arrayBuffer());
   if (bytes.byteLength > MAX_BYTES) throw new Error("la imagen pesa más de 4 MB");
+  const header = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+  const tipo = EXTENSION[header] ? header : (tipoPorContenido(bytes) ?? header);
+  if (!EXTENSION[tipo]) throw new Error(`formato no soportado (${tipo || "sin tipo"})`);
   return { bytes, tipo };
 }
 
@@ -38,9 +51,11 @@ export async function bajarImagen(url: string): Promise<{ bytes: Uint8Array; tip
 export async function leerImagen(db: Db, ruta: string): Promise<{ bytes: Uint8Array; tipo: string }> {
   const { data, error } = await db.storage.from(BUCKET).download(ruta);
   if (error || !data) throw new Error(`no se pudo leer ${ruta} de Storage: ${error?.message ?? "vacío"}`);
-  const tipo = data.type.split(";")[0]!.trim().toLowerCase();
+  const bytes = new Uint8Array(await data.arrayBuffer());
+  const header = data.type.split(";")[0]!.trim().toLowerCase();
+  const tipo = EXTENSION[header] ? header : (tipoPorContenido(bytes) ?? header);
   if (!EXTENSION[tipo]) throw new Error(`formato no soportado (${tipo || "sin tipo"})`);
-  return { bytes: new Uint8Array(await data.arrayBuffer()), tipo };
+  return { bytes, tipo };
 }
 
 /**

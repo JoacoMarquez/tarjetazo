@@ -23,7 +23,11 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "brou-recompensa-platinum", fuente_id: "brou", nombre: "BROU Recompensa Mastercard Platinum", instrumento: "credito", red: "mastercard", tier: "platinum" },
   { id: "brou-recompensa-gold", fuente_id: "brou", nombre: "BROU Recompensa Mastercard Oro", instrumento: "credito", red: "mastercard", tier: "gold" },
   { id: "brou-recompensa-black", fuente_id: "brou", nombre: "BROU Recompensa Mastercard Black", instrumento: "credito", red: "mastercard", tier: "black" },
-  { id: "brou-mi-brou", fuente_id: "brou", nombre: "MI BROU Tarjeta Joven", instrumento: "prepaga", red: "propia", tier: null },
+  // MI BROU es una Visa Débito para 14 a 29 años (al cumplir 30 pasa a la Visa Débito común).
+  { id: "brou-mi-brou", fuente_id: "brou", nombre: "MI BROU Tarjeta Joven", instrumento: "debito", red: "visa", tier: null },
+  // AlfaBROU es la "Prepaga Internacional" de BROU; se emite Visa o Mastercard.
+  { id: "brou-alfabrou-visa", fuente_id: "brou", nombre: "Prepaga AlfaBROU Visa", instrumento: "prepaga", red: "visa", tier: null, familia: "brou-alfabrou", url_oficial: "https://www.brou.com.uy/web/guest/personas/tarjetas/prepaga-alfabrou" },
+  { id: "brou-alfabrou-mastercard", fuente_id: "brou", nombre: "Prepaga AlfaBROU Mastercard", instrumento: "prepaga", red: "mastercard", tier: null, familia: "brou-alfabrou", url_oficial: "https://www.brou.com.uy/web/guest/personas/tarjetas/prepaga-alfabrou" },
   { id: "brou-tuapp", fuente_id: "brou", nombre: "TuApp", instrumento: "saldo", red: "propia", tier: null },
 
   // Santander — catálogo oficial (santander.com.uy/todas-las-tarjetas, 2026-09-22),
@@ -52,30 +56,31 @@ export const PRODUCTOS: readonly Producto[] = [
   // Scotiabank — nombra por tier y sello; la débito Premium va con los tiers altos.
   { id: "scotiabank-visa-gold", fuente_id: "scotiabank", nombre: "Visa Gold Scotiabank", instrumento: "credito", red: "visa", tier: "gold" },
   { id: "scotiabank-visa-platinum", fuente_id: "scotiabank", nombre: "Visa Platinum Scotiabank", instrumento: "credito", red: "visa", tier: "platinum" },
-  { id: "scotiabank-visa-infinite", fuente_id: "scotiabank", nombre: "Visa Infinite Scotiabank", instrumento: "credito", red: "visa", tier: "black" },
+  { id: "scotiabank-visa-infinite", fuente_id: "scotiabank", nombre: "Visa Infinite Scotiabank", instrumento: "credito", red: "visa", tier: "infinite" },
   { id: "scotiabank-amex", fuente_id: "scotiabank", nombre: "American Express Scotiabank", instrumento: "credito", red: "amex", tier: null },
-  { id: "scotiabank-debito-premium", fuente_id: "scotiabank", nombre: "Débito Premium Scotiabank", instrumento: "debito", red: "visa", tier: "platinum" },
+  { id: "scotiabank-debito-premium", fuente_id: "scotiabank", nombre: "Débito Premium Scotiabank", instrumento: "debito", red: "visa", tier: "infinite" },
   { id: "scotiabank-debito", fuente_id: "scotiabank", nombre: "Débito Scotiabank", instrumento: "debito", red: "visa", tier: null },
   { id: "scotiabank-visa", fuente_id: "scotiabank", nombre: "Visa Scotiabank", instrumento: "credito", red: "visa", tier: null },
   { id: "scotiabank-visa-signature", fuente_id: "scotiabank", nombre: "Visa Signature Scotiabank", instrumento: "credito", red: "visa", tier: "signature" },
   { id: "scotiabank-mastercard", fuente_id: "scotiabank", nombre: "Mastercard Scotiabank", instrumento: "credito", red: "mastercard", tier: null },
 
   // Itaú — la línea de débito tiene nombre propio (Volar) y hay alimentación.
-  { id: "itau-debito-volar", fuente_id: "itau", nombre: "Itaú Débito Volar", instrumento: "debito", red: "mastercard", tier: null },
-  { id: "itau-debito-junior", fuente_id: "itau", nombre: "Itaú Débito Junior", instrumento: "debito", red: "mastercard", tier: null },
-  { id: "itau-debito-sueldo", fuente_id: "itau", nombre: "Itaú Débito Sueldos", instrumento: "debito", red: "mastercard", tier: null },
-  { id: "itau-pocket", fuente_id: "itau", nombre: "Itaú Cuenta Pocket", instrumento: "debito", red: "mastercard", tier: null },
-  { id: "itau-alimentacion", fuente_id: "itau", nombre: "Itaú Tarjeta Alimentación", instrumento: "prepaga", red: "mastercard", tier: null },
-  { id: "itau-personal-bank", fuente_id: "itau", nombre: "Itaú Personal Bank", instrumento: "debito", red: "mastercard", tier: null },
+  // Itaú emite todas sus débito y la Alimentación en Visa (tarifario del 01/09/2026).
+  { id: "itau-debito-volar", fuente_id: "itau", nombre: "Itaú Débito Volar", instrumento: "debito", red: "visa", tier: null },
+  { id: "itau-debito-junior", fuente_id: "itau", nombre: "Itaú Débito Junior", instrumento: "debito", red: "visa", tier: null },
+  { id: "itau-debito-sueldo", fuente_id: "itau", nombre: "Itaú Débito Sueldos", instrumento: "debito", red: "visa", tier: null },
+  { id: "itau-pocket", fuente_id: "itau", nombre: "Itaú Cuenta Pocket", instrumento: "debito", red: "visa", tier: null },
+  { id: "itau-alimentacion", fuente_id: "itau", nombre: "Itaú Tarjeta Alimentación", instrumento: "prepaga", red: "visa", tier: null },
+  { id: "itau-personal-bank", fuente_id: "itau", nombre: "Itaú Personal Bank", instrumento: "debito", red: "visa", tier: null },
   { id: "itau-visa-platinum", fuente_id: "itau", nombre: "Itaú Visa Platinum", instrumento: "credito", red: "visa", tier: "platinum" },
   { id: "itau-visa-signature", fuente_id: "itau", nombre: "Itaú Visa Signature", instrumento: "credito", red: "visa", tier: "signature" },
-  { id: "itau-debito", fuente_id: "itau", nombre: "Débito Itaú", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "itau-debito", fuente_id: "itau", nombre: "Débito Itaú", instrumento: "debito", red: "visa", tier: null },
   { id: "itau-visa", fuente_id: "itau", nombre: "Visa Itaú", instrumento: "credito", red: "visa", tier: null },
   { id: "itau-mastercard", fuente_id: "itau", nombre: "Mastercard Itaú", instrumento: "credito", red: "mastercard", tier: null },
   { id: "itau-mastercard-black", fuente_id: "itau", nombre: "Mastercard Black Itaú", instrumento: "credito", red: "mastercard", tier: "black" },
 
   // OCA
-  { id: "oca-blue-debito", fuente_id: "oca", nombre: "OCA Blue Débito", instrumento: "debito", red: "mastercard", tier: null },
+  { id: "oca-blue-debito", fuente_id: "oca", nombre: "OCA Blue Débito", instrumento: "debito", red: "visa", tier: null },
   { id: "oca-blue", fuente_id: "oca", nombre: "OCA Blue", instrumento: "credito", red: "propia", tier: null },
   { id: "oca-mastercard", fuente_id: "oca", nombre: "OCA Mastercard", instrumento: "credito", red: "mastercard", tier: null },
   { id: "oca-visa", fuente_id: "oca", nombre: "OCA Visa", instrumento: "credito", red: "visa", tier: null },
@@ -85,10 +90,13 @@ export const PRODUCTOS: readonly Producto[] = [
   // Internacional se emite Visa o Mastercard: una familia, como Soy Santander.
   { id: "bbva-credito", fuente_id: "bbva", nombre: "Visa Internacional BBVA", instrumento: "credito", red: "visa", tier: null, familia: "bbva-internacional" },
   { id: "bbva-mastercard-internacional", fuente_id: "bbva", nombre: "Mastercard Internacional BBVA", instrumento: "credito", red: "mastercard", tier: null, familia: "bbva-internacional", url_oficial: "https://www.bbva.com.uy/personas/productos/tarjetas/tarjeta-de-credito/tarjetas-mastercard-/mastercard-internacional.html" },
-  { id: "bbva-oro", fuente_id: "bbva", nombre: "Crédito Oro BBVA", instrumento: "credito", red: "visa", tier: "gold" },
-  { id: "bbva-platinum", fuente_id: "bbva", nombre: "Crédito Platinum BBVA", instrumento: "credito", red: "visa", tier: "platinum" },
+  // Oro y Platinum también se emiten Visa o Mastercard.
+  { id: "bbva-oro", fuente_id: "bbva", nombre: "Visa Oro BBVA", instrumento: "credito", red: "visa", tier: "gold", familia: "bbva-oro" },
+  { id: "bbva-mastercard-oro", fuente_id: "bbva", nombre: "Mastercard Oro BBVA", instrumento: "credito", red: "mastercard", tier: "gold", familia: "bbva-oro", url_oficial: "https://www.bbva.com.uy/personas/productos/tarjetas/tarjeta-de-credito/tarjetas-mastercard-/mastercard-oro.html" },
+  { id: "bbva-platinum", fuente_id: "bbva", nombre: "Visa Platinum BBVA", instrumento: "credito", red: "visa", tier: "platinum", familia: "bbva-platinum" },
+  { id: "bbva-mastercard-platinum", fuente_id: "bbva", nombre: "Mastercard Platinum BBVA", instrumento: "credito", red: "mastercard", tier: "platinum", familia: "bbva-platinum", url_oficial: "https://www.bbva.com.uy/personas/productos/tarjetas/tarjeta-de-credito/tarjetas-mastercard-/mastercard-platinum.html" },
   { id: "bbva-black", fuente_id: "bbva", nombre: "Mastercard Black BBVA", instrumento: "credito", red: "mastercard", tier: "black" },
-  { id: "bbva-infinite", fuente_id: "bbva", nombre: "Visa Infinite BBVA", instrumento: "credito", red: "visa", tier: "black" },
+  { id: "bbva-infinite", fuente_id: "bbva", nombre: "Visa Infinite BBVA", instrumento: "credito", red: "visa", tier: "infinite" },
   { id: "bbva-comunidad-plus", fuente_id: "bbva", nombre: "Comunidad Plus BBVA (Ta-Ta)", instrumento: "credito", red: "mastercard", tier: null },
   { id: "bbva-sodimac", fuente_id: "bbva", nombre: "BBVA Sodimac", instrumento: "credito", red: "mastercard", tier: null },
   { id: "bbva-consolid-travel", fuente_id: "bbva", nombre: "BBVA Consolid Travel", instrumento: "credito", red: "mastercard", tier: null },

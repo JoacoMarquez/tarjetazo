@@ -126,6 +126,10 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
   // BROU nombra la misma tarjeta de dos formas según la página: "BROU
   // Recompensa Mastercard Black" y, más corto, "Mastercard Black".
   brou: [
+    // Van primero: "MI BROU Visa Débito" y "AlfaBROU Mastercard" también
+    // matchean las reglas de red de abajo.
+    [/mi ?brou|tarjeta joven/, ["brou-mi-brou"]],
+    [/alfa ?brou|prepag[ao] internacional/, porFamilia("brou", "brou-alfabrou")],
     [/mastercard.*black|black.*mastercard|recompensa.*black/, ["brou-recompensa-black"]],
     [/mastercard.*platinum|recompensa.*platinum/, ["brou-recompensa-platinum"]],
     [/mastercard.*(oro|gold)|recompensa.*(oro|gold)/, ["brou-recompensa-gold"]],
@@ -136,7 +140,6 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/visa.*(oro|gold)/, ["brou-visa-gold"]],
     [/visa.*debito|debito.*visa/, ["brou-visa-debito"]],
     [/visa/, ["brou-visa"]],
-    [/mi ?brou|tarjeta joven/, ["brou-mi-brou"]],
     [/tuapp|tu app/, ["brou-tuapp"]],
     // Las corporativas son otra línea de producto y no están en el catálogo:
     // mejor a revisión que mapearlas a las de consumo. Lista vacía = no mapea.
