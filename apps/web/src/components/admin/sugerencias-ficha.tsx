@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BotonEnviar } from "@/components/admin/boton-enviar";
 import { aceptarSugerencias, ignorarSugerencias } from "@/app/admin/tarjetas/actions";
-import { etiquetaDe, mostrar, urlImagen, type Ficha, type Sugerencia } from "@/lib/admin/fichas";
+import { etiquetaDe, mostrar, urlImagen, type Ficha, type Sugerencia } from "@/lib/fichas";
 
 /**
  * Las sugerencias pendientes de una familia: qué vio el scraper contra lo que

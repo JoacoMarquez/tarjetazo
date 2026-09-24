@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useState } from "react";
 import { RecorteImagen } from "@/components/admin/recorte-imagen";
 import { Tarjeta3D } from "@/components/tarjeta-3d";
-import { CAMPOS_FICHA, MONEDAS, NOMBRE_MONEDA, type EstadoFicha, type Ficha } from "@/lib/admin/fichas";
+import { CAMPOS_FICHA, MONEDAS, NOMBRE_MONEDA, type EstadoFicha, type Ficha } from "@/lib/fichas";
 import { cn } from "@/lib/utils";
 
 const CLASE = "border-linea bg-papel w-full rounded-lg border px-2 text-sm";

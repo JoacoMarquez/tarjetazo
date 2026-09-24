@@ -12,7 +12,7 @@ import {
   urlImagen,
   type Ficha,
   type Sugerencia,
-} from "@/lib/admin/fichas";
+} from "@/lib/fichas";
 import { fechaHora } from "@/lib/admin/formato";
 import { pieDeTarjeta } from "@/lib/marca";
 import { guardarFicha } from "../actions";
