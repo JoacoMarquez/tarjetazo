@@ -12,6 +12,7 @@ export const NOMBRE_FAMILIA: Record<string, string> = {
   "santander-select": "Pack Trilogy Soy Santander Select",
   "santander-private": "Pack Trilogy Soy Santander Private Banking",
   "santander-aadvantage-trilogy": "Pack Trilogy AAdvantage",
+  "bbva-internacional": "Crédito Internacional BBVA",
 };
 
 export interface Familia {

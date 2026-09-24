@@ -82,7 +82,9 @@ export const PRODUCTOS: readonly Producto[] = [
 
   // BBVA — tres grupos: débito; Internacional/Oro/Pymes/Corporativas; Platinum/Black/Infinite.
   { id: "bbva-debito", fuente_id: "bbva", nombre: "Débito BBVA", instrumento: "debito", red: "visa", tier: null },
-  { id: "bbva-credito", fuente_id: "bbva", nombre: "Crédito Internacional BBVA", instrumento: "credito", red: "visa", tier: null },
+  // Internacional se emite Visa o Mastercard: una familia, como Soy Santander.
+  { id: "bbva-credito", fuente_id: "bbva", nombre: "Visa Internacional BBVA", instrumento: "credito", red: "visa", tier: null, familia: "bbva-internacional" },
+  { id: "bbva-mastercard-internacional", fuente_id: "bbva", nombre: "Mastercard Internacional BBVA", instrumento: "credito", red: "mastercard", tier: null, familia: "bbva-internacional", url_oficial: "https://www.bbva.com.uy/personas/productos/tarjetas/tarjeta-de-credito/tarjetas-mastercard-/mastercard-internacional.html" },
   { id: "bbva-oro", fuente_id: "bbva", nombre: "Crédito Oro BBVA", instrumento: "credito", red: "visa", tier: "gold" },
   { id: "bbva-platinum", fuente_id: "bbva", nombre: "Crédito Platinum BBVA", instrumento: "credito", red: "visa", tier: "platinum" },
   { id: "bbva-black", fuente_id: "bbva", nombre: "Mastercard Black BBVA", instrumento: "credito", red: "mastercard", tier: "black" },
