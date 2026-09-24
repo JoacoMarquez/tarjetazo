@@ -8,6 +8,10 @@ export const CAMPOS = [
 ] as const;
 export type Campo = (typeof CAMPOS)[number] | "imagen";
 
+/** Palabras que no alcanzan para elegir familia, pero sí para desempatar. */
+const DEBILES = ["internacional"];
+const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
 const VACIAS = new Set(["tarjeta", "tarjetas", "de", "del", "la", "el", "credito", "debito", "internacional", "visa", "mastercard", "master", "santander", "brou", "bbva", "soy", "y", "con"]);
 const tokens = (s: string) =>
   new Set(
@@ -37,12 +41,28 @@ export function familiaPara(fuenteId: string, t: TarjetaVista): string | null {
   // El nombre de la familia pesa doble que los de sus plásticos: el débito
   // del pack AAdvantage se llama "Débito Select AAdvantage" y no es el Select.
   const coincidencias = (texto: string) => [...tokens(texto)].filter((x) => vistos.has(x)).length;
-  const puntaje = (fid: string) => {
+  const textoDe = (fid: string) => {
     const f = FAMILIAS.find((x) => x.id === fid);
-    return 2 * coincidencias(f?.nombre ?? "") + coincidencias((f?.productos ?? []).map((p) => p.nombre).join(" "));
+    return { nombre: f?.nombre ?? "", plasticos: (f?.productos ?? []).map((p) => p.nombre).join(" ") };
   };
-  const orden = familias.map((f) => [f, puntaje(f)] as const).sort((a, b) => b[1] - a[1]);
-  return orden[0]![1] > 0 && orden[0]![1] > (orden[1]?.[1] ?? 0) ? orden[0]![0] : null;
+  const puntaje = (fid: string) => {
+    const { nombre, plasticos } = textoDe(fid);
+    return 2 * coincidencias(nombre) + coincidencias(plasticos);
+  };
+  // Solo desempata: "Mastercard Internacional" de BBVA no tiene otra palabra
+  // que la distinga de Sodimac o Comunidad Plus. No suma al puntaje porque en
+  // Santander "Internacional" está en varias familias.
+  const debil = (fid: string) => {
+    const { nombre, plasticos } = textoDe(fid);
+    const texto = sinAcentos(`${nombre} ${plasticos}`);
+    return DEBILES.filter((d) => sinAcentos(t.nombre).includes(d) && texto.includes(d)).length;
+  };
+  const orden = familias
+    .map((f) => [f, puntaje(f), debil(f)] as const)
+    .sort((a, b) => b[1] - a[1] || b[2] - a[2]);
+  const [primera, segunda] = orden;
+  const gana = !segunda || primera![1] > segunda[1] || (primera![1] === segunda[1] && primera![2] > segunda[2]);
+  return gana && primera![1] + primera![2] > 0 ? primera![0] : null;
 }
 
 /** Lo que el scraper vio de una familia, juntando las tarjetas de un pack. */

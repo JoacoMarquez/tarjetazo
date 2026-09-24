@@ -47,13 +47,20 @@ function sinAcentos(s: string) {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
+/** Todas las de crédito de consumo: lo que vale un tramo que no nombra tarjeta. */
+const CREDITO = ["bbva-credito", "bbva-mastercard-internacional", "bbva-oro", "bbva-platinum", "bbva-black", "bbva-infinite"];
+
 /** "Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas" → ids. */
 function productos(frase: string): { ids: string[]; desconocidos: string[] } {
   const f = sinAcentos(frase);
   const ids = new Set<string>();
   const desconocidos: string[] = [];
   if (/debito/.test(f)) ids.add("bbva-debito");
-  if (/internacional/.test(f)) ids.add("bbva-credito");
+  // "Internacional" sin red: BBVA la emite Visa y Mastercard.
+  if (/internacional/.test(f)) {
+    ids.add("bbva-credito");
+    ids.add("bbva-mastercard-internacional");
+  }
   if (/\boro\b/.test(f)) ids.add("bbva-oro");
   if (/platinum/.test(f)) ids.add("bbva-platinum");
   if (/black/.test(f)) ids.add("bbva-black");
@@ -67,7 +74,7 @@ function productos(frase: string): { ids: string[]; desconocidos: string[] } {
   // Pymes y corporativas van siempre junto a Internacional/Oro; no son
   // tarjetas de consumo y no se listan aparte.
   if (/credito/.test(f) && ids.size === 0) {
-    for (const id of ["bbva-credito", "bbva-oro", "bbva-platinum", "bbva-black", "bbva-infinite"]) ids.add(id);
+    for (const id of CREDITO) ids.add(id);
   }
   return { ids: [...ids], desconocidos };
 }
@@ -158,7 +165,7 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     const cuotas = l.match(/^Hasta (\d{1,2}) cuotas sin (?:inter[eé]s|recargo)(.*)$/i);
     if (cuotas && !enLegales) {
       const tarjetas = cuotas[2]!.match(/con (.+?)\.?$/)?.[1];
-      const ids = tarjetas ? productos(tarjetas).ids : (creditoDeLaPagina.size > 0 ? [...creditoDeLaPagina] : ["bbva-credito", "bbva-oro", "bbva-platinum", "bbva-black", "bbva-infinite"]);
+      const ids = tarjetas ? productos(tarjetas).ids : (creditoDeLaPagina.size > 0 ? [...creditoDeLaPagina] : [...CREDITO]);
       tramos.push({
         comercio_key: slugificar(nombre), titulo: `${cuotas[1]} cuotas sin interés`, descuento_raw: l,
         porcentaje: null, cuotas: Number(cuotas[1]), tipo: "cuotas", dias_semana: diasActuales,
@@ -189,7 +196,7 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     const porcentaje = Number(m[2]);
     const { ids, desconocidos: d } = /tarjeta/i.test(m[3]!)
       ? productos(m[3]!)
-      : { ids: ["bbva-credito", "bbva-oro", "bbva-platinum", "bbva-black", "bbva-infinite"], desconocidos: [] };
+      : { ids: [...CREDITO], desconocidos: [] };
     desconocidos.push(...d);
     const f = sinAcentos(m[3]!);
     const clave = /platinum|black|infinite/.test(f) ? "alto" : /debito/.test(f) ? "debito" : "credito";
