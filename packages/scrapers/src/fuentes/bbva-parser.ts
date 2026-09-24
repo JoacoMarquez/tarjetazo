@@ -48,7 +48,10 @@ function sinAcentos(s: string) {
 }
 
 /** Todas las de crédito de consumo: lo que vale un tramo que no nombra tarjeta. */
-const CREDITO = ["bbva-credito", "bbva-mastercard-internacional", "bbva-oro", "bbva-platinum", "bbva-black", "bbva-infinite"];
+const CREDITO = [
+  "bbva-credito", "bbva-mastercard-internacional", "bbva-oro", "bbva-mastercard-oro",
+  "bbva-platinum", "bbva-mastercard-platinum", "bbva-black", "bbva-infinite",
+];
 
 /** "Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas" → ids. */
 function productos(frase: string): { ids: string[]; desconocidos: string[] } {
@@ -61,8 +64,15 @@ function productos(frase: string): { ids: string[]; desconocidos: string[] } {
     ids.add("bbva-credito");
     ids.add("bbva-mastercard-internacional");
   }
-  if (/\boro\b/.test(f)) ids.add("bbva-oro");
-  if (/platinum/.test(f)) ids.add("bbva-platinum");
+  // Oro y Platinum sin red: BBVA las emite Visa y Mastercard.
+  if (/\boro\b/.test(f)) {
+    ids.add("bbva-oro");
+    ids.add("bbva-mastercard-oro");
+  }
+  if (/platinum/.test(f)) {
+    ids.add("bbva-platinum");
+    ids.add("bbva-mastercard-platinum");
+  }
   if (/black/.test(f)) ids.add("bbva-black");
   if (/infinite/.test(f)) ids.add("bbva-infinite");
   // Tarjetas de marca: van antes del "crédito a secas" para que "Tarjetas de
