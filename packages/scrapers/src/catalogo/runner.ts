@@ -125,7 +125,7 @@ async function guardarSugerencias(
     if (previas.some((p) => mismo(p.valor, s.valor))) continue;
     if (s.campo === "imagen") {
       try {
-        s.archivo = await guardarFotoSugerida(db, String(s.valor));
+        s.archivo = await guardarFotoSugerida(db, String(s.valor), s.url);
       } catch (e) {
         // Queda sin archivo: la reintenta `completarFotosPendientes`, y si no, el backoffice al aceptar.
         console.error(`  foto ${String(s.valor).slice(0, 100)}: ${String(e).slice(0, 120)}`);

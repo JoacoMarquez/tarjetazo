@@ -13,13 +13,19 @@ const EXTENSION: Record<string, string> = { "image/png": "png", "image/jpeg": "j
  * Headers de navegador: BBVA da 403 a cualquier otro cliente. Sin `image/avif`
  * en el Accept: BBVA la sirve en AVIF si se lo ofrecen y el bucket no lo acepta.
  */
-export async function guardarFotoSugerida(db: SupabaseClient, url: string): Promise<string> {
+export async function guardarFotoSugerida(db: SupabaseClient, url: string, pagina?: string): Promise<string> {
+  // Como la pide un navegador al mostrar la página: desde GitHub Actions, BBVA
+  // da 403 a la foto si falta el referer o los sec-fetch.
   const res = await fetch(url, {
     headers: {
       "user-agent":
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
       accept: "image/webp,image/png,image/jpeg;q=0.9,*/*;q=0.5",
       "accept-language": "es-UY,es;q=0.9",
+      "sec-fetch-dest": "image",
+      "sec-fetch-mode": "no-cors",
+      "sec-fetch-site": "same-origin",
+      ...(pagina ? { referer: pagina } : {}),
     },
     signal: AbortSignal.timeout(30_000),
   });
@@ -46,7 +52,7 @@ export async function guardarFotoSugerida(db: SupabaseClient, url: string): Prom
 export async function completarFotosPendientes(db: SupabaseClient): Promise<{ ok: number; fallidas: number }> {
   const { data, error } = await db
     .from("producto_ficha_sugerencia")
-    .select("id, valor")
+    .select("id, valor, url")
     .eq("estado", "pendiente")
     .eq("campo", "imagen")
     .is("archivo", null);
@@ -55,7 +61,7 @@ export async function completarFotosPendientes(db: SupabaseClient): Promise<{ ok
   let fallidas = 0;
   for (const s of data ?? []) {
     try {
-      const archivo = await guardarFotoSugerida(db, String(s.valor));
+      const archivo = await guardarFotoSugerida(db, String(s.valor), s.url as string);
       const { error: e } = await db.from("producto_ficha_sugerencia").update({ archivo }).eq("id", s.id);
       if (e) throw new Error(e.message);
       ok++;
