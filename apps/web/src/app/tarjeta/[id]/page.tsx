@@ -168,7 +168,8 @@ export default async function PaginaTarjeta({ params }: Props) {
               <span className="num text-cielo text-2xl font-bold">{todos.total}</span>{" "}
               <span className="text-humo">
                 {todos.total === 1 ? "beneficio vigente" : "beneficios vigentes"}
-                {hoy.total > 0 && `, ${hoy.total} hoy`}
+                {/* En BBVA casi todo vale todos los días: "330, 330 hoy" no dice nada. */}
+                {hoy.total > 0 && hoy.total < todos.total && `, ${hoy.total} hoy`}
               </span>
             </p>
             {costo ? <p className="text-humo mt-1 text-sm">Costo anual: <span className="text-tinta font-medium">{costo}</span></p> : null}
