@@ -268,6 +268,39 @@ export function mapearProductos(
   return { ids: [...ids], desconocidos };
 }
 
+/**
+ * Los tipos de tarjeta que nombra un texto sin nombrar ninguna tarjeta: "con
+ * tarjetas de débito", "tarjetas de crédito y débito". El modelo deja
+ * `productos` vacío en esos casos (no hay un nombre de tarjeta que copiar) y
+ * vacío significa "todas las de la fuente": un descuento solo con débito
+ * terminaba en las páginas de las de crédito.
+ */
+function instrumentosDe(texto: string | null): string[] {
+  if (!texto) return [];
+  // "Débito automático" es un medio de pago de facturas, no una tarjeta.
+  const t = normalizarTexto(texto).replace(/debitos? automaticos?/g, "");
+  const out: string[] = [];
+  if (/\bcredito\b/.test(t)) out.push("credito");
+  if (/\bdebito\b/.test(t)) out.push("debito");
+  if (/\bprepagas?\b/.test(t)) out.push("prepaga");
+  return out;
+}
+
+/**
+ * Productos de un tramo para el que el modelo no nombró tarjetas. Manda el
+ * texto del tramo; la letra chica es de toda la página y se usa solo si el
+ * tramo no dice nada. Sin mención de un tipo, queda vacío: aplica a todas.
+ */
+export function productosPorTipo(
+  fuenteId: string,
+  descuentoRaw: string,
+  legalesRaw: string | null,
+): string[] {
+  const instrumentos = instrumentosDe(descuentoRaw);
+  const tipos = instrumentos.length > 0 ? instrumentos : instrumentosDe(legalesRaw);
+  return tipos.length > 0 ? porInstrumento(fuenteId, ...tipos) : [];
+}
+
 export async function normalizar(crudo: Crudo, cliente = new Anthropic()): Promise<Extraido> {
   const res = await cliente.messages.parse({
     model: MODELO,
@@ -299,8 +332,12 @@ export async function normalizar(crudo: Crudo, cliente = new Anthropic()): Promi
   const desconocidos: string[] = [];
 
   for (const [i, tramo] of pagina.tramos.entries()) {
-    const { ids, desconocidos: nuevos } = mapearProductos(crudo.fuente_id, tramo.productos);
-    desconocidos.push(...nuevos);
+    const mapeo = mapearProductos(crudo.fuente_id, tramo.productos);
+    desconocidos.push(...mapeo.desconocidos);
+    const ids =
+      tramo.productos.length === 0
+        ? productosPorTipo(crudo.fuente_id, tramo.descuento_raw, pagina.legales_raw)
+        : mapeo.ids;
 
     const candidato = {
       comercio_key,
