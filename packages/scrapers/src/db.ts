@@ -144,6 +144,45 @@ export async function idsDeBeneficios(
 }
 
 /**
+ * `comercio|dirección` de todas las sucursales: con esto el runner no vuelve
+ * a pedir el reverse de un local que ya tiene. Paginado (PostgREST corta en 1.000).
+ */
+export async function localesGuardados(db: SupabaseClient): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await db
+      .from("sucursal")
+      .select("id, comercio_key, direccion")
+      .order("id")
+      .range(desde, desde + 999);
+    if (error) throw new Error(`leyendo sucursales: ${error.message}`);
+    for (const s of data ?? []) out.add(`${s.comercio_key}|${s.direccion}`);
+    if ((data ?? []).length < 1000) return out;
+  }
+}
+
+/** A qué comercio pertenece cada página de la fuente, según sus beneficios. */
+export async function comerciosDePaginas(db: SupabaseClient, fuenteId: string): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await db
+      .from("beneficio")
+      .select("id, comercio_key")
+      .eq("fuente_id", fuenteId)
+      .eq("origen", "scraper")
+      .order("id")
+      .range(desde, desde + 999);
+    if (error) throw new Error(`leyendo comercios de las páginas: ${error.message}`);
+    for (const b of data ?? []) {
+      // id = fuente:external_id:n
+      const externalId = (b.id as string).split(":")[1];
+      if (externalId) out.set(externalId, b.comercio_key as string);
+    }
+    if ((data ?? []).length < 1000) return out;
+  }
+}
+
+/**
  * Ids de beneficios descartados de una fuente. Paginado: los descartados se
  * acumulan (no se borran) y PostgREST corta en 1.000 filas por consulta.
  */

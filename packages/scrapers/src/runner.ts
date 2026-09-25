@@ -6,6 +6,8 @@ import { aRestaurar } from "./restaurar.js";
 import {
   abrirCorrida,
   asegurarComercio,
+  comerciosDePaginas,
+  localesGuardados,
   cerrarCorrida,
   crearCliente,
   encolarRevision,
@@ -29,7 +31,7 @@ import {
 import { reversaIde } from "./geo/ide.js";
 import { slugDepartamento } from "./geo/departamentos.js";
 import type { UsoModelo } from "@tarjetazo/core";
-import type { Crudo, Extraido } from "./tipos.js";
+import type { Crudo, Extraido, SucursalDeFuente } from "./tipos.js";
 
 export interface Reporte {
   fuente_id: string;
@@ -134,6 +136,11 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     const existentes = await idsDeBeneficios(db, fuenteId);
     const descartados = await idsDescartados(db, fuenteId);
     const tramosPrevios = await tramosGuardados(db, fuenteId);
+    // Para guardar los locales también de las páginas sin cambios: la primera
+    // vez que una fuente empieza a publicarlos (Santander) no hay que pasar
+    // ninguna página por el modelo.
+    const locales = await localesGuardados(db);
+    const comercioDePagina = await comerciosDePaginas(db, fuenteId);
     const vistos = new Set<string>();
     const restaurar: string[] = [];
 
@@ -153,6 +160,35 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       }
     }
 
+    /**
+     * Guarda los locales que la fuente publicó con el beneficio. El punto ya
+     * viene dado; lo único que falta es el departamento, que resuelve el
+     * reverse oficial, y solo se pide para los locales que el comercio no tiene.
+     */
+    async function guardarLocales(comercioKey: string, sucursales: SucursalDeFuente[]): Promise<number> {
+      const filas = [];
+      for (const s of sucursales) {
+        const clave = `${comercioKey}|${s.direccion}`;
+        if (locales.has(clave)) continue;
+        locales.add(clave);
+        const r = await reversaIde(s.lat, s.lng);
+        const departamento = slugDepartamento(r?.departamento ?? null);
+        if (!departamento) continue;
+        filas.push({
+          comercio_key: comercioKey,
+          nombre: s.nombre,
+          direccion: s.direccion,
+          localidad: r?.localidad ?? null,
+          departamento,
+          geom: `SRID=4326;POINT(${s.lng} ${s.lat})`,
+          precision: "exacta" as const,
+          fuente_direccion: fuenteId,
+          geocoded_at: new Date().toISOString(),
+        });
+      }
+      return guardarSucursalesDeFuente(db, comercioKey, filas);
+    }
+
     async function procesarPagina(crudo: Crudo) {
       const h = await hash(crudo.contenido);
       const sinCambios = previos.get(crudo.external_id) === h;
@@ -166,6 +202,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         for (const id of aRestaurar(fuenteId, crudo.external_id, tramosPrevios.get(crudo.external_id), descartados)) {
           vistos.add(id);
           restaurar.push(id);
+        }
+        const comercio = comercioDePagina.get(crudo.external_id);
+        if (comercio && crudo.sucursales?.length) {
+          reporte.sucursales += await guardarLocales(reglas.comercios.get(comercio) ?? comercio, crudo.sucursales);
         }
         await marcarPaginaVista(db, crudo);
         return;
@@ -204,30 +244,8 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         await asegurarComercio(db, extraido.comercio);
 
         // Recién acá sabemos a qué comercio pertenecen los locales que la
-        // fuente publicó junto al beneficio. El punto ya viene dado; lo único
-        // que falta es el departamento, que resuelve el reverse oficial.
-        const filas = [];
-        for (const s of crudo.sucursales ?? []) {
-          const r = await reversaIde(s.lat, s.lng);
-          const departamento = slugDepartamento(r?.departamento ?? null);
-          if (!departamento) continue;
-          filas.push({
-            comercio_key: extraido.comercio.key,
-            nombre: s.nombre,
-            direccion: s.direccion,
-            localidad: r?.localidad ?? null,
-            departamento,
-            geom: `SRID=4326;POINT(${s.lng} ${s.lat})`,
-            precision: "exacta" as const,
-            fuente_direccion: fuenteId,
-            geocoded_at: new Date().toISOString(),
-          });
-        }
-        reporte.sucursales += await guardarSucursalesDeFuente(
-          db,
-          extraido.comercio.key,
-          filas,
-        );
+        // fuente publicó junto al beneficio.
+        reporte.sucursales += await guardarLocales(extraido.comercio.key, crudo.sucursales ?? []);
       }
 
       // Qué tramos cambiaron de verdad: una página puede cambiar (un banner, la
