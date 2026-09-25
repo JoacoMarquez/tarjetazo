@@ -9,6 +9,7 @@ import { Faq } from "./faq";
 import { FooterHome } from "./footer-home";
 import { Hero } from "./hero";
 import { Hoy } from "./hoy";
+import { ProximaTarjeta } from "./proxima-tarjeta";
 
 /**
  * El estado de la billetera vive en el layout raíz porque lo comparten todas
@@ -23,6 +24,7 @@ export function HomeCliente({ rubros, dia }: { rubros: MejorDelRubro[]; dia: str
       <main className="mx-auto max-w-[1120px] px-5 pb-20">
         <Hoy rubros={rubros} dia={dia} />
         <ComoFunciona rubros={rubros} />
+        <ProximaTarjeta />
         <CercaTuyo />
       </main>
       <Faq />
