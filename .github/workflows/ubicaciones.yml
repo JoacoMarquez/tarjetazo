@@ -1,0 +1,38 @@
+name: Ubicaciones de comercios
+
+# Busca en OpenStreetMap los comercios sin sucursal en el mapa y deja
+# sugerencias de ubicación para el backoffice (/admin/comercios). No escribe
+# en `sucursal`: las acepta el operador. Semanal; lo que no apareció se vuelve
+# a buscar recién a los 30 días.
+on:
+  schedule:
+    # Martes 12:00 UTC = 09:00 en Uruguay.
+    - cron: "0 12 * * 2"
+  workflow_dispatch:
+    inputs:
+      limite:
+        description: Máximo de comercios a buscar (vacío = todos los pendientes)
+        type: string
+
+concurrency:
+  group: ubicaciones
+  cancel-in-progress: false
+
+jobs:
+  sugerir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Sugerir ubicaciones
+        working-directory: packages/scrapers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: pnpm geo sugerir ${{ inputs.limite }}
