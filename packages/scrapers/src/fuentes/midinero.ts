@@ -237,7 +237,8 @@ export function normalizarMidinero(crudo: Crudo): Extraido {
   const canal: BeneficioNormalizado["canal"] = fisico && web ? "ambos" : web ? "online" : "presencial";
   const beneficio: BeneficioNormalizado = {
     comercio_key: comercio.key,
-    titulo: `${pct[1]}% de ahorro en ${nombre}`.slice(0, 160),
+    // Sin el comercio: la web ya lo muestra al lado ("… en Benny´s en Benny´s").
+    titulo: `${pct[1]}% de ahorro`,
     descuento_raw: [encabezado.find((l) => /%/.test(l)) ? `${pct[1]}% de ahorro` : pct[0], diasLinea].filter(Boolean).join(" · "),
     porcentaje: Number(pct[1]),
     cuotas: null,
