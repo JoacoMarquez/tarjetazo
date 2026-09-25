@@ -92,7 +92,12 @@ export default async function PaginaBanco({ params }: Props) {
 
         {familias.length > 0 && (
           <section className="mt-8">
-            <h2 className="text-humo text-xs font-semibold uppercase tracking-widest">Tarjetas y medios de pago</h2>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-humo text-xs font-semibold uppercase tracking-widest">Tarjetas y medios de pago</h2>
+              <Link href={`/tarjetas?banco=${id}`} className="text-cielo text-sm underline underline-offset-4">
+                Ver el catálogo con costos
+              </Link>
+            </div>
             <ul className="mt-3 flex flex-wrap gap-2">
               {familias.map((fam) => (
                 <li key={fam.id}>
