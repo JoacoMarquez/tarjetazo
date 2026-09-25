@@ -54,6 +54,9 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "santander-aadvantage-debito", fuente_id: "santander", nombre: "Débito Select AAdvantage", instrumento: "debito", red: "visa", tier: null, familia: "santander-aadvantage-trilogy", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-aadvantage" },
 
   // Scotiabank — nombra por tier y sello; la débito Premium va con los tiers altos.
+  { id: "scotiabank-amex-gold", fuente_id: "scotiabank", nombre: "American Express Gold Scotiabank", instrumento: "credito", red: "amex", tier: "gold" },
+  { id: "scotiabank-amex-platinum", fuente_id: "scotiabank", nombre: "The Platinum Card American Express Scotiabank", instrumento: "credito", red: "amex", tier: "platinum" },
+  { id: "scotiabank-amex-copa-platinum", fuente_id: "scotiabank", nombre: "American Express Copa Platinum Scotiabank", instrumento: "credito", red: "amex", tier: "platinum" },
   { id: "scotiabank-visa-gold", fuente_id: "scotiabank", nombre: "Visa Gold Scotiabank", instrumento: "credito", red: "visa", tier: "gold" },
   { id: "scotiabank-visa-platinum", fuente_id: "scotiabank", nombre: "Visa Platinum Scotiabank", instrumento: "credito", red: "visa", tier: "platinum" },
   { id: "scotiabank-visa-infinite", fuente_id: "scotiabank", nombre: "Visa Infinite Scotiabank", instrumento: "credito", red: "visa", tier: "infinite" },
@@ -66,6 +69,7 @@ export const PRODUCTOS: readonly Producto[] = [
 
   // Itaú — la línea de débito tiene nombre propio (Volar) y hay alimentación.
   // Itaú emite todas sus débito y la Alimentación en Visa (tarifario del 01/09/2026).
+  { id: "itau-debito-u25", fuente_id: "itau", nombre: "Itaú Débito U25", instrumento: "debito", red: "visa", tier: null },
   { id: "itau-debito-volar", fuente_id: "itau", nombre: "Itaú Débito Volar", instrumento: "debito", red: "visa", tier: null },
   { id: "itau-debito-junior", fuente_id: "itau", nombre: "Itaú Débito Junior", instrumento: "debito", red: "visa", tier: null },
   { id: "itau-debito-sueldo", fuente_id: "itau", nombre: "Itaú Débito Sueldos", instrumento: "debito", red: "visa", tier: null },
@@ -78,6 +82,8 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "itau-visa", fuente_id: "itau", nombre: "Visa Itaú", instrumento: "credito", red: "visa", tier: null },
   { id: "itau-mastercard", fuente_id: "itau", nombre: "Mastercard Itaú", instrumento: "credito", red: "mastercard", tier: null },
   { id: "itau-mastercard-black", fuente_id: "itau", nombre: "Mastercard Black Itaú", instrumento: "credito", red: "mastercard", tier: "black" },
+  { id: "itau-latam-pass", fuente_id: "itau", nombre: "Visa LATAM Pass Itaú", instrumento: "credito", red: "visa", tier: null },
+  { id: "itau-latam-pass-platinum", fuente_id: "itau", nombre: "Visa LATAM Pass Platinum Itaú", instrumento: "credito", red: "visa", tier: "platinum" },
 
   // OCA
   { id: "oca-blue-debito", fuente_id: "oca", nombre: "OCA Blue Débito", instrumento: "debito", red: "visa", tier: null },
