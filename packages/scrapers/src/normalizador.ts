@@ -176,6 +176,9 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
   ],
 
   itau: [
+    [/latam.*platinum|platinum.*latam/, ["itau-latam-pass-platinum"]],
+    [/latam/, ["itau-latam-pass", "itau-latam-pass-platinum"]],
+    [/\bu ?25\b|universitari/, ["itau-debito-u25"]],
     [/volar/, ["itau-debito-volar"]],
     [/junior/, ["itau-debito-junior"]],
     [/pocket/, ["itau-pocket"]],
@@ -186,7 +189,7 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/mastercard.*black|black/, ["itau-mastercard-black"]],
     [/visa.*signature|infinite/, ["itau-visa-signature"]],
     // En las landings de restaurantes dice "tarjetas de crédito Platinum" a secas.
-    [/platinum/, ["itau-visa-platinum"]],
+    [/platinum/, ["itau-visa-platinum", "itau-latam-pass-platinum"]],
     [/mastercard/, ["itau-mastercard"]],
     [/visa/, ["itau-visa"]],
     [/debito/, porInstrumento("itau", "debito")],
@@ -194,9 +197,20 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
   ],
 
   scotiabank: [
+    // Las Amex van primero: "Amex Gold" y "The Platinum Card" también matchean
+    // las reglas de nivel de abajo, que antes las mandaban a las Visa.
+    [/(copa|connectmiles).*(gold|oro)|(gold|oro).*(copa|connectmiles)/, ["scotiabank-amex-gold"]],
+    [/copa|connectmiles/, ["scotiabank-amex-copa-platinum"]],
+    [/platinum card/, ["scotiabank-amex-platinum"]],
+    [/(amex|american express).*platinum|platinum.*(amex|american express)/, ["scotiabank-amex-platinum", "scotiabank-amex-copa-platinum"]],
+    [/(amex|american express).*(gold|oro)|(gold|oro).*(amex|american express)|gold card/, ["scotiabank-amex-gold"]],
     [/infinite|signature/, ["scotiabank-visa-infinite", "scotiabank-visa-signature"]],
-    [/platinum/, ["scotiabank-visa-platinum"]],
-    [/gold|oro/, ["scotiabank-visa-gold"]],
+    [/visa.*platinum|platinum.*visa/, ["scotiabank-visa-platinum"]],
+    [/visa.*(gold|oro)|(gold|oro).*visa/, ["scotiabank-visa-gold"]],
+    // "Platinum" o "Gold" a secas: todas las de ese nivel. Scotiabank ya no
+    // vende la Visa Gold, pero quien la tiene sigue entrando.
+    [/platinum/, ["scotiabank-visa-platinum", "scotiabank-amex-platinum", "scotiabank-amex-copa-platinum"]],
+    [/gold|oro/, ["scotiabank-visa-gold", "scotiabank-amex-gold"]],
     [/amex|american express/, ["scotiabank-amex"]],
     [/debito.*premium|premium/, ["scotiabank-debito-premium"]],
     [/mastercard/, ["scotiabank-mastercard"]],
