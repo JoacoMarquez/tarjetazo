@@ -11,7 +11,7 @@ function Encuadre({ puntos }: { puntos: PuntoMini[] }) {
   const map = useMap();
   useEffect(() => {
     if (puntos.length === 0) return;
-    map.fitBounds(L.latLngBounds(puntos.map((p) => [p.lat, p.lng])), { padding: [24, 24], maxZoom: 16 });
+    map.fitBounds(L.latLngBounds(puntos.map((p) => [p.lat, p.lng])), { padding: [24, 24], maxZoom: 15 });
   }, [map, puntos]);
   return null;
 }

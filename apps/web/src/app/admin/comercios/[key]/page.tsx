@@ -25,8 +25,9 @@ const ORIGEN: Record<string, string> = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { key } = await params;
-  return { title: decodeURIComponent(key) };
+  const key = decodeURIComponent((await params).key);
+  const { data } = await createSupabaseAdmin().from("comercio").select("nombre").eq("key", key).maybeSingle<{ nombre: string }>();
+  return { title: data?.nombre ?? key };
 }
 
 type Beneficio = {

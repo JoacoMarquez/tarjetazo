@@ -27,7 +27,7 @@ export default async function Comercios({
   const q = uno(sp.q);
   const pagina = Math.max(0, Number(uno(sp.p)) || 0);
 
-  const { data, error } = await createSupabaseAdmin().rpc("admin_comercios");
+  const { data, error } = await todosLosComercios(createSupabaseAdmin());
   if (error) {
     return (
       <div className="mx-auto max-w-5xl">
@@ -184,6 +184,17 @@ export default async function Comercios({
       ) : null}
     </div>
   );
+}
+
+/** PostgREST corta en 1.000 filas, también en una función: de a páginas. */
+async function todosLosComercios(db: ReturnType<typeof createSupabaseAdmin>) {
+  const data: FilaComercio[] = [];
+  for (let desde = 0; ; desde += 1000) {
+    const r = await db.rpc("admin_comercios").order("key").range(desde, desde + 999);
+    if (r.error) return { data: null, error: r.error };
+    data.push(...((r.data ?? []) as FilaComercio[]));
+    if ((r.data ?? []).length < 1000) return { data, error: null };
+  }
 }
 
 function Dato({ titulo, valor, detalle, alerta }: { titulo: string; valor: string; detalle?: string; alerta?: boolean }) {
