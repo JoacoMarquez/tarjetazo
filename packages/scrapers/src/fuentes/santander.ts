@@ -1,7 +1,7 @@
 import { bajarTexto } from "../http.js";
 import { contenidoPrincipal, htmlATexto } from "../texto.js";
 import { slugificar } from "../slug.js";
-import type { Crudo } from "../tipos.js";
+import type { Crudo, SucursalDeFuente } from "../tipos.js";
 
 const BASE = "https://www.santander.com.uy";
 const LISTADO = `${BASE}/beneficios`;
@@ -44,6 +44,37 @@ function tarjetasDelListado(html: string): Tarjeta[] {
   return [...tarjetas.values()];
 }
 
+/**
+ * Los locales de la ficha: cada uno es un <article> "sitios-de-interes" con el
+ * nombre, la dirección y un link "Ir a la dirección" a Google Maps que trae las
+ * coordenadas (`/maps/dir//-34.8894,-56.059257`). Sin coordenadas válidas en
+ * Uruguay, el local no entra: no inventamos un punto.
+ */
+export function localesDe(html: string): SucursalDeFuente[] {
+  const out: SucursalDeFuente[] = [];
+  const vistos = new Set<string>();
+  const partes = html.split(/<article\b(?=[^>]*node--type-sitios-de-interes)/).slice(1);
+  for (const parte of partes) {
+    const bloque = parte.split(/<\/article>/)[0]!;
+    const coords = bloque.match(/maps\/dir\/\/(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+    if (!coords) continue;
+    const lat = Number(coords[1]);
+    const lng = Number(coords[2]);
+    if (!(lat < -30 && lat > -35.2 && lng < -53 && lng > -58.6)) continue;
+    const campo = (nombre: string) => {
+      const m = bloque.match(new RegExp(`field--name-${nombre}[^>]*>([\\s\\S]*?)</(?:div|span)>`));
+      return m ? htmlATexto(m[1]!).trim() : "";
+    };
+    const direccion = campo("field-ubicacion");
+    if (!direccion) continue;
+    const clave = `${direccion}|${lat}|${lng}`;
+    if (vistos.has(clave)) continue;
+    vistos.add(clave);
+    out.push({ nombre: campo("title") || null, direccion, lat, lng });
+  }
+  return out;
+}
+
 export async function fetchSantander(): Promise<Crudo[]> {
   const listado = await bajarTexto(LISTADO);
   const tarjetas = tarjetasDelListado(listado);
@@ -52,8 +83,11 @@ export async function fetchSantander(): Promise<Crudo[]> {
   for (const t of tarjetas) {
     const url = `${BASE}${t.path}`;
     let detalle = "";
+    let sucursales: SucursalDeFuente[] = [];
     try {
-      detalle = htmlATexto(contenidoPrincipal(await bajarTexto(url)));
+      const html = await bajarTexto(url);
+      detalle = htmlATexto(contenidoPrincipal(html));
+      sucursales = localesDe(html);
     } catch {
       // Si la ficha no responde nos quedamos con lo que dice el listado, que ya
       // trae el comercio y el descuento.
@@ -73,6 +107,7 @@ export async function fetchSantander(): Promise<Crudo[]> {
       url_fuente: url,
       contenido,
       fetched_at: new Date().toISOString(),
+      sucursales,
     });
   }
   return crudos;
