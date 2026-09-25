@@ -111,10 +111,16 @@ interface Pendiente {
 }
 
 export async function sugerirUbicacionesOsm(db: SupabaseClient, limite = 500): Promise<ReporteSugerencias> {
-  const { data, error } = await db.rpc("admin_comercios");
-  if (error) throw new Error(`leyendo comercios: ${error.message}`);
+  // PostgREST corta en 1.000 filas, también en una función: de a páginas.
+  const data: Pendiente[] = [];
+  for (let desde = 0; ; desde += 1000) {
+    const r = await db.rpc("admin_comercios").order("key").range(desde, desde + 999);
+    if (r.error) throw new Error(`leyendo comercios: ${r.error.message}`);
+    data.push(...((r.data ?? []) as Pendiente[]));
+    if ((r.data ?? []).length < 1000) break;
+  }
   const corte = Date.now() - REBUSCAR_DIAS * 86_400_000;
-  const pendientes = ((data ?? []) as Pendiente[])
+  const pendientes = data
     .filter((c) => c.con_pin === 0 && (!c.buscado_en || Date.parse(c.buscado_en) < corte))
     .sort((a, b) => b.beneficios - a.beneficios)
     .slice(0, limite);
