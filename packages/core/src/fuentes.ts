@@ -9,6 +9,7 @@ export const FUENTES: readonly Fuente[] = [
   { id: "oca", nombre: "OCA", tipo: "emisor", logo_url: null, url: "https://www.oca.com.uy", activa: true },
   { id: "prex", nombre: "Prex", tipo: "billetera", logo_url: null, url: "https://www.prexcard.com.uy", activa: true },
   { id: "bbva", nombre: "BBVA", tipo: "banco", logo_url: null, url: "https://www.bbva.com.uy", activa: true },
+  { id: "midinero", nombre: "Midinero", tipo: "billetera", logo_url: null, url: "https://www.midinero.com.uy", activa: true },
 ] as const;
 
 export const PRODUCTOS: readonly Producto[] = [
@@ -106,6 +107,10 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "bbva-comunidad-plus", fuente_id: "bbva", nombre: "Comunidad Plus BBVA (Ta-Ta)", instrumento: "credito", red: "mastercard", tier: null },
   { id: "bbva-sodimac", fuente_id: "bbva", nombre: "BBVA Sodimac", instrumento: "credito", red: "mastercard", tier: null },
   { id: "bbva-consolid-travel", fuente_id: "bbva", nombre: "BBVA Consolid Travel", instrumento: "credito", red: "mastercard", tier: null },
+
+  // Midinero (Redpagos): una sola tarjeta, prepaga Mastercard. "Midinero Más"
+  // y "Cintepa" son la misma tarjeta con otra cuenta detrás.
+  { id: "midinero-mastercard", fuente_id: "midinero", nombre: "Midinero Mastercard", instrumento: "prepaga", red: "mastercard", tier: null },
 
   // Prex
   { id: "prex-saldo", fuente_id: "prex", nombre: "Saldo Prex", instrumento: "saldo", red: "propia", tier: null },
