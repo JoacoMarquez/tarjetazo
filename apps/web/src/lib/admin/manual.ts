@@ -1,4 +1,4 @@
-import { BeneficioSchema, FUENTES, PRODUCTOS } from "@tarjetazo/core";
+import { BeneficioSchema, FUENTES, PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 
 /**
  * Carga manual de beneficios (#23): lo que ninguna fuente scrapeada publica.
@@ -88,7 +88,7 @@ export function validar(
   else if (v.vigencia_hasta < fechaUy()) errores.vigencia_hasta = "Ya venció.";
   if (v.url_fuente && !/^https?:\/\//.test(v.url_fuente)) errores.url_fuente = "Tiene que empezar con http:// o https://.";
 
-  const validos = new Set(PRODUCTOS.filter((p) => p.fuente_id === v.fuente_id).map((p) => p.id));
+  const validos = new Set(PRODUCTOS_ACTIVOS.filter((p) => p.fuente_id === v.fuente_id).map((p) => p.id));
   const fuente = FUENTES.find((f) => f.id === v.fuente_id);
   const fila = {
     id,

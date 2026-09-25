@@ -1,4 +1,4 @@
-import { PRODUCTOS } from "@tarjetazo/core";
+import { PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 import type { BeneficioListado } from "./consultas";
 import { listarBeneficios } from "./consultas";
 import { FILTROS_VACIOS } from "./filtros";
@@ -49,7 +49,7 @@ export interface Oferta {
 export type Matriz = Record<string, Record<string, (Oferta | null)[]>>;
 
 const PRODUCTOS_POR_FUENTE = new Map<string, string[]>();
-for (const p of PRODUCTOS) {
+for (const p of PRODUCTOS_ACTIVOS) {
   const xs = PRODUCTOS_POR_FUENTE.get(p.fuente_id) ?? [];
   xs.push(p.id);
   PRODUCTOS_POR_FUENTE.set(p.fuente_id, xs);
@@ -222,7 +222,7 @@ export function candidatas(
       ahorroPropio(matriz, mis, r.slug, dias, gasto[r.slug] ?? 0),
     ]),
   );
-  return PRODUCTOS.filter((p) => !mis.includes(p.id))
+  return PRODUCTOS_ACTIVOS.filter((p) => !mis.includes(p.id))
     .map((p) => {
       const rubros: string[] = [];
       let extra = 0;

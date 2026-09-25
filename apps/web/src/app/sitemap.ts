@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { CATEGORIAS, FAMILIAS, FUENTES } from "@tarjetazo/core";
+import { CATEGORIAS, FAMILIAS_TARJETA, FUENTES } from "@tarjetazo/core";
 import { clavesDeComercios } from "@/lib/comercio";
 import { createSupabaseClient } from "@/lib/supabase";
 
@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily" as const,
       priority: 0.8,
     })),
-    ...FAMILIAS.map((f) => ({
+    ...FAMILIAS_TARJETA.map((f) => ({
       url: `${BASE}/tarjeta/${f.id}`,
       lastModified: hoy,
       changeFrequency: "weekly" as const,

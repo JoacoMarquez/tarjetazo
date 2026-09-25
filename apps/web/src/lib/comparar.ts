@@ -1,4 +1,4 @@
-import { CATEGORIAS, FUENTES, PRODUCTOS } from "@tarjetazo/core";
+import { CATEGORIAS, FUENTES, PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 import { createSupabaseClient } from "./supabase";
 
 /** Una fila por fuente y rubro, con los componentes del puntaje. */
@@ -71,7 +71,7 @@ export async function comparar(categorias: string[], departamentos: string[]): P
 export const RUBROS = CATEGORIAS.map((c) => ({ slug: c.slug, label: c.label, en_home: c.en_home }));
 
 export function productosDe(fuenteId: string) {
-  return PRODUCTOS.filter((p) => p.fuente_id === fuenteId);
+  return PRODUCTOS_ACTIVOS.filter((p) => p.fuente_id === fuenteId);
 }
 
 export function fuente(id: string) {

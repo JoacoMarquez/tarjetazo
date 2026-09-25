@@ -130,12 +130,15 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     // matchean las reglas de red de abajo.
     [/mi ?brou|tarjeta joven/, ["brou-mi-brou"]],
     [/alfa ?brou|prepag[ao] internacional/, porFamilia("brou", "brou-alfabrou")],
-    [/mastercard.*black|black.*mastercard|recompensa.*black/, ["brou-recompensa-black"]],
+    // BROU emite la Black solo en Mastercard: "Visa Black" no existe.
+    [/black/, ["brou-recompensa-black"]],
     [/mastercard.*platinum|recompensa.*platinum/, ["brou-recompensa-platinum"]],
     [/mastercard.*(oro|gold)|recompensa.*(oro|gold)/, ["brou-recompensa-gold"]],
-    [/mastercard.*debito|debito.*mastercard|recompensa.*debito/, ["brou-recompensa-debito"]],
+    // "Recompensa Débito" es la del programa de puntos; "Mastercard Débito" a
+    // secas vale también para la BROU Mastercard Débito, que no suma puntos.
+    [/recompensa.*debito|debito.*recompensa/, ["brou-recompensa-debito"]],
+    [/mastercard.*debito|debito.*mastercard/, ["brou-recompensa-debito", "brou-mastercard-debito"]],
     [/mastercard|recompensa/, ["brou-recompensa"]],
-    [/visa.*black/, ["brou-visa-black"]],
     [/visa.*platinum/, ["brou-visa-platinum"]],
     [/visa.*(oro|gold)/, ["brou-visa-gold"]],
     [/visa.*debito|debito.*visa/, ["brou-visa-debito"]],
@@ -153,7 +156,6 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
   santander: [
     [/farmacard/, ["santander-farmacard"]],
     [/hiperm[aá]s/, ["santander-hipermas"]],
-    [/amex|american express/, ["santander-amex"]],
     // Segmentos: vale para todos los plásticos del pack.
     [/private/, porFamilia("santander", "santander-private")],
     [/select/, porFamilia("santander", "santander-select")],
@@ -175,22 +177,32 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/^santander$/, porInstrumento("santander", "credito", "debito")],
   ],
 
+  // Itaú vende todas las de crédito como Volar o LATAM Pass. U25 y Pocket son
+  // cuentas que traen la Visa Débito Volar; Personal Bank es el paquete con
+  // las Infinite (familia `itau-personal-bank`).
   itau: [
+    [/infinite.*debito|debito.*infinite/, ["itau-debito-infinite"]],
+    [/latam.*infinite|infinite.*latam/, ["itau-latam-pass-infinite"]],
     [/latam.*platinum|platinum.*latam/, ["itau-latam-pass-platinum"]],
-    [/latam/, ["itau-latam-pass", "itau-latam-pass-platinum"]],
-    [/\bu ?25\b|universitari/, ["itau-debito-u25"]],
-    [/volar/, ["itau-debito-volar"]],
+    [/latam.*internacional|internacional.*latam/, ["itau-latam-pass"]],
+    [/latam/, ["itau-latam-pass", "itau-latam-pass-platinum", "itau-latam-pass-infinite"]],
+    [/\bu ?25\b|universitari|pocket/, ["itau-debito-volar"]],
+    [/volar.*debito|debito.*volar/, ["itau-debito-volar"]],
     [/junior/, ["itau-debito-junior"]],
-    [/pocket/, ["itau-pocket"]],
-    [/personal bank/, ["itau-personal-bank"]],
+    [/personal bank/, porFamilia("itau", "itau-personal-bank")],
     [/alimentacion/, ["itau-alimentacion"]],
     // "Azules" es como Itaú llama a las de débito por pago de sueldos.
     [/sueldo|azul/, ["itau-debito-sueldo"]],
     [/mastercard.*black|black/, ["itau-mastercard-black"]],
-    [/visa.*signature|infinite/, ["itau-visa-signature"]],
+    // Itaú no emite Signature: "Visa Signature" en una página vieja es la Infinite.
+    [/infinite|signature/, porPlastico("itau", { tier: "infinite", instrumento: "credito" })],
+    [/volar.*platinum|platinum.*volar/, ["itau-visa-platinum"]],
     // En las landings de restaurantes dice "tarjetas de crédito Platinum" a secas.
     [/platinum/, ["itau-visa-platinum", "itau-latam-pass-platinum"]],
     [/mastercard/, ["itau-mastercard"]],
+    [/visa.*volar|volar.*visa/, ["itau-visa"]],
+    // "Volar" a secas: la débito de la cuenta Volar, como hasta ahora.
+    [/volar/, ["itau-debito-volar"]],
     [/visa/, ["itau-visa"]],
     [/debito/, porInstrumento("itau", "debito")],
     [/credito/, porInstrumento("itau", "credito")],
@@ -204,13 +216,14 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
     [/platinum card/, ["scotiabank-amex-platinum"]],
     [/(amex|american express).*platinum|platinum.*(amex|american express)/, ["scotiabank-amex-platinum", "scotiabank-amex-copa-platinum"]],
     [/(amex|american express).*(gold|oro)|(gold|oro).*(amex|american express)|gold card/, ["scotiabank-amex-gold"]],
-    [/infinite|signature/, ["scotiabank-visa-infinite", "scotiabank-visa-signature"]],
+    // Scotiabank no emite Visa Signature ni Visa Gold: "signature" es la
+    // Infinite, y una "Visa Gold" va a revisión en vez de caer en la Amex Gold.
+    [/infinite|signature/, ["scotiabank-visa-infinite"]],
     [/visa.*platinum|platinum.*visa/, ["scotiabank-visa-platinum"]],
-    [/visa.*(gold|oro)|(gold|oro).*visa/, ["scotiabank-visa-gold"]],
-    // "Platinum" o "Gold" a secas: todas las de ese nivel. Scotiabank ya no
-    // vende la Visa Gold, pero quien la tiene sigue entrando.
+    [/visa.*(gold|oro)|(gold|oro).*visa/, []],
+    // "Platinum" o "Gold" a secas: todas las de ese nivel.
     [/platinum/, ["scotiabank-visa-platinum", "scotiabank-amex-platinum", "scotiabank-amex-copa-platinum"]],
-    [/gold|oro/, ["scotiabank-visa-gold", "scotiabank-amex-gold"]],
+    [/gold|oro/, ["scotiabank-amex-gold"]],
     [/amex|american express/, ["scotiabank-amex"]],
     [/debito.*premium|premium/, ["scotiabank-debito-premium"]],
     [/mastercard/, ["scotiabank-mastercard"]],
@@ -222,8 +235,8 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
   ],
 
   oca: [
-    [/blue.*debito|debito.*blue/, ["oca-blue-debito"]],
-    [/blue/, ["oca-blue"]],
+    // OCA Blue es una cuenta; su única tarjeta es la Visa Débito.
+    [/blue/, ["oca-blue-debito"]],
     // OCA abrevia "Mastercard" como "Master" en varias fichas.
     [/mastercard|master\b/, ["oca-mastercard"]],
     [/visa/, ["oca-visa"]],

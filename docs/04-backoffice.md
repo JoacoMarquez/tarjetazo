@@ -133,6 +133,20 @@ Sondeo: Santander, BROU y BBVA publican el catálogo server-rendered con datos; 
 - Orden: #27 → #26. La página pública `/tarjeta/[id]` sigue aparte (#11).
 - **Bandeja (#26)** en `/admin/tarjetas`: sugerencias por familia con aceptar/ignorar por fila, por familia o todas (carga inicial). Aceptar es un upsert parcial de `producto_ficha`; la foto se baja con headers de navegador (BBVA da 403 a otros clientes, y sin AVIF en el Accept) al bucket público `tarjetas` como `<familia>/frente-<hash>.<ext>`. Un valor que no encaja con su columna o una foto que no baja quedan pendientes. Las altas no se aceptan en la base: la bandeja da la línea para `PRODUCTOS` y se marcan "ya la agregué". La ficha (`/admin/tarjetas/<familia>`) edita todo, sube frente y dorso recortados en el navegador a proporción ID-1, y muestra la vista previa con `Tarjeta3D` (la misma que usará #11). Subir una foto a mano no toca `imagen_origen`: el banco solo se vuelve a sugerir si cambia su foto.
 
+### Auditoría del catálogo (2026-09-25)
+Los 79 productos del catálogo semilla se verificaron contra el sitio oficial de cada banco. La migración `20261020120000_catalogo_auditado.sql` aplica el resultado.
+
+- **Bajas** (`activo = false`, nunca se borran): tarjetas que el banco no emite (Amex Santander, BROU Visa Black, Scotiabank Visa Gold y Visa Signature, Itaú Visa Signature, BBVA Visa Platinum) y un duplicado (`itau-debito`).
+- **Lo que no es un plástico** también se da de baja y pasa a su plástico real: OCA Blue, la cuenta, pasa a su Visa Débito; U25 y Pocket pasan a la Visa Débito Volar. `itau-personal-bank` pasa a ser la familia de las tres Infinite de Itaú, y su ficha sigue sirviendo.
+- **Saldo y TuApp:** `prex-saldo` y `brou-tuapp` quedan como medios de pago con instrumento `saldo`. Se pueden elegir en "mis tarjetas", pero no van a `/tarjetas`, no tienen `/tarjeta/[id]` y no entran en el sitemap (`FAMILIAS_TARJETA`).
+- **Mapa viejo → nuevo:** vive en `EQUIVALENCIAS_PRODUCTO` (@tarjetazo/core) y lo usan tres cosas:
+  - la migración, sobre `beneficio.productos_elegibles` y `producto_alias.producto_ids`;
+  - la billetera guardada en localStorage;
+  - los links con `?productos=`.
+- **Listas que quedarían vacías:** si al quitar un id sin equivalente la lista queda vacía, no se escribe. Vacío es "todas las de la fuente", así que la fila queda como estaba y se revisa a mano. Al 2026-09-25 no había ningún caso.
+- **Altas:** los clubes de BBVA se cargan como una fila por nivel. Cada nivel es su propia familia, igual que Soy y Soy Platinum.
+- **Sin tocar:** los productos dudosos (Farmacard e Hipermás sin red publicada, AAdvantage sin tier confirmado, Itaú Débito Sueldos).
+
 ## Resumen diario por Telegram (F2)
 Paso final de `.github/workflows/scrapers.yml`. Una línea por fuente (ok / error, nuevos, bajas), cola de revisión, alertas de salud y frescura nuevas, manuales por vencer, link a `/admin`. Secrets nuevos: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
 

@@ -2,6 +2,7 @@ import {
   FAMILIA_POR_ID,
   FUENTES,
   PRODUCTOS,
+  PRODUCTOS_ACTIVOS,
   familiaDe,
   familiasDe,
   type Familia,
@@ -135,7 +136,7 @@ export function familiasEnBilletera(mis: readonly string[]): Familia[] {
 }
 
 export function productosDe(fuenteId: string): readonly Producto[] {
-  return PRODUCTOS.filter((p) => p.fuente_id === fuenteId);
+  return PRODUCTOS_ACTIVOS.filter((p) => p.fuente_id === fuenteId);
 }
 
 /** Bancos distintos de una lista de productos, en el orden de `FUENTES`. */

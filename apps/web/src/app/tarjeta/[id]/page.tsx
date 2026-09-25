@@ -2,7 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ExternalLink } from "lucide-react";
-import { FAMILIAS, FAMILIA_POR_ID, PRODUCTOS, familiaDe, type Familia } from "@tarjetazo/core";
+import {
+  EQUIVALENCIAS_PRODUCTO,
+  FAMILIAS_TARJETA,
+  FAMILIA_POR_ID,
+  PRODUCTOS,
+  esTarjeta,
+  familiaDe,
+  type Familia,
+} from "@tarjetazo/core";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { LinkSaliente } from "@/components/link-saliente";
@@ -18,7 +26,7 @@ import { createSupabaseClient } from "@/lib/supabase";
 
 export const revalidate = 3600;
 export function generateStaticParams() {
-  return FAMILIAS.map((f) => ({ id: f.id }));
+  return FAMILIAS_TARJETA.map((f) => ({ id: f.id }));
 }
 
 type Props = { params: Promise<{ id: string }> };
@@ -26,13 +34,28 @@ const BASE = "https://tarjetazo.uy";
 
 /**
  * La página es por familia (lo que el banco vende: un pack es una sola). Un id
- * de plástico suelto (`santander-select-debito`) redirige a su familia.
+ * de plástico suelto (`santander-select-debito`) redirige a su familia, y uno
+ * dado de baja (`oca-blue`), a la de su equivalente si es uno solo. El saldo
+ * de una billetera no es una tarjeta y no tiene página.
  */
-function resolver(id: string): Familia {
+function tarjeta(id: string): Familia | null {
   const familia = FAMILIA_POR_ID[id];
+  return familia && esTarjeta(familia) ? familia : null;
+}
+
+function resolver(id: string): Familia {
+  const familia = tarjeta(id);
   if (familia) return familia;
-  const p = PRODUCTOS.find((x) => x.id === id && x.activo !== false);
-  if (p && FAMILIA_POR_ID[familiaDe(p)]) permanentRedirect(`/tarjeta/${familiaDe(p)}`);
+  const p = PRODUCTOS.find((x) => x.id === id);
+  if (p && p.activo !== false && tarjeta(familiaDe(p))) permanentRedirect(`/tarjeta/${familiaDe(p)}`);
+  const destinos = new Set(
+    (EQUIVALENCIAS_PRODUCTO[id] ?? [])
+      .map((x) => PRODUCTOS.find((y) => y.id === x))
+      .filter((x) => x !== undefined)
+      .map(familiaDe),
+  );
+  const [destino] = destinos;
+  if (destinos.size === 1 && destino !== id && tarjeta(destino!)) permanentRedirect(`/tarjeta/${destino}`);
   notFound();
 }
 
@@ -61,7 +84,7 @@ function tipoDe(f: Familia): string {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const familia = FAMILIA_POR_ID[id];
+  const familia = tarjeta(id);
   if (!familia) return { title: "Tarjeta no encontrada" };
   const banco = FUENTE_POR_ID[familia.fuente_id]?.nombre ?? familia.fuente_id;
   const ficha = await leerFicha(id);

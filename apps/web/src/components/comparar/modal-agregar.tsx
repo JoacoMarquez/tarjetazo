@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FUENTES, PRODUCTOS } from "@tarjetazo/core";
+import { FUENTES, PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 import { X } from "lucide-react";
 import {
   RUBROS_COMPARAR,
@@ -39,7 +39,7 @@ export function ModalAgregar({
   }, [matriz, mis, dias, gasto]);
 
   const texto = q.trim().toLowerCase();
-  const visibles = PRODUCTOS.filter(
+  const visibles = PRODUCTOS_ACTIVOS.filter(
     (p) => !texto || p.nombre.toLowerCase().includes(texto),
   );
 
@@ -57,7 +57,7 @@ export function ModalAgregar({
     ...tuyas.map((p) => p.id),
   ]);
 
-  const grupos: { titulo: string; productos: typeof PRODUCTOS }[] = [
+  const grupos: { titulo: string; productos: typeof PRODUCTOS_ACTIVOS }[] = [
     ...(falta.length ? [{ titulo: "Te falta una", productos: falta }] : []),
     ...(tuyas.length ? [{ titulo: "Tus tarjetas", productos: tuyas }] : []),
     ...FUENTES.map((f) => ({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PRODUCTOS } from "@tarjetazo/core";
+import { PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 import { ChevronDown, Search } from "lucide-react";
 import {
   RUBROS_COMPARAR,
@@ -182,7 +182,7 @@ export function TabPorDia({
   const [masOtras, setMasOtras] = useState(false);
   const hoy = diaEnUruguay();
 
-  const conBeneficio = PRODUCTOS.filter((p) => matriz[p.id]?.[rubro]).map(
+  const conBeneficio = PRODUCTOS_ACTIVOS.filter((p) => matriz[p.id]?.[rubro]).map(
     (p) => p.id,
   );
   const tuyas = conBeneficio.filter((id) => mis.includes(id));
@@ -226,7 +226,7 @@ export function TabPorDia({
           </p>
         </div>
         {rubros.map((r) => {
-          const ids = PRODUCTOS.filter((p) => matriz[p.id]?.[r.slug]).map(
+          const ids = PRODUCTOS_ACTIVOS.filter((p) => matriz[p.id]?.[r.slug]).map(
             (p) => p.id,
           );
           const mejor = Math.max(

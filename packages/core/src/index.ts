@@ -8,8 +8,11 @@ export { COSTO_MODELO_USD_POR_MTOK, costoEstimadoUsd, type UsoModelo } from "./c
 export {
   EQUIVALENCIAS_PRODUCTO,
   FAMILIAS,
+  FAMILIAS_TARJETA,
   FAMILIA_POR_ID,
   NOMBRE_FAMILIA,
+  PRODUCTOS_ACTIVOS,
+  esTarjeta,
   expandirProductos,
   familiaDe,
   familiasDe,
