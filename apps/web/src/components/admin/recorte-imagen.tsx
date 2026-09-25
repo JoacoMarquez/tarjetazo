@@ -18,11 +18,14 @@ export function RecorteImagen({
   name,
   etiqueta,
   error,
+  inicial,
   onCambio,
 }: {
   name: string;
   etiqueta: string;
   error?: string;
+  /** Foto para arrancar ya cargada: la que sugirió el scraper y no se pudo normalizar sola (#72). */
+  inicial?: { src: string; nombre: string };
   /** URL (object URL) del recorte, o null si se quitó; para la vista previa. */
   onCambio: (url: string | null) => void;
 }) {
@@ -81,19 +84,28 @@ export function RecorteImagen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imagen, escala, rot, x, y, name]);
 
-  function elegir(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
+  function cargar(src: string, nombreFoto: string) {
     const img = new Image();
+    // La inicial viene de Storage: sin esto el canvas queda "sucio" y toBlob falla.
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       setImagen(img);
       setZoom(1);
       setRot(0);
       setPos({ x: 0, y: 0 });
-      setNombre(f.name);
+      setNombre(nombreFoto);
     };
-    img.src = URL.createObjectURL(f);
+    img.src = src;
+  }
+
+  useEffect(() => {
+    if (inicial) cargar(inicial.src, inicial.nombre);
+  }, [inicial]);
+
+  function elegir(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (f) cargar(URL.createObjectURL(f), f.name);
   }
 
   function quitar() {

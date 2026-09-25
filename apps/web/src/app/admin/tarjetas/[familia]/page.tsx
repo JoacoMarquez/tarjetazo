@@ -58,6 +58,9 @@ export default async function FichaTarjeta({ params, searchParams }: Props) {
   const pendientes = (sugs.data ?? []) as Sugerencia[];
   const c = completitud(ficha.data);
   const volverA = `/admin/tarjetas/${familiaId}`;
+  // «Recortar» en una sugerencia de foto: la copia del scraper en Storage (la
+  // del banco no sirve, el canvas no puede leer una imagen de otro origen sin CORS).
+  const aRecortar = pendientes.find((s) => s.id === uno(sp.recortar) && s.campo === "imagen" && s.archivo);
   const ok = uno(sp.ok);
   const error = uno(sp.error);
 
@@ -101,9 +104,9 @@ export default async function FichaTarjeta({ params, searchParams }: Props) {
         </div>
       ) : null}
 
-      {/* La key fuerza a remontar el formulario cuando la ficha cambia (al aceptar una sugerencia). */}
+      {/* La key fuerza a remontar el formulario cuando la ficha cambia (al aceptar una sugerencia) o se pide un recorte. */}
       <FormularioFicha
-        key={ficha.data?.actualizado_en ?? "nueva"}
+        key={`${ficha.data?.actualizado_en ?? "nueva"}-${aRecortar?.id ?? ""}`}
         accion={guardarFicha}
         familiaId={familiaId}
         nombre={familia.nombre}
@@ -111,6 +114,7 @@ export default async function FichaTarjeta({ params, searchParams }: Props) {
         frenteActual={urlImagen(ficha.data?.imagen_frente)}
         dorsoActual={urlImagen(ficha.data?.imagen_dorso)}
         urlOficialDefault={familia.productos.find((p) => p.url_oficial)?.url_oficial ?? null}
+        recortar={aRecortar ? { sugerenciaId: aRecortar.id, src: urlImagen(aRecortar.archivo)! } : undefined}
       />
     </div>
   );
