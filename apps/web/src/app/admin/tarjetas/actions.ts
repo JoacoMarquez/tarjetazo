@@ -14,6 +14,7 @@ import {
   type Sugerencia,
 } from "@/lib/fichas";
 import { MAX_BYTES, bajarImagen, borrarImagen, leerImagen, subirImagen } from "@/lib/admin/imagenes";
+import { normalizarFoto } from "@/lib/normalizar-foto";
 
 type Db = ReturnType<typeof createSupabaseAdmin>;
 
@@ -21,6 +22,14 @@ type Db = ReturnType<typeof createSupabaseAdmin>;
 function destino(form: FormData): string {
   const v = String(form.get("volver_a") ?? "");
   return v.startsWith("/admin/tarjetas") ? v : "/admin/tarjetas";
+}
+
+/**
+ * Una foto nueva borra la anterior del bucket, y las páginas públicas están
+ * cacheadas una hora con su ruta (#72): se revalida todo el sitio.
+ */
+function revalidarFotos() {
+  revalidatePath("/", "layout");
 }
 
 function volver(form: FormData, mensaje: string, error = false): never {
@@ -54,8 +63,8 @@ async function resolver(db: Db, ids: string[], estado: "aceptada" | "ignorada") 
  * Acepta sugerencias de campo: una, las de una familia o todas (la carga
  * inicial). Cada familia es un upsert parcial de su ficha; la foto se copia a
  * la ficha desde la que dejó el scraper en Storage (o se baja del banco si no
- * hay). Lo que falla (foto que no baja, valor que no encaja) queda
- * pendiente y se informa.
+ * hay), normalizada. Lo que falla (foto que no baja, escena que no se
+ * normaliza sola, valor que no encaja) queda pendiente y se informa.
  */
 export async function aceptarSugerencias(form: FormData) {
   await exigirAdmin();
@@ -88,7 +97,12 @@ export async function aceptarSugerencias(form: FormData) {
           const origen = String(s.valor);
           // La copia del scraper si la hay: BBVA no le responde a Vercel.
           const imagen = s.archivo ? await leerImagen(db, s.archivo) : await bajarImagen(origen);
-          const ruta = await subirImagen(db, familiaId, "frente", imagen, ficha?.imagen_frente ?? null);
+          const normal = await normalizarFoto(imagen.bytes);
+          if (!normal.ok) {
+            fallos.push(`${s.nombre_visto}, foto: ${normal.motivo}; hay que recortarla a mano («Recortar» en la ficha)`);
+            continue;
+          }
+          const ruta = await subirImagen(db, familiaId, "frente", normal, ficha?.imagen_frente ?? null);
           patch.imagen_frente = ruta;
           patch.imagen_origen = origen;
           ok.push(s.id);
@@ -119,6 +133,7 @@ export async function aceptarSugerencias(form: FormData) {
   }
 
   await resolver(db, aceptadas, "aceptada");
+  if (sugerencias.some((s) => s.campo === "imagen" && aceptadas.includes(s.id))) revalidarFotos();
   const n = aceptadas.length;
   const texto = `${n} ${n === 1 ? "sugerencia aceptada" : "sugerencias aceptadas"}.`;
   if (fallos.length > 0) volver(form, `${texto} Quedaron pendientes: ${fallos.join("; ")}.`, n === 0);
@@ -167,6 +182,12 @@ export async function guardarFicha(_: EstadoFicha, form: FormData): Promise<Esta
   if (!fila || Object.keys(errores).length > 0) return { errores };
 
   const db = createSupabaseAdmin();
+  // El frente viene de «Recortar» una sugerencia de foto: al guardar, queda aceptada.
+  const sugerenciaFoto = frente
+    ? (await pendientes(db, form.getAll("sugerencia_foto").map(String))).find(
+        (s) => s.campo === "imagen" && s.familia_id === familiaId,
+      )
+    : undefined;
   const { data: previa, error: e1 } = await db
     .from("producto_ficha")
     .select(COLUMNAS_FICHA)
@@ -182,8 +203,9 @@ export async function guardarFicha(_: EstadoFicha, form: FormData): Promise<Esta
         { bytes: new Uint8Array(await frente.arrayBuffer()), tipo: frente.type },
         previa?.imagen_frente ?? null,
       );
-      // `imagen_origen` queda como estaba: la foto del banco solo se vuelve a
-      // sugerir si el banco la cambia, no cada lunes.
+      // Sin sugerencia, `imagen_origen` queda como estaba: la foto del banco
+      // solo se vuelve a sugerir si el banco la cambia, no cada lunes.
+      if (sugerenciaFoto) imagenes.imagen_origen = String(sugerenciaFoto.valor);
     }
     if (dorso) {
       imagenes.imagen_dorso = await subirImagen(
@@ -211,6 +233,8 @@ export async function guardarFicha(_: EstadoFicha, form: FormData): Promise<Esta
     { onConflict: "familia_id" },
   );
   if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (sugerenciaFoto) await resolver(db, [sugerenciaFoto.id], "aceptada");
+  if (Object.keys(imagenes).length > 0) revalidarFotos();
 
   // Redirect y no `{ ok }`: la ficha remonta el formulario cuando cambia, y
   // el mensaje se perdería con el estado.

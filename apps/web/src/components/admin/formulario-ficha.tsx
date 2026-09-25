@@ -16,6 +16,7 @@ export function FormularioFicha({
   frenteActual,
   dorsoActual,
   urlOficialDefault,
+  recortar,
 }: {
   accion: (estado: EstadoFicha, form: FormData) => Promise<EstadoFicha>;
   familiaId: string;
@@ -24,6 +25,8 @@ export function FormularioFicha({
   frenteActual: string | null;
   dorsoActual: string | null;
   urlOficialDefault: string | null;
+  /** Foto sugerida para recortar a mano como frente; al guardar, la sugerencia queda aceptada. */
+  recortar?: { sugerenciaId: string; src: string };
 }) {
   const [estado, enviar, enviando] = useActionState(accion, {});
   const [frente, setFrente] = useState<string | null>(null);
@@ -31,6 +34,8 @@ export function FormularioFicha({
   const [quitarDorso, setQuitarDorso] = useState(false);
   const e = estado.errores ?? {};
   const dorsoVista = dorso ?? (quitarDorso ? null : dorsoActual);
+  // Estable entre renders: RecorteImagen la recarga cada vez que cambia.
+  const [inicialFrente] = useState(() => (recortar ? { src: recortar.src, nombre: "Foto sugerida por el banco" } : undefined));
 
   return (
     // Con onSubmit y no con `action`: React resetea el formulario después de
@@ -44,10 +49,17 @@ export function FormularioFicha({
       className="mt-6 flex flex-col gap-8"
     >
       <input type="hidden" name="familia_id" value={familiaId} />
+      {recortar && frente ? <input type="hidden" name="sugerencia_foto" value={recortar.sugerenciaId} /> : null}
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+      <section id="foto" className="grid scroll-mt-6 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <div className="grid content-start gap-5 sm:grid-cols-2">
-          <RecorteImagen name="frente" etiqueta={frenteActual ? "Reemplazar el frente" : "Foto del frente"} error={e.frente} onCambio={setFrente} />
+          <RecorteImagen
+            name="frente"
+            etiqueta={frenteActual ? "Reemplazar el frente" : "Foto del frente"}
+            error={e.frente}
+            inicial={inicialFrente}
+            onCambio={setFrente}
+          />
           <div className="flex flex-col gap-2">
             <RecorteImagen name="dorso" etiqueta={dorsoActual ? "Reemplazar el dorso" : "Dorso (opcional)"} error={e.dorso} onCambio={setDorso} />
             {dorsoActual && !dorso ? (

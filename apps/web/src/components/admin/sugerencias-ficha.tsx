@@ -85,7 +85,16 @@ export function SugerenciasFicha({
                   )}
                 </td>
                 <td className="px-4 py-2">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {s.campo === "imagen" && s.archivo ? (
+                      // Para una escena (pila, mano, celular) que no se normaliza sola al aceptar.
+                      <Link
+                        href={`/admin/tarjetas/${familiaId}?recortar=${s.id}#foto`}
+                        className="border-linea text-pizarra hover:bg-papel-1 rounded-lg border px-3 py-1.5 text-sm font-medium whitespace-nowrap"
+                      >
+                        Recortar
+                      </Link>
+                    ) : null}
                     <form action={aceptarSugerencias}>
                       <input type="hidden" name="id" value={s.id} />
                       <input type="hidden" name="volver_a" value={volverA} />
