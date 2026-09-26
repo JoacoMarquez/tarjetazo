@@ -18,7 +18,7 @@ import { mapearProductos } from "./normalizador.js";
 
 const POR_ID = new Map(PRODUCTOS.map((p) => [p.id, p]));
 /** Productos que entraron después de la auditoría (con su propia migración). */
-const POSTERIORES = new Set(["nativa-cabal"]);
+const POSTERIORES = new Set<string>();
 const mapea = (fuente: string, nombre: string) => mapearProductos(fuente, [nombre]).ids.sort();
 
 describe("catálogo", () => {
