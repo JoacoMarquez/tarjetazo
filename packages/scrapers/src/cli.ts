@@ -4,6 +4,7 @@ import { fetchNativa, normalizarNativa } from "./fuentes/nativa.js";
 import { fetchClubElPais, normalizarClubElPais } from "./fuentes/club-el-pais.js";
 import { fetchAnda, normalizarAnda } from "./fuentes/anda.js";
 import { fetchAsi, normalizarAsi } from "./fuentes/asi.js";
+import { fetchPronto, normalizarPronto } from "./fuentes/pronto.js";
 import { fetchBrou } from "./fuentes/brou.js";
 import { fetchItau } from "./fuentes/itau.js";
 import { fetchItauLandings } from "./fuentes/itau-landings.js";
@@ -26,6 +27,7 @@ const NORMALIZADORES: Record<string, (c: Crudo) => Extraido> = {
   "club-el-pais": normalizarClubElPais,
   anda: normalizarAnda,
   asi: normalizarAsi,
+  pronto: normalizarPronto,
 };
 const SCRAPERS: Record<string, () => Promise<Crudo[]>> = {
   brou: fetchBrou,
@@ -41,6 +43,7 @@ const SCRAPERS: Record<string, () => Promise<Crudo[]>> = {
   "club-el-pais": fetchClubElPais,
   anda: fetchAnda,
   asi: fetchAsi,
+  pronto: fetchPronto,
 };
 
 async function main() {
