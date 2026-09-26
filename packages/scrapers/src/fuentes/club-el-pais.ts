@@ -92,6 +92,14 @@ export function departamentoDeDireccion(direccion: string): string | null {
   return /\bruta\b|\bkm\b/.test(d) ? null : "montevideo";
 }
 
+/** "Cebollatí 1474, Montevideo | Av. Italia …, Punta del Este": un local por tramo. */
+export function departamentosDeDireccion(direccion: string): string[] {
+  const deptos = direccion.split(/\s[|\/]\s/).map(departamentoDeDireccion);
+  // Si un tramo no se puede ubicar, mejor todo el país que dejarlo afuera.
+  if (deptos.includes(null)) return [];
+  return [...new Set(deptos as string[])];
+}
+
 export function crudoDeFicha(url: string, html: string): Crudo {
   const nombre = texto(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? "");
   const promo = texto(html.match(/font-secundary text-4xl[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "");
@@ -200,7 +208,6 @@ export function normalizarClubElPais(crudo: Crudo): Extraido {
   const local = /local/.test(modalidad);
   const online = /online/.test(modalidad);
   const canal: BeneficioNormalizado["canal"] = local && online ? "ambos" : online ? "online" : "presencial";
-  const depto = direccion ? departamentoDeDireccion(direccion) : null;
   const l = sinAcentos(legales);
   const acumulable = /no (es |siendo )?acumulable|ni se acumula|no se acumula/.test(l) ? false : /acumulable con otras/.test(l) ? true : null;
   const v = vigencia(legales);
@@ -217,7 +224,7 @@ export function normalizarClubElPais(crudo: Crudo): Extraido {
     dias_semana: diasTxt && diasTxt !== "todos los días" ? diasTxt.split(",").map(Number) : [],
     vigencia_desde: v.desde,
     vigencia_hasta: v.hasta,
-    departamentos: depto ? [depto] : [],
+    departamentos: direccion ? departamentosDeDireccion(direccion) : [],
     productos_elegibles: [PRODUCTO],
     tope_monto: t?.monto ?? null,
     tope_periodo: t?.periodo ?? null,

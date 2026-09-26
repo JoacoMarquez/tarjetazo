@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { FAMILIAS_TARJETA, FAMILIA_POR_ID } from "@tarjetazo/core";
-import { crudoDeFicha, departamentoDeDireccion, normalizarClubElPais } from "./fuentes/club-el-pais.js";
+import { crudoDeFicha, departamentoDeDireccion, departamentosDeDireccion, normalizarClubElPais } from "./fuentes/club-el-pais.js";
 
 describe("Club El País", () => {
   it("lee el departamento de la dirección, sin confundirlo con una calle", () => {
@@ -15,6 +15,11 @@ describe("Club El País", () => {
     assert.equal(departamentoDeDireccion("Calle 27 (los Muergos) & Gorlero"), "maldonado");
     assert.equal(departamentoDeDireccion("Costa Urbana Shopping - Av. Giannattasio km 21 Zona Sur piso 1"), "canelones");
     assert.equal(departamentoDeDireccion("Calle Los Lobos esquina Ruta 10 Km 182"), null);
+    assert.deepEqual(
+      departamentosDeDireccion("Cebollatí 1474, Montevideo | Av. Italia entre Orinoco y Rimas, Punta del Este"),
+      ["montevideo", "maldonado"],
+    );
+    assert.deepEqual(departamentosDeDireccion("Av. Arocena 1571 / Galería Roma local 008"), ["montevideo"]);
   });
 
   it("arma el beneficio desde la plantilla de la ficha", () => {
