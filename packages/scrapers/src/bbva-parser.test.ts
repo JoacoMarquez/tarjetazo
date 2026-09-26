@@ -84,6 +84,9 @@ describe("parser de BBVA: ficha de Nacional", () => {
       fuente_id: "bbva", external_id: "vida-activa-nacional-cuota-y-butaca", url_fuente: "https://www.bbva.com.uy/x",
       contenido, fetched_at: "2026-09-26T00:00:00Z",
     });
+    assert.deepEqual(r.beneficios.map((b) => b.titulo), [
+      "10% de descuento con Internacional", "10% de descuento con Oro", "10% de descuento con Platinum",
+    ]);
     assert.deepEqual(
       r.beneficios.map((b) => [b.porcentaje, b.tope_monto, b.tope_periodo, [...b.productos_elegibles]]),
       [

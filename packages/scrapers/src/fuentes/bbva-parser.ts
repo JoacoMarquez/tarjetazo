@@ -199,6 +199,16 @@ export function topesDeClub(legales: string): Map<"internacional" | "oro" | "pla
 }
 
 const NIVEL_DE_CLUB = /^bbva-(?:penarol|nacional)-(internacional|oro|platinum)$/;
+const NOMBRE_NIVEL = { internacional: "Internacional", oro: "Oro", platinum: "Platinum" } as const;
+
+/** ["bbva-nacional-internacional", "bbva-nacional-oro"] → "Internacional y Oro". */
+function nombreNiveles(ids: string[]): string {
+  const nombres = ids
+    .map((id) => id.match(NIVEL_DE_CLUB)?.[1] as keyof typeof NOMBRE_NIVEL | undefined)
+    .filter((n): n is keyof typeof NOMBRE_NIVEL => n !== undefined)
+    .map((n) => NOMBRE_NIVEL[n]);
+  return nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres.at(-1)}`;
+}
 
 export function normalizarBbva(crudo: Crudo): Extraido {
   const lineas = crudo.contenido.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -285,7 +295,9 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     }
     for (const [tope_monto, idsDelGrupo] of grupos) tramos.push({
       comercio_key: slugificar(nombre),
-      titulo: `${hasta ? "Hasta " : ""}${porcentaje}% de descuento${calificador ? ` (${calificador.toLowerCase()})` : ""}`,
+      // Partido por tope, cada tramo dice de qué nivel es: si no, en la web se
+      // ven tres "10% de descuento" iguales que solo cambian el tope.
+      titulo: `${hasta ? "Hasta " : ""}${porcentaje}% de descuento${grupos.size > 1 ? ` con ${nombreNiveles(idsDelGrupo)}` : ""}${calificador ? ` (${calificador.toLowerCase()})` : ""}`,
       descuento_raw: calificador ? `${calificador}: ${l}` : l,
       porcentaje,
       cuotas: null,
