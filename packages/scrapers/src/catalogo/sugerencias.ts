@@ -97,7 +97,7 @@ export type Ficha = Partial<Record<(typeof CAMPOS)[number], unknown>> & { imagen
 export type Sugerencia = {
   fuente_id: string;
   familia_id: string | null;
-  tipo: "campo" | "alta";
+  tipo: "campo" | "alta" | "baja";
   campo: Campo | null;
   valor: unknown;
   valor_actual: unknown;
@@ -143,5 +143,46 @@ export function sugerenciasDeFamilia(
  * reemplaza si el valor cambió.
  */
 export function clave(s: Pick<Sugerencia, "fuente_id" | "familia_id" | "tipo" | "campo" | "nombre_visto">): string {
-  return s.tipo === "alta" ? `alta|${s.fuente_id}|${s.nombre_visto.toLowerCase()}` : `campo|${s.familia_id}|${s.campo}`;
+  if (s.tipo === "alta") return `alta|${s.fuente_id}|${s.nombre_visto.toLowerCase()}`;
+  if (s.tipo === "baja") return `baja|${s.familia_id}`;
+  return `campo|${s.familia_id}|${s.campo}`;
+}
+
+/** Familias por página: lo que salió de cada una en su última extracción. */
+export type FamiliasPorPagina = ReadonlyMap<string, readonly string[] | null>;
+
+/**
+ * Familias que el banco dejó de publicar. Compara lo que dieron las páginas
+ * antes de esta revisión con lo que dan ahora. Solo cuenta una familia que se
+ * vio alguna vez, así que una que el scraper nunca encontró (TuApp, las que
+ * viven en páginas que no se leen) no se propone como baja.
+ *
+ * Hay que llamarla solo con una revisión completa de la fuente (sin `--limite`
+ * y sin páginas fallidas): si no, lo que falta es lo que no se leyó.
+ * `ahora` trae las páginas que el índice lista hoy; una página que desapareció
+ * del índice no está en `ahora`, y sus familias cuentan como no vistas.
+ */
+export function bajasDeFuente(fuenteId: string, antes: FamiliasPorPagina, ahora: FamiliasPorPagina): Sugerencia[] {
+  const vistasAhora = new Set([...ahora.values()].flatMap((f) => f ?? []));
+  const dondeAntes = new Map<string, string[]>();
+  for (const [url, familias] of antes) {
+    for (const f of familias ?? []) dondeAntes.set(f, [...(dondeAntes.get(f) ?? []), url]);
+  }
+  const out: Sugerencia[] = [];
+  for (const f of FAMILIAS.filter((x) => x.fuente_id === fuenteId)) {
+    const urls = dondeAntes.get(f.id);
+    if (!urls || vistasAhora.has(f.id)) continue;
+    const paginas = [...urls].sort();
+    out.push({
+      fuente_id: fuenteId,
+      familia_id: f.id,
+      tipo: "baja",
+      campo: null,
+      valor: { paginas },
+      valor_actual: null,
+      nombre_visto: f.nombre,
+      url: paginas[0]!,
+    });
+  }
+  return out;
 }

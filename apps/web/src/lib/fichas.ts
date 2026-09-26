@@ -61,7 +61,7 @@ export type Sugerencia = {
   id: string;
   fuente_id: string;
   familia_id: string | null;
-  tipo: "campo" | "alta";
+  tipo: "campo" | "alta" | "baja";
   campo: string | null;
   valor: unknown;
   valor_actual: unknown;
