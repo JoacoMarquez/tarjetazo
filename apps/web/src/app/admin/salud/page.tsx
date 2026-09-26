@@ -1,6 +1,6 @@
 import type { Metadata, Route } from "next";
 import Link from "next/link";
-import { FUENTES } from "@tarjetazo/core";
+import { FUENTES, PRODUCTOS, familiaDe } from "@tarjetazo/core";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
 import { fechaHora, numero } from "@/lib/admin/formato";
 import { urlInspector } from "@/lib/admin/paginas";
@@ -15,6 +15,7 @@ import {
   type PaginasFuente,
   type ParParecido,
   type Manual,
+  type ProductoSinUrl,
   type Sospechoso,
   type Salto,
   type TipoHallazgo,
@@ -58,7 +59,7 @@ export default async function Salud({
   const ok = (await searchParams).ok;
   const db = createSupabaseAdmin();
 
-  const [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo, frescura, manuales] =
+  const [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo, frescura, manuales, sinUrl] =
     await Promise.all([
       db.rpc("salud_resumen"),
       db.rpc("salud_paginas"),
@@ -72,9 +73,10 @@ export default async function Salud({
       db.rpc("salud_geocoding"),
       db.rpc("salud_frescura", { p_dias: 180, p_limite: LIMITE }),
       db.rpc("salud_manuales", { p_dias: 7 }),
+      db.rpc("salud_productos_sin_url"),
     ]);
 
-  const fallo = [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo, frescura, manuales].find(
+  const fallo = [resumen, paginas, vacias, saltos, incons, parecidos, sinSucursal, geo, frescura, manuales, sinUrl].find(
     (r) => r.error,
   )?.error;
   if (fallo) {
@@ -142,6 +144,31 @@ export default async function Salud({
           );
         })}
       </ul>
+
+      <Seccion tipo="producto_sin_url" total={cuenta.producto_sin_url}>
+        <Tabla
+          cabeceras={["Fuente", "Tarjeta", "Producto", ""]}
+          filas={((sinUrl.data ?? []) as ProductoSinUrl[]).map((p) => {
+            const producto = PRODUCTOS.find((x) => x.id === p.producto_id);
+            return {
+              key: p.producto_id,
+              alerta: false,
+              celdas: [
+                fuente(p.fuente_id),
+                p.nombre,
+                <code key="id">{p.producto_id}</code>,
+                producto ? (
+                  <Link key="f" href={`/admin/tarjetas/${familiaDe(producto)}` as Route} className="text-cielo-ink hover:underline">
+                    Ficha
+                  </Link>
+                ) : (
+                  "no está en PRODUCTOS"
+                ),
+              ],
+            };
+          })}
+        />
+      </Seccion>
 
       {(["manual_por_vencer", "manual_duplicado"] as const).map((t) => {
         const filas = ((manuales.data ?? []) as Manual[]).filter((m) => m.tipo === t);

@@ -157,6 +157,19 @@ export async function marcarAltaAgregada(form: FormData) {
   volver(form, "Marcada como agregada. Cuando el PR llegue a producción, la próxima revisión del catálogo ya la reconoce.");
 }
 
+/**
+ * Una baja tampoco se aplica en la base: el catálogo vive en código. Se da de
+ * baja con `activo: false` en `PRODUCTOS` y una migración que pase sus
+ * beneficios a la tarjeta real (como 20261020120000_catalogo_auditado.sql).
+ */
+export async function marcarBajaHecha(form: FormData) {
+  await exigirAdmin();
+  const db = createSupabaseAdmin();
+  const bajas = (await pendientes(db, form.getAll("id").map(String))).filter((s) => s.tipo === "baja");
+  await resolver(db, bajas.map((s) => s.id), "aceptada");
+  volver(form, "Marcada como dada de baja. Cuando el PR llegue a producción, la revisión del catálogo ya no la busca.");
+}
+
 function archivo(form: FormData, nombre: string): File | null {
   const f = form.get(nombre);
   return f instanceof File && f.size > 0 ? f : null;

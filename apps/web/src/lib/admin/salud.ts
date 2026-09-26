@@ -12,7 +12,8 @@ export type TipoHallazgo =
   | "comercios_sin_sucursal"
   | "frescura"
   | "manual_por_vencer"
-  | "manual_duplicado";
+  | "manual_duplicado"
+  | "producto_sin_url";
 
 export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> = {
   saltos: {
@@ -65,6 +66,11 @@ export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> 
     ayuda:
       "Publicados, sin fecha de fin, y su página no cambia hace más de 180 días. Puede que el banco se haya olvidado de sacarlos. En el inspector: «Ocultar» si está muerto, «Sigue vigente» si lo confirmaste.",
   },
+  producto_sin_url: {
+    titulo: "Tarjetas sin página oficial",
+    ayuda:
+      "Productos activos del catálogo que nunca se cotejaron con el sitio del banco (así se coló una «American Express Santander» que no existe). Confirmá que la tarjeta existe y cargale url_oficial en PRODUCTOS (packages/core/src/fuentes.ts) y en la tabla producto; si no existe, dala de baja.",
+  },
   comercios_sin_sucursal: {
     titulo: "Comercios sin ubicación",
     ayuda: "Tienen beneficios presenciales vigentes pero no aparecen en el mapa.",
@@ -76,6 +82,7 @@ export const HALLAZGOS: Record<TipoHallazgo, { titulo: string; ayuda: string }> 
  * contexto (la mayoría de los bancos no publica direcciones, por ejemplo).
  */
 export const ACCIONABLES: TipoHallazgo[] = [
+  "producto_sin_url",
   "manual_por_vencer",
   "manual_duplicado",
   "saltos",
@@ -166,6 +173,8 @@ export type Sospechoso = {
   hash_desde: string;
   dias: number;
 };
+
+export type ProductoSinUrl = { producto_id: string; fuente_id: string; nombre: string };
 
 export type Manual = {
   tipo: "manual_por_vencer" | "manual_duplicado";

@@ -15,7 +15,7 @@ import {
   type Sugerencia,
 } from "@/lib/fichas";
 import { fechaHora, numero } from "@/lib/admin/formato";
-import { aceptarSugerencias, ignorarSugerencias, marcarAltaAgregada } from "./actions";
+import { aceptarSugerencias, ignorarSugerencias, marcarAltaAgregada, marcarBajaHecha } from "./actions";
 
 export const metadata: Metadata = { title: "Tarjetas" };
 
@@ -77,6 +77,7 @@ export default async function Tarjetas({
   const pendientes = (sugs.data ?? []) as Sugerencia[];
   const campos = pendientes.filter((s) => s.tipo === "campo" && s.familia_id);
   const altas = pendientes.filter((s) => s.tipo === "alta");
+  const bajas = pendientes.filter((s) => s.tipo === "baja");
   const fichaDe = new Map(((fichas.data ?? []) as Ficha[]).map((f) => [f.familia_id, f]));
 
   // En el orden del catálogo; las de familias que ya no están, al final.
@@ -219,6 +220,68 @@ export default async function Tarjetas({
                     <form action={ignorarSugerencias}>
                       <Ids ids={[s.id]} volverA={VOLVER} />
                       <BotonEnviar title="No es una tarjeta para personas, o no interesa">Ignorar</BotonEnviar>
+                    </form>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10" aria-labelledby="bajas">
+        <h2 id="bajas" className="text-lg">
+          Tarjetas que el banco dejó de publicar{" "}
+          <span className="text-humo-oscuro text-sm font-normal">{numero(bajas.length)}</span>
+        </h2>
+        <p className="text-pizarra mt-1 max-w-prose text-sm">
+          El scraper la encontraba en el sitio del banco y en la última revisión
+          completa ya no aparece. Confirmalo en el sitio: puede que la hayan
+          movido de página. Para darla de baja, poné <code>activo: false</code>{" "}
+          en <code>PRODUCTOS</code> y agregá una migración que pase sus
+          beneficios a la tarjeta real (como{" "}
+          <code>20261020120000_catalogo_auditado.sql</code>). Después marcala acá.
+          Si el banco la vuelve a publicar, la sugerencia se borra sola.
+        </p>
+        {bajas.length === 0 ? (
+          <p className="text-humo-oscuro mt-2 text-sm">Nada pendiente.</p>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-3">
+            {bajas.map((s) => {
+              const paginas = ((s.valor ?? {}) as { paginas?: string[] }).paginas ?? [s.url];
+              const fuente = NOMBRE_FUENTE.get(s.fuente_id) ?? s.fuente_id;
+              return (
+                <li key={s.id} className="border-linea bg-papel rounded-xl border px-4 py-3">
+                  <p className="text-sm font-semibold">
+                    {FAMILIA_POR_ID[s.familia_id ?? ""] ? (
+                      <Link href={`/admin/tarjetas/${s.familia_id}`} className="hover:underline">
+                        {s.nombre_visto}
+                      </Link>
+                    ) : (
+                      s.nombre_visto
+                    )}
+                  </p>
+                  <p className="text-humo-oscuro text-xs">
+                    {fuente} · <code>{s.familia_id}</code> · detectada {fechaHora(s.creada_en)}
+                  </p>
+                  <p className="text-pizarra mt-2 text-xs">Se veía en:</p>
+                  <ul className="mt-1 flex flex-col gap-0.5 text-xs">
+                    {paginas.map((u) => (
+                      <li key={u}>
+                        <a href={u} target="_blank" rel="noreferrer noopener" className="text-cielo-ink break-all hover:underline">
+                          {u} ↗
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <form action={marcarBajaHecha}>
+                      <Ids ids={[s.id]} volverA={VOLVER} />
+                      <BotonEnviar primario>Ya la di de baja</BotonEnviar>
+                    </form>
+                    <form action={ignorarSugerencias}>
+                      <Ids ids={[s.id]} volverA={VOLVER} />
+                      <BotonEnviar title="Sigue existiendo: el banco la movió o el scraper no la encontró">Ignorar</BotonEnviar>
                     </form>
                   </div>
                 </li>

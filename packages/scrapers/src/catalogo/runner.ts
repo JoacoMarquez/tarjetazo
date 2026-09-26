@@ -5,7 +5,7 @@ import { extraerTarjetas, type TarjetaVista } from "./extraer.js";
 import { bajarPagina, descubrirPaginas } from "./bajar.js";
 import { FUENTES_CATALOGO, NO_CONSUMO } from "./fuentes.js";
 import { completarFotosPendientes, guardarFotoSugerida } from "./imagen.js";
-import { clave, familiaPara, juntar, sugerenciasDeFamilia, type Ficha, type Sugerencia } from "./sugerencias.js";
+import { bajasDeFuente, clave, familiaPara, juntar, sugerenciasDeFamilia, type Ficha, type Sugerencia } from "./sugerencias.js";
 
 export interface ReporteCatalogo {
   paginas: number;
@@ -18,7 +18,8 @@ export interface ReporteCatalogo {
 /**
  * Revisión del catálogo de tarjetas (#27). Baja las páginas oficiales, extrae
  * las tarjetas con el modelo solo si la página cambió, y deja sugerencias para
- * la bandeja (#26). Nunca escribe en `producto_ficha`.
+ * la bandeja (#26): campos, altas y bajas (una familia que el banco dejó de
+ * publicar). Nunca escribe en `producto_ficha`.
  */
 export async function correrCatalogo(
   db: SupabaseClient,
@@ -34,7 +35,7 @@ export async function correrCatalogo(
     const [fichas, previas, paginas] = await Promise.all([
       db.from("producto_ficha").select("*"),
       db.from("producto_ficha_sugerencia").select("id, fuente_id, familia_id, tipo, campo, valor, nombre_visto, estado").neq("estado", "aceptada"),
-      db.from("catalogo_pagina").select("url, hash, extraido_en"),
+      db.from("catalogo_pagina").select("fuente_id, url, hash, extraido_en, familias"),
     ]);
     const fallo = fichas.error ?? previas.error ?? paginas.error;
     if (fallo) throw new Error(fallo.message);
@@ -50,6 +51,12 @@ export async function correrCatalogo(
       const { urls: todas, imagenesIndice } = await descubrirPaginas(f);
       const urls = todas.slice(0, opciones.limite ?? Infinity);
       console.error(`${f.fuente_id}: ${urls.length} páginas`);
+      // Qué familias dio cada página, antes y en esta revisión: para las bajas.
+      const antes = new Map(
+        [...cache.values()].filter((p) => p.fuente_id === f.fuente_id).map((p) => [p.url as string, p.familias as string[] | null]),
+      );
+      const ahora = new Map<string, string[] | null>();
+      let fallidasFuente = 0;
       for (const url of urls) {
         r.paginas++;
         try {
@@ -58,8 +65,10 @@ export async function correrCatalogo(
           p.imagenes = [...new Set([...p.imagenes, ...imagenesIndice])].slice(0, 40);
           const h = await hash(p.texto + "\n" + p.imagenes.join("\n"));
           const previa = cache.get(url);
-          if (previa && previa.hash === h && previa.extraido_en) {
+          // Sin `familias` (extraída antes de las bajas) se vuelve a extraer una vez.
+          if (previa && previa.hash === h && previa.extraido_en && previa.familias) {
             await db.from("catalogo_pagina").update({ visto_en: new Date().toISOString() }).eq("url", url);
+            ahora.set(url, previa.familias as string[]);
             continue;
           }
           const { tarjetas, uso } = await extraerTarjetas({ url, texto: p.texto, imagenes: p.imagenes }, claude);
@@ -82,14 +91,29 @@ export async function correrCatalogo(
           }
           r.sugerencias += await guardarSugerencias(db, nuevas, existentes);
 
+          const familias = [...porFamilia.keys()].sort();
           const { error } = await db.from("catalogo_pagina").upsert({
-            fuente_id: f.fuente_id, url, hash: h, contenido: p.texto, visto_en: new Date().toISOString(), extraido_en: new Date().toISOString(),
+            fuente_id: f.fuente_id, url, hash: h, contenido: p.texto, visto_en: new Date().toISOString(), extraido_en: new Date().toISOString(), familias,
           });
           if (error) throw new Error(error.message);
+          ahora.set(url, familias);
+          // Una página que tenía tarjetas y ahora el modelo no le saca ninguna
+          // es más probable un mal extraído que un banco sin tarjetas: esta
+          // revisión no alcanza para proponer bajas de la fuente.
+          if (familias.length === 0 && (antes.get(url)?.length ?? 0) > 0) {
+            fallidasFuente++;
+            console.error(`  ${url}: antes tenía tarjetas y ahora ninguna; no se proponen bajas de ${f.fuente_id}`);
+          }
         } catch (e) {
           r.fallidas++;
+          fallidasFuente++;
           console.error(`  falló ${url}: ${String(e).slice(0, 160)}`);
         }
+      }
+      // Con una revisión incompleta, lo que falta es lo que no se leyó.
+      if (opciones.limite === undefined && fallidasFuente === 0 && urls.length > 0) {
+        r.sugerencias += await guardarSugerencias(db, bajasDeFuente(f.fuente_id, antes, ahora), existentes);
+        await descartarBajasQueVolvieron(db, ahora, existentes);
       }
     }
     if (r.paginas > 0 && r.fallidas === r.paginas) throw new Error("fallaron todas las páginas");
@@ -106,6 +130,28 @@ export async function correrCatalogo(
     await db.from("catalogo_revision").update({ termino_en: new Date().toISOString(), error: String(e), tokens_entrada: tokens.entrada, tokens_salida: tokens.salida }).eq("id", rev.id);
     throw e;
   }
+}
+
+/**
+ * Una baja pendiente de una familia que el banco volvió a publicar ya no
+ * aplica: se borra (no se ignora, así puede volver a proponerse).
+ */
+async function descartarBajasQueVolvieron(
+  db: SupabaseClient,
+  ahora: ReadonlyMap<string, readonly string[] | null>,
+  existentes: Map<string, { id: string; valor: unknown; estado: string }[]>,
+): Promise<void> {
+  const vistas = new Set([...ahora.values()].flatMap((f) => f ?? []));
+  const ids: string[] = [];
+  for (const fam of vistas) {
+    const k = `baja|${fam}`;
+    const previas = existentes.get(k) ?? [];
+    ids.push(...previas.filter((p) => p.estado === "pendiente").map((p) => p.id));
+    existentes.set(k, previas.filter((p) => p.estado !== "pendiente"));
+  }
+  if (ids.length === 0) return;
+  const { error } = await db.from("producto_ficha_sugerencia").delete().in("id", ids);
+  if (error) throw new Error(`borrando bajas que volvieron: ${error.message}`);
 }
 
 /**
