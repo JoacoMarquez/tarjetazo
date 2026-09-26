@@ -26,9 +26,9 @@ describe("catálogo", () => {
     assert.equal(new Set(PRODUCTOS.map((p) => p.id)).size, PRODUCTOS.length);
   });
 
-  it("los activos tienen url_oficial, salvo los dudosos sin verificar", () => {
+  it("los activos tienen url_oficial", () => {
     const sinUrl = PRODUCTOS_ACTIVOS.filter((p) => !p.url_oficial && !POSTERIORES.has(p.id)).map((p) => p.id);
-    assert.deepEqual(sinUrl, ["itau-debito-sueldo"]);
+    assert.deepEqual(sinUrl, []);
   });
 
   it("toda equivalencia apunta a productos activos de la misma fuente", () => {
@@ -169,5 +169,22 @@ describe("parser de BBVA", () => {
 
   it("'crédito' a secas no incluye la Visa Platinum", () => {
     assert.ok(!productosBbva("Tarjetas de Crédito BBVA").ids.includes("bbva-platinum"));
+  });
+});
+
+describe("dudosos resueltos (2026-09-26)", () => {
+  it("Hipermás son las dos redes", () => {
+    assert.deepEqual(mapea("santander", "Hipermás Santander"), ["santander-hipermas", "santander-hipermas-visa"]);
+  });
+
+  it("las AAdvantage entran en 'Platinum', por red", () => {
+    const platinum = mapea("santander", "Tarjetas Platinum");
+    assert.ok(platinum.includes("santander-aadvantage-visa") && platinum.includes("santander-aadvantage-mastercard"));
+    const visa = mapea("santander", "Visa Platinum");
+    assert.ok(visa.includes("santander-aadvantage-visa") && !visa.includes("santander-aadvantage-mastercard"));
+  });
+
+  it("'AAdvantage' sigue siendo su familia y la del pack", () => {
+    assert.ok(mapea("santander", "AAdvantage").includes("santander-aadvantage-visa-infinite"));
   });
 });

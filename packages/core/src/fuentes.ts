@@ -58,9 +58,12 @@ export const PRODUCTOS: readonly Producto[] = [
   // El manual de tarifas la llama "Tarjeta de Débito Visa Santander".
   { id: "santander-debito", fuente_id: "santander", nombre: "Débito Soy Santander", instrumento: "debito", red: "visa", tier: null, url_oficial: "https://www.santander.com.uy/todas-las-cuentas/soy-santander" },
   { id: "santander-farmacard", fuente_id: "santander", nombre: "Farmacard Santander", instrumento: "credito", red: "mastercard", tier: null, url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/farmacard" },
-  { id: "santander-hipermas", fuente_id: "santander", nombre: "Hipermás Santander", instrumento: "credito", red: "mastercard", tier: null, url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/hipermas" },
-  { id: "santander-aadvantage-visa", fuente_id: "santander", nombre: "AAdvantage Visa", instrumento: "credito", red: "visa", tier: null, familia: "santander-aadvantage", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/Tarjeta-Aadvantage" },
-  { id: "santander-aadvantage-mastercard", fuente_id: "santander", nombre: "AAdvantage Mastercard", instrumento: "credito", red: "mastercard", tier: null, familia: "santander-aadvantage", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/Tarjeta-Aadvantage" },
+  // Hipermás se emite Visa o Mastercard (bases de la promo GDU 2026).
+  { id: "santander-hipermas", fuente_id: "santander", nombre: "Hipermás Santander Mastercard", instrumento: "credito", red: "mastercard", tier: null, familia: "santander-hipermas", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/hipermas" },
+  { id: "santander-hipermas-visa", fuente_id: "santander", nombre: "Hipermás Santander Visa", instrumento: "credito", red: "visa", tier: null, familia: "santander-hipermas", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/hipermas" },
+  // Las AAdvantage son Platinum (FAQ de Santander: "AAdvantage® Visa y Mastercard Platinum").
+  { id: "santander-aadvantage-visa", fuente_id: "santander", nombre: "AAdvantage Visa Platinum", instrumento: "credito", red: "visa", tier: "platinum", familia: "santander-aadvantage", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/Tarjeta-Aadvantage" },
+  { id: "santander-aadvantage-mastercard", fuente_id: "santander", nombre: "AAdvantage Mastercard Platinum", instrumento: "credito", red: "mastercard", tier: "platinum", familia: "santander-aadvantage", url_oficial: "https://www.santander.com.uy/todas-las-tarjetas/Tarjeta-Aadvantage" },
   { id: "santander-select", fuente_id: "santander", nombre: "Select Visa Infinite", instrumento: "credito", red: "visa", tier: "infinite", familia: "santander-select", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-soy" },
   { id: "santander-select-mastercard-black", fuente_id: "santander", nombre: "Select Mastercard Black", instrumento: "credito", red: "mastercard", tier: "black", familia: "santander-select", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-soy" },
   { id: "santander-select-debito", fuente_id: "santander", nombre: "Débito Select", instrumento: "debito", red: "visa", tier: null, familia: "santander-select", url_oficial: "https://www.santander.com.uy/select/pack-trilogy-soy" },
@@ -94,7 +97,8 @@ export const PRODUCTOS: readonly Producto[] = [
   // Infinite vienen solo en el Paquete Personal Bank (familia `itau-personal-bank`).
   { id: "itau-debito-volar", fuente_id: "itau", nombre: "Visa Débito Volar", instrumento: "debito", red: "visa", tier: null, url_oficial: `${ITAU}/abriTuCuenta.html` },
   { id: "itau-debito-junior", fuente_id: "itau", nombre: "Visa Débito Junior", instrumento: "debito", red: "visa", tier: null, url_oficial: `${ITAU}/cuentaJunior.html` },
-  { id: "itau-debito-sueldo", fuente_id: "itau", nombre: "Itaú Débito Sueldos", instrumento: "debito", red: "visa", tier: null },
+  // Ya no se vende (ninguna página vigente la ofrece), pero el tarifario la sigue cobrando: la página es la de 2016.
+  { id: "itau-debito-sueldo", fuente_id: "itau", nombre: "Itaú Débito Sueldos", instrumento: "debito", red: "visa", tier: null, url_oficial: "https://www.itau.com.uy/inst/tarjetaPagoDeSueldos.html" },
   { id: "itau-alimentacion", fuente_id: "itau", nombre: "Itaú Tarjeta Alimentación", instrumento: "prepaga", red: "visa", tier: null, url_oficial: `${ITAU}/tarjetaAlimentacion.html` },
   { id: "itau-visa", fuente_id: "itau", nombre: "Visa Volar Internacional", instrumento: "credito", red: "visa", tier: null, url_oficial: `${ITAU}/tarjetaVolar.html` },
   { id: "itau-mastercard", fuente_id: "itau", nombre: "Mastercard Volar Internacional", instrumento: "credito", red: "mastercard", tier: null, url_oficial: `${ITAU}/tarjetaVolar.html` },

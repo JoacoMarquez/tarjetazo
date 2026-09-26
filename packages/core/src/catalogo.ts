@@ -9,6 +9,7 @@ export const NOMBRE_FAMILIA: Record<string, string> = {
   "santander-soy": "Soy Santander Internacional",
   "santander-soy-platinum": "Soy Santander Platinum",
   "santander-aadvantage": "AAdvantage",
+  "santander-hipermas": "Hipermás Santander",
   "santander-select": "Pack Trilogy Soy Santander Select",
   "santander-private": "Pack Trilogy Soy Santander Private Banking",
   "santander-aadvantage-trilogy": "Pack Trilogy AAdvantage",
