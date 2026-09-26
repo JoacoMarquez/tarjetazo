@@ -32,7 +32,7 @@ export class PaginaInexistente extends Error {
 export async function bajarTexto(
   url: string,
   intentos = 3,
-  opciones: { comoNavegador?: boolean; formulario?: Record<string, string> } = {},
+  opciones: { comoNavegador?: boolean; formulario?: Record<string, string>; headers?: Record<string, string> } = {},
 ): Promise<string> {
   let ultimoError: unknown;
   for (let i = 0; i < intentos; i++) {
@@ -51,7 +51,7 @@ export async function bajarTexto(
               "sec-fetch-site": "none",
               "upgrade-insecure-requests": "1",
             }
-          : { "user-agent": UA, accept: "text/html,application/xhtml+xml" },
+          : { "user-agent": UA, accept: "text/html,application/xhtml+xml", ...opciones.headers },
         signal: AbortSignal.timeout(30_000),
       });
       if (res.status === 404 || res.status === 410) throw new PaginaInexistente(url, res.status);

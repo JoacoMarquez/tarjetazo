@@ -13,6 +13,7 @@ export const FUENTES: readonly Fuente[] = [
   { id: "nativa", nombre: "Nativa", tipo: "emisor", logo_url: null, url: "https://www.nativacabal.com.uy", activa: true },
   { id: "club-el-pais", nombre: "Club El País", tipo: "club", logo_url: null, url: "https://www.clubelpais.com.uy", activa: true },
   { id: "anda", nombre: "ANDA", tipo: "emisor", logo_url: null, url: "https://anda.com.uy", activa: true },
+  { id: "asi", nombre: "Club ASI", tipo: "club", logo_url: null, url: "https://www.asi-clubdescuentos.com.uy", activa: true },
 ] as const;
 
 const BROU = "https://www.brou.com.uy/personas";
@@ -161,6 +162,10 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "anda-credito", fuente_id: "anda", nombre: "Tarjeta ANDA", instrumento: "credito", red: "propia", tier: null, url_oficial: "https://anda.com.uy/tarjeta-de-credito/" },
   { id: "anda-visa", fuente_id: "anda", nombre: "ANDA VISA", instrumento: "credito", red: "visa", tier: null, url_oficial: "https://anda.com.uy/tarjeta-de-credito/" },
   { id: "anda-deanda", fuente_id: "anda", nombre: "DEANDA Visa Prepaga", instrumento: "prepaga", red: "visa", tier: null, url_oficial: "https://anda.com.uy/tarjeta-prepaga/" },
+
+  // Club ASI: el club de descuentos de los clientes de ASI (préstamos o tarjeta
+  // ASI Mastercard). El descuento se pide con un código, no pagando con la tarjeta.
+  { id: "club-asi", fuente_id: "asi", nombre: "Cliente ASI", instrumento: "membresia", red: "propia", tier: null, url_oficial: "https://asi.com.uy/" },
 
   { id: "club-el-pais-socio", fuente_id: "club-el-pais", nombre: "Socio Club El País", instrumento: "membresia", red: "propia", tier: null, url_oficial: "https://www.clubelpais.com.uy/suscribite/" },
 
