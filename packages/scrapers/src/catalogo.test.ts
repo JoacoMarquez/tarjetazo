@@ -17,6 +17,8 @@ import { productos as productosBbva } from "./fuentes/bbva-parser.js";
 import { mapearProductos } from "./normalizador.js";
 
 const POR_ID = new Map(PRODUCTOS.map((p) => [p.id, p]));
+/** Productos que entraron después de la auditoría (con su propia migración). */
+const POSTERIORES = new Set(["nativa-cabal"]);
 const mapea = (fuente: string, nombre: string) => mapearProductos(fuente, [nombre]).ids.sort();
 
 describe("catálogo", () => {
@@ -25,7 +27,7 @@ describe("catálogo", () => {
   });
 
   it("los activos tienen url_oficial, salvo los dudosos sin verificar", () => {
-    const sinUrl = PRODUCTOS_ACTIVOS.filter((p) => !p.url_oficial).map((p) => p.id);
+    const sinUrl = PRODUCTOS_ACTIVOS.filter((p) => !p.url_oficial && !POSTERIORES.has(p.id)).map((p) => p.id);
     assert.deepEqual(sinUrl, ["itau-debito-sueldo"]);
   });
 

@@ -10,6 +10,7 @@ export const FUENTES: readonly Fuente[] = [
   { id: "prex", nombre: "Prex", tipo: "billetera", logo_url: null, url: "https://www.prexcard.com.uy", activa: true },
   { id: "bbva", nombre: "BBVA", tipo: "banco", logo_url: null, url: "https://www.bbva.com.uy", activa: true },
   { id: "midinero", nombre: "Midinero", tipo: "billetera", logo_url: null, url: "https://www.midinero.com.uy", activa: true },
+  { id: "nativa", nombre: "Nativa", tipo: "emisor", logo_url: null, url: "https://www.nativacabal.com.uy", activa: true },
 ] as const;
 
 const BROU = "https://www.brou.com.uy/personas";
@@ -148,6 +149,9 @@ export const PRODUCTOS: readonly Producto[] = [
   // empleador le da al trabajador (como la de Itaú).
   { id: "midinero-mastercard", fuente_id: "midinero", nombre: "Midinero Mastercard", instrumento: "prepaga", red: "mastercard", tier: null, url_oficial: "https://www.midinero.com.uy/productos/midinero-tarjeta-prepaga-uruguay/" },
   { id: "midinero-alimentacion", fuente_id: "midinero", nombre: "Midinero Alimentación", instrumento: "prepaga", red: "mastercard", tier: null, url_oficial: "https://www.midinero.com.uy/productos/midinero-alimentacion/" },
+
+  // Nativa: tarjeta de crédito de la red Cabal (#79; entró después de la auditoría).
+  { id: "nativa-cabal", fuente_id: "nativa", nombre: "Nativa Cabal", instrumento: "credito", red: "cabal", tier: null },
 
   // Prex: una sola tarjeta. El saldo (QR Toke) es un medio de pago, no una tarjeta.
   { id: "prex-saldo", fuente_id: "prex", nombre: "Saldo Prex", instrumento: "saldo", red: "propia", tier: null, url_oficial: "https://www.prexcard.com/toke" },

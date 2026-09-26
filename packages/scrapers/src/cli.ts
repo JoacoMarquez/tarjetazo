@@ -1,5 +1,6 @@
 import { normalizarBbva } from "./fuentes/bbva-parser.js";
 import { fetchMidinero, normalizarMidinero } from "./fuentes/midinero.js";
+import { fetchNativa, normalizarNativa } from "./fuentes/nativa.js";
 import { fetchBrou } from "./fuentes/brou.js";
 import { fetchItau } from "./fuentes/itau.js";
 import { fetchItauLandings } from "./fuentes/itau-landings.js";
@@ -15,7 +16,11 @@ import { correrCatalogo } from "./catalogo/runner.js";
 
 type Crudo = import("./tipos.js").Crudo;
 type Extraido = import("./tipos.js").Extraido;
-const NORMALIZADORES: Record<string, (c: Crudo) => Extraido> = { bbva: normalizarBbva, midinero: normalizarMidinero };
+const NORMALIZADORES: Record<string, (c: Crudo) => Extraido> = {
+  bbva: normalizarBbva,
+  midinero: normalizarMidinero,
+  nativa: normalizarNativa,
+};
 const SCRAPERS: Record<string, () => Promise<Crudo[]>> = {
   brou: fetchBrou,
   santander: fetchSantander,
@@ -26,6 +31,7 @@ const SCRAPERS: Record<string, () => Promise<Crudo[]>> = {
   scotiabank: fetchScotiabank,
   bbva: fetchBbva,
   midinero: fetchMidinero,
+  nativa: fetchNativa,
 };
 
 async function main() {

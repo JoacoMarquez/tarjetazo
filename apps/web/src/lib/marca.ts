@@ -39,6 +39,7 @@ const POR_FUENTE: Record<string, ColorFuente> = {
   prex: MENTA,
   bbva: CIELO,
   midinero: SOL,
+  nativa: CORAL,
 };
 
 export function colorFuente(fuenteId: string): ColorFuente {
