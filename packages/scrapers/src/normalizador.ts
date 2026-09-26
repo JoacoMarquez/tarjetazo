@@ -155,7 +155,7 @@ const ALIAS: Record<string, [RegExp, string[]][]> = {
 
   santander: [
     [/farmacard/, ["santander-farmacard"]],
-    [/hiperm[aá]s/, ["santander-hipermas"]],
+    [/hiperm[aá]s/, porFamilia("santander", "santander-hipermas")],
     // Segmentos: vale para todos los plásticos del pack.
     [/private/, porFamilia("santander", "santander-private")],
     [/select/, porFamilia("santander", "santander-select")],

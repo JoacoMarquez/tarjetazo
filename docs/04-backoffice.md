@@ -145,7 +145,11 @@ Los 79 productos del catálogo semilla se verificaron contra el sitio oficial de
   - los links con `?productos=`.
 - **Listas que quedarían vacías:** si al quitar un id sin equivalente la lista queda vacía, no se escribe. Vacío es "todas las de la fuente", así que la fila queda como estaba y se revisa a mano. Al 2026-09-25 no había ningún caso.
 - **Altas:** los clubes de BBVA se cargan como una fila por nivel. Cada nivel es su propia familia, igual que Soy y Soy Platinum.
-- **Sin tocar:** los productos dudosos (Farmacard e Hipermás sin red publicada, AAdvantage sin tier confirmado, Itaú Débito Sueldos).
+- **Dudosos, resueltos el 2026-09-26** (`20261026130000_catalogo_dudosos.sql`):
+  - Las AAdvantage son Platinum (FAQ de Santander). Suman los beneficios de las Platinum de Santander, por red.
+  - Hipermás se emite Visa o Mastercard (bases de la promo GDU 2026): es una familia con las dos.
+  - Itaú Débito Sueldos ya no se vende, pero el tarifario la cobra: queda activa, con la página de 2016.
+  - La red de Farmacard sigue sin confirmar (ninguna fuente oficial la dice): queda Mastercard.
 
 ### Bajas del catálogo (después de la auditoría)
 Para que no vuelva a colarse una tarjeta fantasma (`20261022120000_catalogo_bajas.sql`):
