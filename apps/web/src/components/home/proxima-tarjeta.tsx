@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { FAMILIAS, FUENTES } from "@tarjetazo/core";
+import { FAMILIAS_TARJETA, FUENTES } from "@tarjetazo/core";
 import { GRADIENTE } from "@/lib/marca";
 
 /**
@@ -13,7 +13,7 @@ export function ProximaTarjeta() {
       <div className="relative overflow-hidden rounded-2xl p-6 text-white md:p-8" style={{ background: GRADIENTE }}>
         <p className="text-xs font-semibold tracking-widest uppercase opacity-90">¿Pensando en sacarte una?</p>
         <h2 className="mt-2 max-w-xl text-2xl md:text-3xl">
-          Las {FAMILIAS.length} tarjetas de {FUENTES.length} bancos y emisores, una al lado de la otra
+          Las {FAMILIAS_TARJETA.length} tarjetas de {FUENTES.length} bancos y emisores, una al lado de la otra
         </h2>
         <p className="mt-2 max-w-xl text-sm opacity-90">
           Costo anual, ingreso mínimo, millas o puntos y cuántos descuentos tiene cada una hoy. Filtrá por banco, tipo o red.

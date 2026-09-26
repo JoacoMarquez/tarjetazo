@@ -8,6 +8,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit",
+    "test": "tsx --test src/*.test.ts",
     "scrape": "tsx --env-file-if-exists=../../.env src/cli.ts",
     "geo": "tsx --env-file-if-exists=../../.env src/geo-cli.ts",
     "ingerir": "tsx --env-file-if-exists=../../.env src/ingerir.ts"

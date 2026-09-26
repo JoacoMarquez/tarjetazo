@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PRODUCTOS } from "@tarjetazo/core";
+import { PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 import { ChevronDown } from "lucide-react";
 import {
   RUBROS_COMPARAR,
@@ -92,7 +92,7 @@ export function TabValeLaPena({
   // Todas las que no tenés, ordenadas por lo que sumarían.
   const opciones = useMemo(() => {
     const texto = q.trim().toLowerCase();
-    return PRODUCTOS.filter((p) => !mis.includes(p.id))
+    return PRODUCTOS_ACTIVOS.filter((p) => !mis.includes(p.id))
       .filter((p) => !texto || p.nombre.toLowerCase().includes(texto))
       .map((p) => {
         const delta = RUBROS_COMPARAR.reduce((s, r) => {

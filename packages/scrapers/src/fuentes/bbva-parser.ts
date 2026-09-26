@@ -50,11 +50,11 @@ function sinAcentos(s: string) {
 /** Todas las de crédito de consumo: lo que vale un tramo que no nombra tarjeta. */
 const CREDITO = [
   "bbva-credito", "bbva-mastercard-internacional", "bbva-oro", "bbva-mastercard-oro",
-  "bbva-platinum", "bbva-mastercard-platinum", "bbva-black", "bbva-infinite",
+  "bbva-mastercard-platinum", "bbva-black", "bbva-infinite",
 ];
 
-/** "Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas" → ids. */
-function productos(frase: string): { ids: string[]; desconocidos: string[] } {
+/** "Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas" → ids. Exportada para los tests. */
+export function productos(frase: string): { ids: string[]; desconocidos: string[] } {
   const f = sinAcentos(frase);
   const ids = new Set<string>();
   const desconocidos: string[] = [];
@@ -64,22 +64,23 @@ function productos(frase: string): { ids: string[]; desconocidos: string[] } {
     ids.add("bbva-credito");
     ids.add("bbva-mastercard-internacional");
   }
-  // Oro y Platinum sin red: BBVA las emite Visa y Mastercard.
+  // Oro sin red: BBVA la emite Visa y Mastercard. La Platinum es solo Mastercard.
   if (/\boro\b/.test(f)) {
     ids.add("bbva-oro");
     ids.add("bbva-mastercard-oro");
   }
-  if (/platinum/.test(f)) {
-    ids.add("bbva-platinum");
-    ids.add("bbva-mastercard-platinum");
-  }
+  if (/platinum/.test(f)) ids.add("bbva-mastercard-platinum");
   if (/black/.test(f)) ids.add("bbva-black");
   if (/infinite/.test(f)) ids.add("bbva-infinite");
   // Tarjetas de marca: van antes del "crédito a secas" para que "Tarjetas de
   // Crédito BBVA Sodimac" sea solo la Sodimac y no todas las de crédito.
   if (/comunidad plus/.test(f)) ids.add("bbva-comunidad-plus");
   if (/sodimac/.test(f)) ids.add("bbva-sodimac");
-  if (/consolid/.test(f)) ids.add("bbva-consolid-travel");
+  // Consolid Travel se elige Visa o Mastercard.
+  if (/consolid/.test(f)) {
+    ids.add("bbva-consolid-travel");
+    ids.add("bbva-consolid-travel-visa");
+  }
   // "Tarjetas de Crédito BBVA" a secas: todas las de crédito.
   // Pymes y corporativas van siempre junto a Internacional/Oro; no son
   // tarjetas de consumo y no se listan aparte.

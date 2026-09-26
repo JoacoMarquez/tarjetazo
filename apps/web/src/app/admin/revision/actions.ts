@@ -1,6 +1,6 @@
 "use server";
 
-import { PRODUCTOS, esErrorDeTramo, normalizarNombreTarjeta } from "@tarjetazo/core";
+import { PRODUCTOS_ACTIVOS, esErrorDeTramo, normalizarNombreTarjeta } from "@tarjetazo/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
@@ -74,7 +74,7 @@ function campos(form: FormData) {
 export async function asignarTarjeta(form: FormData) {
   await exigirAdmin();
   const { fuenteId, texto } = campos(form);
-  const validos = new Set(PRODUCTOS.filter((p) => p.fuente_id === fuenteId).map((p) => p.id));
+  const validos = new Set(PRODUCTOS_ACTIVOS.filter((p) => p.fuente_id === fuenteId).map((p) => p.id));
   const productoIds = form
     .getAll("producto_ids")
     .map(String)

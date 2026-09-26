@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExternalLink } from "lucide-react";
-import { FUENTES } from "@tarjetazo/core";
+import { FUENTES, esTarjeta } from "@tarjetazo/core";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { LinkSaliente } from "@/components/link-saliente";
@@ -101,10 +101,18 @@ export default async function PaginaBanco({ params }: Props) {
             <ul className="mt-3 flex flex-wrap gap-2">
               {familias.map((fam) => (
                 <li key={fam.id}>
-                  <Link href={`/tarjeta/${fam.id}`} className="border-linea bg-card hover:bg-secondary rounded-pill inline-block border px-3 py-1 text-sm">
-                    {fam.nombre}
-                    <span className="text-humo ml-1 text-xs">{pieDeFamilia(fam)}</span>
-                  </Link>
+                  {esTarjeta(fam) ? (
+                    <Link href={`/tarjeta/${fam.id}`} className="border-linea bg-card hover:bg-secondary rounded-pill inline-block border px-3 py-1 text-sm">
+                      {fam.nombre}
+                      <span className="text-humo ml-1 text-xs">{pieDeFamilia(fam)}</span>
+                    </Link>
+                  ) : (
+                    // El saldo o una app de pagos: tiene beneficios pero no página de tarjeta.
+                    <span className="border-linea bg-card rounded-pill inline-block border px-3 py-1 text-sm">
+                      {fam.nombre}
+                      <span className="text-humo ml-1 text-xs">{pieDeFamilia(fam)}</span>
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

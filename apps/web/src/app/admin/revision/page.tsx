@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { FUENTES, PRODUCTOS } from "@tarjetazo/core";
+import { FUENTES, PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
 import Link from "next/link";
 import { numero } from "@/lib/admin/formato";
@@ -150,7 +150,7 @@ export default async function ColaDeRevision({
 }
 
 function GrupoTarjeta({ g }: { g: Grupo }) {
-  const productos = PRODUCTOS.filter((p) => p.fuente_id === g.fuenteId);
+  const productos = PRODUCTOS_ACTIVOS.filter((p) => p.fuente_id === g.fuenteId);
   return (
     <li className="border-linea bg-papel rounded-xl border px-4 py-3">
       <Cabecera g={g} />

@@ -4,7 +4,7 @@
  * ordena en el cliente sobre esta lista; acá vive todo lo que no toca React
  * (lectura de la base, clasificación del programa, filtros en la URL).
  */
-import { FAMILIAS, FUENTES, type Familia, type Red } from "@tarjetazo/core";
+import { FAMILIAS_TARJETA, FUENTES, type Familia, type Red } from "@tarjetazo/core";
 import { COLUMNAS_FICHA, urlImagen, type Ficha } from "@/lib/fichas";
 import { pieDeFamilia } from "@/lib/marca";
 import { createSupabaseClient } from "@/lib/supabase";
@@ -239,7 +239,8 @@ function armar(f: Familia, ficha: Ficha | undefined, conteo: { vigentes: number;
 }
 
 /**
- * Todas las familias activas con ficha y conteos. Si la base no responde
+ * Todas las familias activas que son tarjetas (sin el saldo de las
+ * billeteras ni TuApp) con ficha y conteos. Si la base no responde
  * (build sin credenciales) sale igual: nombres y fotos genéricas, cero
  * beneficios, y la página avisa que faltan datos.
  */
@@ -249,15 +250,15 @@ export async function leerCatalogo(): Promise<{ tarjetas: TarjetaCatalogo[]; con
     const [fichas, conteos] = await Promise.all([
       db.from("producto_ficha").select(COLUMNAS_FICHA).returns<Ficha[]>(),
       db.rpc("beneficios_por_familia", {
-        p_familias: FAMILIAS.map((f) => ({ id: f.id, fuente_id: f.fuente_id, productos: f.productos.map((p) => p.id) })),
+        p_familias: FAMILIAS_TARJETA.map((f) => ({ id: f.id, fuente_id: f.fuente_id, productos: f.productos.map((p) => p.id) })),
       }),
     ]);
     if (fichas.error) throw fichas.error;
     if (conteos.error) throw conteos.error;
     const fichaPor = new Map((fichas.data ?? []).map((x) => [x.familia_id, x]));
     const conteoPor = new Map(((conteos.data ?? []) as Conteo[]).map((x) => [x.familia_id, x]));
-    return { tarjetas: FAMILIAS.map((f) => armar(f, fichaPor.get(f.id), conteoPor.get(f.id))), conDatos: true };
+    return { tarjetas: FAMILIAS_TARJETA.map((f) => armar(f, fichaPor.get(f.id), conteoPor.get(f.id))), conDatos: true };
   } catch {
-    return { tarjetas: FAMILIAS.map((f) => armar(f, undefined, undefined)), conDatos: false };
+    return { tarjetas: FAMILIAS_TARJETA.map((f) => armar(f, undefined, undefined)), conDatos: false };
   }
 }
