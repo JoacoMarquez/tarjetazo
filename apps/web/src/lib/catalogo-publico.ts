@@ -212,7 +212,9 @@ type Conteo = { familia_id: string; vigentes: number; exclusivos: number };
 function tiposDe(f: Familia): TipoTarjeta[] {
   const out = new Set<TipoTarjeta>();
   for (const p of f.productos) {
-    // El "saldo" de una billetera se usa como una prepaga.
+    // El "saldo" de una billetera se usa como una prepaga; una membresía no
+    // está en el catálogo (esTarjeta) y no cuenta como tipo.
+    if (p.instrumento === "membresia") continue;
     out.add(p.instrumento === "saldo" ? "prepaga" : p.instrumento);
   }
   return [...out];

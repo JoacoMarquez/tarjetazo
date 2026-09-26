@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const TipoFuente = z.enum(["banco", "emisor", "billetera", "club"]);
-export const Instrumento = z.enum(["credito", "debito", "prepaga", "saldo"]);
+export const Instrumento = z.enum(["credito", "debito", "prepaga", "saldo", "membresia"]);
 export const Red = z.enum(["visa", "mastercard", "amex", "cabal", "propia"]);
 export const Tier = z.enum(["gold", "platinum", "black", "signature", "infinite", "world", "world_elite"]);
 export const TipoBeneficio = z.enum(["porcentaje", "cuotas", "reintegro", "2x1"]);

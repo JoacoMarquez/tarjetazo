@@ -64,10 +64,12 @@ export function familiasDe(fuenteId: string): readonly Familia[] {
  * Una familia es una tarjeta si tiene algún plástico. El "saldo" de una
  * billetera o una app de pagos (Saldo Prex, TuApp) es un medio de pago: tiene
  * beneficios y se puede elegir en "mis tarjetas", pero no es una tarjeta que
- * uno se saca, así que no va al catálogo público ni tiene página propia.
+ * uno se saca, así que no va al catálogo público ni tiene página propia. La
+ * tarjeta de socio de un club (Club El País) tampoco: viene con otra
+ * suscripción y no sirve para pagar.
  */
 export function esTarjeta(f: Familia): boolean {
-  return f.productos.some((p) => p.instrumento !== "saldo");
+  return f.productos.some((p) => p.instrumento !== "saldo" && p.instrumento !== "membresia");
 }
 
 /** Las familias del catálogo público (`/tarjetas`, `/tarjeta/[id]`, sitemap). */
