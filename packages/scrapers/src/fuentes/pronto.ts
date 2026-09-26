@@ -2,7 +2,7 @@ import type { BeneficioNormalizado } from "@tarjetazo/core";
 import { bajarTexto } from "../http.js";
 import { htmlATexto } from "../texto.js";
 import { slugificar } from "../slug.js";
-import type { Crudo, Extraido } from "../tipos.js";
+import type { Crudo, DireccionDeFuente, Extraido } from "../tipos.js";
 
 /**
  * Pronto+ (#10), la Visa de la financiera Pronto. `/promos-tarjeta/` lista una
@@ -77,7 +77,52 @@ export function crudoDePagina(url: string, html: string): Crudo | null {
     url_fuente: url,
     contenido: [nombre, "Detalle:", texto].join("\n"),
     fetched_at: new Date().toISOString(),
+    direcciones: direccionesDe(texto),
   };
+}
+
+/** Localidades que aparecen en las direcciones y no dicen su departamento. */
+const LOCALIDADES: Record<string, string> = {
+  "san jose de mayo": "san-jose", trinidad: "flores", "fray bentos": "rio-negro", mercedes: "soriano",
+  "san carlos": "maldonado", "punta del este": "maldonado", "ciudad de la costa": "canelones", lagomar: "canelones",
+  pando: "canelones", carmelo: "colonia", "nueva palmira": "colonia", "colonia del sacramento": "colonia", minas: "lavalleja",
+};
+
+function departamentoDeLugar(lugar: string): string | null {
+  const l = sinAcentos(lugar).replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+  if (LOCALIDADES[l]) return LOCALIDADES[l]!;
+  const d = departamentos(l);
+  return d.length === 1 ? d[0]! : null;
+}
+
+/**
+ * Las direcciones que nombra el texto, para ubicar el local en el mapa: "Se
+ * aplica en el local de Montevideo, Av. Italia 5625" o "punto de venta de
+ * Rivera 6694 esquina Arocena, Montevideo". El runner las geocodifica y solo
+ * guarda el pin si es confiable (geo/direccion.ts): acá alcanza con no
+ * inventar ninguna.
+ */
+export function direccionesDe(original: string): DireccionDeFuente[] {
+  // "Av. Italia 5625": sin el punto de la abreviatura, que corta la frase.
+  const texto = original.replace(/\b(av|avda|gral|dr|ing|bv|br|rbla|cnel|pte|prof|esq|sta|sto)\./gi, "$1");
+  const out = new Map<string, DireccionDeFuente>();
+  const agregar = (calle: string, lugar: string) => {
+    const departamento = departamentoDeLugar(lugar);
+    const c = calle
+      .replace(/^.*?\b(punto de venta|local(es)?)(\s+(fisico|físico))?(\s+del local)?(\s+de)?\s+/i, "")
+      .trim();
+    if (!departamento || !/\d/.test(c) || c.length > 60) return;
+    out.set(`${c}|${departamento}`, { direccion: `${c}, ${lugar.trim()}`, departamento });
+  };
+  const CALLE = String.raw`([A-ZÁÉÍÓÚÑ0-9][^,.;:•\n]{2,55}?\s\d{1,5}(?:\s*(?:[Bb]is|esq\.?|esquina)[^,.;•\n]{0,40})?)`;
+  const LUGAR = String.raw`([A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ ]{2,30}?)`;
+  // "local de <Lugar>, <Calle 123>"
+  for (const m of texto.matchAll(new RegExp(String.raw`local(?:es)? de ${LUGAR},\s*${CALLE}(?=[.,;
+]|\s+y\s)`, "g"))) agregar(m[2]!, m[1]!);
+  // "<Calle 123>, <Lugar>"
+  for (const m of texto.matchAll(new RegExp(String.raw`${CALLE},\s*${LUGAR}(?=[.,;
+-]|\s+y\s|$)`, "g"))) agregar(m[1]!, m[2]!);
+  return [...out.values()];
 }
 
 export async function fetchPronto(): Promise<Crudo[]> {

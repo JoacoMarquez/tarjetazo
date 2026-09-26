@@ -2,7 +2,7 @@
 // Correr con `pnpm --filter @tarjetazo/scrapers test`.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { arreglarCodificacion, crudoDePagina, departamentos, dias, nombreDeTitulo, normalizarPronto, vigencia } from "./fuentes/pronto.js";
+import { arreglarCodificacion, crudoDePagina, departamentos, dias, direccionesDe, nombreDeTitulo, normalizarPronto, vigencia } from "./fuentes/pronto.js";
 
 function pagina(titulo: string, cuerpo: string): string {
   return `<html><head><title>${titulo}</title></head><body><main>${cuerpo}</main></body></html>`;
@@ -39,6 +39,20 @@ describe("Pronto+", () => {
     assert.equal(b?.tope_monto, 500);
     assert.equal(b?.tope_periodo, "mes");
     assert.equal(crudoDePagina("https://www.pronto.com.uy/restaurantes/", pagina("", "9 puntos de IVA")), null);
+  });
+
+  it("saca las direcciones del texto para ubicar el local", () => {
+    assert.deepEqual(direccionesDe("Se aplica en el local de Montevideo, Av. Italia 5625 Bis. Válido"), [
+      { direccion: "Av Italia 5625 Bis, Montevideo", departamento: "montevideo" },
+    ]);
+    assert.deepEqual(direccionesDe("Aplica en el punto de venta de Fransisco Fondar 651, Trinidad\nLos descuentos"), [
+      { direccion: "Fransisco Fondar 651, Trinidad", departamento: "flores" },
+    ]);
+    assert.deepEqual(
+      direccionesDe("- Solano García 2499, Montevideo y Sarandí 393, Rivera. -").map((d) => d.departamento),
+      ["montevideo", "rivera"],
+    );
+    assert.deepEqual(direccionesDe("Se aplica en la web ingresando el código PRONTO10"), []);
   });
 
   it("arregla el UTF-8 codificado dos veces", () => {
