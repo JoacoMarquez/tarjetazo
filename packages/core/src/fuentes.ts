@@ -14,6 +14,7 @@ export const FUENTES: readonly Fuente[] = [
   { id: "club-el-pais", nombre: "Club El País", tipo: "club", logo_url: null, url: "https://www.clubelpais.com.uy", activa: true },
   { id: "anda", nombre: "ANDA", tipo: "emisor", logo_url: null, url: "https://anda.com.uy", activa: true },
   { id: "asi", nombre: "Club ASI", tipo: "club", logo_url: null, url: "https://www.asi-clubdescuentos.com.uy", activa: true },
+  { id: "pronto", nombre: "Pronto+", tipo: "emisor", logo_url: null, url: "https://www.pronto.com.uy", activa: true },
 ] as const;
 
 const BROU = "https://www.brou.com.uy/personas";
@@ -169,6 +170,10 @@ export const PRODUCTOS: readonly Producto[] = [
 
   // Club ASI: el club de descuentos de los clientes de ASI (préstamos o tarjeta
   // ASI Mastercard). El descuento se pide con un código, no pagando con la tarjeta.
+  // Pronto+: la Visa de la financiera Pronto, común y Premium.
+  { id: "pronto-visa", fuente_id: "pronto", nombre: "Visa Pronto+", instrumento: "credito", red: "visa", tier: null, url_oficial: "https://www.pronto.com.uy/promos-tarjeta/" },
+  { id: "pronto-visa-premium", fuente_id: "pronto", nombre: "Visa Pronto+ Premium", instrumento: "credito", red: "visa", tier: null, url_oficial: "https://www.pronto.com.uy/tarjeta-premium/" },
+
   { id: "club-asi", fuente_id: "asi", nombre: "Cliente ASI", instrumento: "membresia", red: "propia", tier: null, url_oficial: "https://asi.com.uy/" },
 
   { id: "club-el-pais-socio", fuente_id: "club-el-pais", nombre: "Socio Club El País", instrumento: "membresia", red: "propia", tier: null, url_oficial: "https://www.clubelpais.com.uy/suscribite/" },
