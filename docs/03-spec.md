@@ -20,7 +20,7 @@ Cobertura: todo el país en datos; geocoding y QA en Montevideo, Canelones y Mal
 - Geocoding: direcciones.ide.uy (oficial, gratis) con fallback Nominatim (1 req/s, cache).
 - Modelo (adaptado de manguito):
   - `fuente {id, nombre, tipo: banco|emisor|billetera|club, logo_url, url, activa}`
-  - `producto {id, fuente_id, nombre, instrumento: credito|debito|prepaga|saldo, red: visa|mastercard|amex|cabal|propia, tier: null|gold|platinum|black|signature}` (granularidad hasta tier, opcional en UI)
+  - `producto {id, fuente_id, nombre, instrumento: credito|debito|prepaga|saldo|membresia, red: visa|mastercard|amex|cabal|propia, tier: null|gold|platinum|black|signature}` (granularidad hasta tier, opcional en UI). `membresia` es la tarjeta de socio de un club (Club El País, 2026-09-26): se elige en "mis tarjetas" y filtra beneficios, pero no es medio de pago y, como `saldo`, queda fuera del catálogo público (`esTarjeta`)
   - `categoria {slug, label, orden, en_home}`
   - `comercio {key, nombre, categoria, logo_url, best_pct, max_cuotas, n_beneficios, n_fuentes}`
   - `sucursal {comercio_key, direccion, localidad, departamento, geom (PostGIS)}`
