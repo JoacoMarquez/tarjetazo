@@ -40,6 +40,7 @@ const POR_FUENTE: Record<string, ColorFuente> = {
   bbva: CIELO,
   midinero: SOL,
   nativa: CORAL,
+  "club-el-pais": CIELO,
 };
 
 export function colorFuente(fuenteId: string): ColorFuente {
@@ -66,6 +67,7 @@ const INSTRUMENTOS: Record<Instrumento, string> = {
   debito: "Débito",
   prepaga: "Prepaga",
   saldo: "Saldo",
+  membresia: "Socio",
 };
 
 /** "Visa · Crédito"; con red propia queda el nombre de la fuente ("OCA · Crédito"). */

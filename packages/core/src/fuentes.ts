@@ -11,6 +11,7 @@ export const FUENTES: readonly Fuente[] = [
   { id: "bbva", nombre: "BBVA", tipo: "banco", logo_url: null, url: "https://www.bbva.com.uy", activa: true },
   { id: "midinero", nombre: "Midinero", tipo: "billetera", logo_url: null, url: "https://www.midinero.com.uy", activa: true },
   { id: "nativa", nombre: "Nativa", tipo: "emisor", logo_url: null, url: "https://www.nativacabal.com.uy", activa: true },
+  { id: "club-el-pais", nombre: "Club El País", tipo: "club", logo_url: null, url: "https://www.clubelpais.com.uy", activa: true },
 ] as const;
 
 const BROU = "https://www.brou.com.uy/personas";
@@ -152,6 +153,10 @@ export const PRODUCTOS: readonly Producto[] = [
 
   // Nativa: tarjeta de crédito de la red Cabal (#79; entró después de la auditoría).
   { id: "nativa-cabal", fuente_id: "nativa", nombre: "Nativa Cabal", instrumento: "credito", red: "cabal", tier: null },
+
+  // Club El País: la tarjeta de socio que viene con la suscripción al diario.
+  // No es un medio de pago; el descuento se pide mostrándola al pagar.
+  { id: "club-el-pais-socio", fuente_id: "club-el-pais", nombre: "Socio Club El País", instrumento: "membresia", red: "propia", tier: null, url_oficial: "https://www.clubelpais.com.uy/suscribite/" },
 
   // Prex: una sola tarjeta. El saldo (QR Toke) es un medio de pago, no una tarjeta.
   { id: "prex-saldo", fuente_id: "prex", nombre: "Saldo Prex", instrumento: "saldo", red: "propia", tier: null, url_oficial: "https://www.prexcard.com/toke" },

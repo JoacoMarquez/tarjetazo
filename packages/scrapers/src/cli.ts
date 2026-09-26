@@ -1,6 +1,7 @@
 import { normalizarBbva } from "./fuentes/bbva-parser.js";
 import { fetchMidinero, normalizarMidinero } from "./fuentes/midinero.js";
 import { fetchNativa, normalizarNativa } from "./fuentes/nativa.js";
+import { fetchClubElPais, normalizarClubElPais } from "./fuentes/club-el-pais.js";
 import { fetchBrou } from "./fuentes/brou.js";
 import { fetchItau } from "./fuentes/itau.js";
 import { fetchItauLandings } from "./fuentes/itau-landings.js";
@@ -20,6 +21,7 @@ const NORMALIZADORES: Record<string, (c: Crudo) => Extraido> = {
   bbva: normalizarBbva,
   midinero: normalizarMidinero,
   nativa: normalizarNativa,
+  "club-el-pais": normalizarClubElPais,
 };
 const SCRAPERS: Record<string, () => Promise<Crudo[]>> = {
   brou: fetchBrou,
@@ -32,6 +34,7 @@ const SCRAPERS: Record<string, () => Promise<Crudo[]>> = {
   bbva: fetchBbva,
   midinero: fetchMidinero,
   nativa: fetchNativa,
+  "club-el-pais": fetchClubElPais,
 };
 
 async function main() {

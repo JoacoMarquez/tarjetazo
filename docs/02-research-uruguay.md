@@ -73,7 +73,7 @@ Mercado Pago y Prex. Tarjetazo tiene 5 en producción (6 con Prex, listo en rama
 | **Nativa Cabal** | red (Bandes, Líder, Tarjeta D y otros) | — | **188 beneficios** | `nativacabal.com.uy/beneficios/`, server-rendered, filtros por departamento en el hash; sin coordenadas | bajo |
 | Midinero (Redpagos) | billetera | — | 33 beneficios | `midinero.com.uy/beneficios-sitemap.xml` + ficha por beneficio | bajo |
 | ANDA | emisor | ✓ | ~64 (dato de la investigación inicial) | WordPress; `/wp-json` responde 401 | medio (HTML) |
-| Club El País | club | ✓ | 200+ marcas (dato inicial) | WordPress; el tipo `producto` de la API tiene 9 entradas, el catálogo está en HTML | medio |
+| Club El País | club | ✓ | **179 comercios** + ~100 eventos (2x1 en entradas) | `clubelpais.com.uy/sitemap.xml` → `/comercio/<slug>/`, plantilla fija (descuento, rubro, días, modalidad, dirección, legales); la API WP no expone `comercio` | **hecho** (2026-09-26, parser propio, sin eventos) |
 | Mercado Pago | billetera | ✓ | in-app | 403 a bots, promos dentro de la app | inviable sin app |
 | PassCard | emisor | — | ? | `passcard.com.uy` no respondió | por medir |
 | Pronto+, Créditos Directos, Crédito de Valor, ASI | financieras | — | sin medir | probablemente pocos beneficios propios | por medir |
