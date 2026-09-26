@@ -147,7 +147,9 @@ export function normalizarAsi(crudo: Crudo): Extraido {
   const web = /\bweb\b|online|tienda virtual|e-?commerce|en la app|codigo del cupon|al finalizar tu compra/.test(t);
   const soloWeb = /exclusivamente[^.]{0,40}web|no aplica en locales|solo (en la )?web|unicamente[^.]{0,30}web/.test(t);
   // Sin locales es un descuento online (PedidosYa, cursos, plataformas).
-  const canal: BeneficioNormalizado["canal"] = !tieneLocales || soloWeb ? "online" : web ? "ambos" : "presencial";
+  // PedidosYa o una suscripción traen la dirección de una oficina: son online igual.
+  const plataforma = categoria === "delivery" || rubros.some((r) => sinAcentos(r) === "plataformas");
+  const canal: BeneficioNormalizado["canal"] = !tieneLocales || soloWeb || plataforma ? "online" : web ? "ambos" : "presencial";
 
   const listaDeptos = deptos && deptos !== "sin dato" ? deptos.split(", ") : [];
   const beneficio = {
