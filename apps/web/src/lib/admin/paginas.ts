@@ -29,7 +29,7 @@ export function patronBeneficiosDe(fuenteId: string, externalId: string): string
 }
 
 /** Fuentes sin modelo: re-normalizarlas no cuesta nada. */
-export const FUENTES_DETERMINISTAS = new Set(["bbva", "midinero", "nativa", "club-el-pais", "anda"]);
+export const FUENTES_DETERMINISTAS = new Set(["bbva", "midinero", "nativa", "club-el-pais", "anda", "asi"]);
 
 export type Tramo = {
   id: string;

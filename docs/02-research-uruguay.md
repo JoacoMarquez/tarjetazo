@@ -75,10 +75,13 @@ Mercado Pago y Prex. Tarjetazo tiene 5 en producción (6 con Prex, listo en rama
 | ANDA | emisor | ✓ | **~540 beneficios** (≈830 locales, casi todos 20 % los jueves en el interior) | `/tarjeta-de-credito/dias-de-descuentos/` enlaza una categoría por día; la lista la da `admin-ajax.php` (`action=filtrar_diasDescuentos`, `dia=<id de categoría>`, `departamento`) en JSON; la categoría padre (62) mezcla copias "-2" y campañas vencidas; `/wp-json` sigue en 401 | **hecho** (2026-09-26, parser propio) |
 | Club El País | club | ✓ | **179 comercios** + ~100 eventos (2x1 en entradas) | `clubelpais.com.uy/sitemap.xml` → `/comercio/<slug>/`, plantilla fija (descuento, rubro, días, modalidad, dirección, legales); la API WP no expone `comercio` | **hecho** (2026-09-26, parser propio, sin eventos) |
 | Mercado Pago | billetera | ✓ | in-app | 403 a bots, promos dentro de la app | inviable sin app |
-| PassCard | emisor | — | ? | `passcard.com.uy` no respondió | por medir |
-| Pronto+, Créditos Directos, Crédito de Valor, ASI | financieras | — | sin medir | probablemente pocos beneficios propios | por medir |
-| Italmundo, Tarjeta D, Líder, Tarjeta Verde | emisores chicos | — | sin medir | varios operan sobre la red Cabal | por medir |
-| Creditel | financiera | — | promocional | sin listado | bajo valor |
+| **Club ASI** | club (financiera ASI) | — | **298 descuentos**, 212 propios (86 son de la Tarjeta Sonrisas de Tres Cruces), 318 locales con coordenadas | app Next.js sobre la API JSON de Mashkady (`api-fenix.servicios-ya.com/api/v3/mashkady/discounts?companyId=…`, header `countrycode: UY`); la misma red la comparten CINTEPA, COPAC y Créditos Directos | **hecho** (2026-09-26, parser propio, membresía) |
+| Pronto+ | financiera (Visa Pronto+) | — | **46 promos vigentes** por comercio (60 en el sitemap, con vencidas) | `pronto.com.uy/promos-tarjeta/` (lista armada con JS) → `/promo-<comercio>/`, texto libre ("15% de descuento", "Aplica los días…", "Tope…", "Válido hasta…") | medio: parser con reglas, costo cero |
+| PassCard | emisor | — | 7 promos de rubro entero (librerías los lunes, peluquerías los martes…, 25-30 % según el tier) | `passcard.com.uy/tarjeta/promociones` | no encaja: beneficios por rubro, no por comercio |
+| Creditel | financiera | — | 7 promos de rubro entero (20 %, 25 % con MODO) | `creditel.com.uy/api/v1/promotions` (JSON) | no encaja: por rubro |
+| Italmundo | emisor | — | ~6 promos genéricas (supermercados el 3er martes, combustible los miércoles) + Club El País a mitad de precio | `italmundo.com.uy/beneficios/` | no encaja: por rubro |
+| Tarjeta D (Créditos Directos) | financiera | — | cuotas sin recargo (18 generales, 3 en comestibles y combustible) con listas de adheridos en PDF de Drive | `creditosdirectos.com.uy/beneficios/` | bajo valor |
+| Crédito de Valor, Líder, Tarjeta Verde | | — | — | sin sitio que responda (`lider.com.uy` es una imprenta) | descartadas |
 | TuApp, Bandes | | — | 8 y 7 | vía BROU y vía Cabal | bajo valor |
 | Diners, Payoneer, HSBC→BTG, Heritage | | — | — | sin programa local público | — |
 
