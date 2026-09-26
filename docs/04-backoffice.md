@@ -148,7 +148,7 @@ Los 79 productos del catálogo semilla se verificaron contra el sitio oficial de
 - **Sin tocar:** los productos dudosos (Farmacard e Hipermás sin red publicada, AAdvantage sin tier confirmado, Itaú Débito Sueldos).
 
 ### Bajas del catálogo (después de la auditoría)
-Para que no vuelva a colarse una tarjeta fantasma (`20261021120000_catalogo_bajas.sql`):
+Para que no vuelva a colarse una tarjeta fantasma (`20261022120000_catalogo_bajas.sql`):
 - **Sugerencia de baja:** el scraper de catálogo guarda qué familias dio cada página (`catalogo_pagina.familias`). Si una familia que se veía no aparece en una revisión **completa** de la fuente (sin `--limite`, sin páginas fallidas y sin una página que antes tenía tarjetas y ahora ninguna), deja una sugerencia `tipo = 'baja'`, una por familia. Solo cuenta lo que se vio alguna vez: TuApp o las tarjetas que viven en páginas que no se leen nunca se proponen.
 - **Nunca se aplica sola:** en `/admin/tarjetas` se confirma en el sitio del banco, se da de baja en código (`activo: false` en `PRODUCTOS` y una migración que pase los beneficios, como la de la auditoría) y se marca «Ya la di de baja». Si la familia vuelve a aparecer, la sugerencia pendiente se borra.
 - **Primera revisión:** las páginas extraídas antes de la columna no tienen familias y se vuelven a extraer una vez (unas 25 páginas). Esa revisión no propone bajas.
