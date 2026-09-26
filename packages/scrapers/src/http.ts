@@ -32,13 +32,15 @@ export class PaginaInexistente extends Error {
 export async function bajarTexto(
   url: string,
   intentos = 3,
-  opciones: { comoNavegador?: boolean } = {},
+  opciones: { comoNavegador?: boolean; formulario?: Record<string, string> } = {},
 ): Promise<string> {
   let ultimoError: unknown;
   for (let i = 0; i < intentos; i++) {
     await esperarTurno();
     try {
+      // Con `formulario` es un POST (el admin-ajax.php de WordPress, ANDA).
       const res = await fetch(url, {
+        ...(opciones.formulario ? { method: "POST", body: new URLSearchParams(opciones.formulario) } : {}),
         headers: opciones.comoNavegador
           ? {
               "user-agent": UA_NAVEGADOR,

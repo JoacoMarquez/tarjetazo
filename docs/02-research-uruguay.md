@@ -72,7 +72,7 @@ Mercado Pago y Prex. Tarjetazo tiene 5 en producción (6 con Prex, listo en rama
 | **BBVA** | banco | ✓ | **~290 comercios** (10 páginas × 29 fichas) | `bbva.com.uy/personas/productos/tarjetas/descuentos.html`, paginado `.pag-N.html`, ficha por comercio; ya no da 403 con UA de navegador | bajo (como Santander) |
 | **Nativa Cabal** | red (Bandes, Líder, Tarjeta D y otros) | — | **188 beneficios** | `nativacabal.com.uy/beneficios/`, server-rendered, filtros por departamento en el hash; sin coordenadas | bajo |
 | Midinero (Redpagos) | billetera | — | 33 beneficios | `midinero.com.uy/beneficios-sitemap.xml` + ficha por beneficio | bajo |
-| ANDA | emisor | ✓ | ~64 (dato de la investigación inicial) | WordPress; `/wp-json` responde 401 | medio (HTML) |
+| ANDA | emisor | ✓ | **~540 beneficios** (≈830 locales, casi todos 20 % los jueves en el interior) | `/tarjeta-de-credito/dias-de-descuentos/` enlaza una categoría por día; la lista la da `admin-ajax.php` (`action=filtrar_diasDescuentos`, `dia=<id de categoría>`, `departamento`) en JSON; la categoría padre (62) mezcla copias "-2" y campañas vencidas; `/wp-json` sigue en 401 | **hecho** (2026-09-26, parser propio) |
 | Club El País | club | ✓ | **179 comercios** + ~100 eventos (2x1 en entradas) | `clubelpais.com.uy/sitemap.xml` → `/comercio/<slug>/`, plantilla fija (descuento, rubro, días, modalidad, dirección, legales); la API WP no expone `comercio` | **hecho** (2026-09-26, parser propio, sin eventos) |
 | Mercado Pago | billetera | ✓ | in-app | 403 a bots, promos dentro de la app | inviable sin app |
 | PassCard | emisor | — | ? | `passcard.com.uy` no respondió | por medir |
