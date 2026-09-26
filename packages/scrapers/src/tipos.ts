@@ -15,6 +15,17 @@ export interface Crudo {
    * pertenece el beneficio.
    */
   sucursales?: SucursalDeFuente[];
+  /**
+   * Locales que la fuente publica solo con la dirección escrita (Club El País).
+   * El runner los geocodifica y guarda el pin si es confiable (geo/direccion.ts).
+   */
+  direcciones?: DireccionDeFuente[];
+}
+
+export interface DireccionDeFuente {
+  direccion: string;
+  /** Slug del departamento que dice la propia dirección. */
+  departamento: string;
 }
 
 export interface SucursalDeFuente {

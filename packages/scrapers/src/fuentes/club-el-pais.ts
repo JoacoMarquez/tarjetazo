@@ -136,12 +136,20 @@ export function crudoDeFicha(url: string, html: string): Crudo {
     legales,
   ].join("\n");
 
+  // Cada tramo de la dirección ("… | …") es un local; sin departamento no se
+  // puede guardar (el runner lo geocodifica y lo valida).
+  const direcciones = (direccion ?? "")
+    .split(/\s[|\/]\s/)
+    .map((d) => ({ direccion: d.trim(), departamento: departamentoDeDireccion(d) }))
+    .filter((d): d is { direccion: string; departamento: string } => Boolean(d.direccion && d.departamento));
+
   return {
     fuente_id: "club-el-pais",
     external_id: slugificar(new URL(url).pathname.replace(/^\/comercio\//, "").replace(/\/$/, "")),
     url_fuente: url,
     contenido,
     fetched_at: new Date().toISOString(),
+    direcciones,
   };
 }
 

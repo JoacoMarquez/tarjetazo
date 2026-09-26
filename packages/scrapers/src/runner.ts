@@ -29,9 +29,11 @@ import {
   upsertBeneficios,
 } from "./db.js";
 import { reversaIde } from "./geo/ide.js";
+import { geocodificar } from "./geo/index.js";
+import { limpiarDireccion, puntoConfiable } from "./geo/direccion.js";
 import { slugDepartamento } from "./geo/departamentos.js";
 import type { UsoModelo } from "@tarjetazo/core";
-import type { Crudo, Extraido, SucursalDeFuente } from "./tipos.js";
+import type { Crudo, DireccionDeFuente, Extraido, SucursalDeFuente } from "./tipos.js";
 
 export interface Reporte {
   fuente_id: string;
@@ -189,6 +191,49 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       return guardarSucursalesDeFuente(db, comercioKey, filas);
     }
 
+    /**
+     * Locales con la dirección escrita y sin punto. Solo para comercios que
+     * todavía no tienen ningún pin (de otra fuente, de OSM o cargado a mano):
+     * así no se duplican y, una vez ubicado, no se vuelve a consultar. La
+     * caché de geocoding evita repetir consultas entre corridas; el
+     * departamento del punto se confirma con el reverse oficial.
+     */
+    async function guardarDirecciones(comercioKey: string, direcciones: DireccionDeFuente[]): Promise<number> {
+      if (direcciones.length === 0) return 0;
+      const { count, error } = await db
+        .from("sucursal")
+        .select("id", { count: "exact", head: true })
+        .eq("comercio_key", comercioKey)
+        .not("geom", "is", null);
+      if (error) throw new Error(`leyendo sucursales: ${error.message}`);
+      if ((count ?? 0) > 0) return 0;
+
+      const filas = [];
+      for (const d of direcciones) {
+        const pedida = limpiarDireccion(d.direccion);
+        if (!pedida) continue;
+        const depto = d.departamento.replace(/-/g, " ");
+        const yaLoDice = pedida.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(depto);
+        const consulta = yaLoDice ? pedida : `${pedida}, ${depto}`;
+        const p = await geocodificar(db, consulta);
+        if (!puntoConfiable(pedida, p)) continue;
+        const r = await reversaIde(p.lat, p.lng);
+        if (slugDepartamento(r?.departamento ?? null) !== d.departamento) continue;
+        filas.push({
+          comercio_key: comercioKey,
+          nombre: null,
+          direccion: d.direccion,
+          localidad: r?.localidad ?? null,
+          departamento: d.departamento,
+          geom: `SRID=4326;POINT(${p.lng} ${p.lat})`,
+          precision: p.precision,
+          fuente_direccion: fuenteId,
+          geocoded_at: new Date().toISOString(),
+        });
+      }
+      return guardarSucursalesDeFuente(db, comercioKey, filas);
+    }
+
     async function procesarPagina(crudo: Crudo) {
       const h = await hash(crudo.contenido);
       const sinCambios = previos.get(crudo.external_id) === h;
@@ -206,6 +251,9 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         const comercio = comercioDePagina.get(crudo.external_id);
         if (comercio && crudo.sucursales?.length) {
           reporte.sucursales += await guardarLocales(reglas.comercios.get(comercio) ?? comercio, crudo.sucursales);
+        }
+        if (comercio && crudo.direcciones?.length) {
+          reporte.sucursales += await guardarDirecciones(reglas.comercios.get(comercio) ?? comercio, crudo.direcciones);
         }
         await marcarPaginaVista(db, crudo);
         return;
@@ -246,6 +294,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         // Recién acá sabemos a qué comercio pertenecen los locales que la
         // fuente publicó junto al beneficio.
         reporte.sucursales += await guardarLocales(extraido.comercio.key, crudo.sucursales ?? []);
+        reporte.sucursales += await guardarDirecciones(extraido.comercio.key, crudo.direcciones ?? []);
       }
 
       // Qué tramos cambiaron de verdad: una página puede cambiar (un banner, la
