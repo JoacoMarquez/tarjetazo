@@ -53,9 +53,45 @@ const CREDITO = [
   "bbva-mastercard-platinum", "bbva-black", "bbva-infinite",
 ];
 
+/**
+ * Tarjetas de un club: una por nivel. "Internacionales, Oro y Platinum BBVA
+ * Club Atlético Peñarol" son esos tres niveles; "Tarjetas de crédito BBVA Club
+ * Atlético Peñarol" a secas, los tres.
+ */
+function nivelesDelClub(f: string, club: "penarol" | "nacional"): string[] {
+  const niveles = [
+    [/internacional/, "internacional"],
+    [/\boro\b/, "oro"],
+    [/platinum/, "platinum"],
+  ] as const;
+  const nombrados = niveles.filter(([re]) => re.test(f)).map(([, n]) => n);
+  return (nombrados.length > 0 ? nombrados : niveles.map(([, n]) => n)).map((n) => `bbva-${club}-${n}`);
+}
+
+/**
+ * Las tarjetas de marca: si la frase nombra una, los niveles que la acompañan
+ * ("Comunidad Plus Internacional, Oro e Infinite", "Internacionales, Oro y
+ * Platinum BBVA Club Nacional de Football") son de esa tarjeta, no las
+ * genéricas de BBVA.
+ */
+function deMarca(f: string): string[] {
+  const ids: string[] = [];
+  // "Nacional" a secas está dentro de "Internacional": el club se nombra entero.
+  if (/penarol/.test(f)) ids.push(...nivelesDelClub(f, "penarol"));
+  if (/club nacional|nacional de football/.test(f)) ids.push(...nivelesDelClub(f, "nacional"));
+  // Abtour y Consolid Travel se eligen Visa o Mastercard.
+  if (/abtour/.test(f)) ids.push("bbva-abtour-visa", "bbva-abtour-mastercard");
+  if (/consolid/.test(f)) ids.push("bbva-consolid-travel", "bbva-consolid-travel-visa");
+  if (/comunidad plus/.test(f)) ids.push("bbva-comunidad-plus");
+  if (/sodimac/.test(f)) ids.push("bbva-sodimac");
+  return ids;
+}
+
 /** "Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas" → ids. Exportada para los tests. */
 export function productos(frase: string): { ids: string[]; desconocidos: string[] } {
   const f = sinAcentos(frase);
+  const marca = deMarca(f);
+  if (marca.length > 0) return { ids: marca, desconocidos: [] };
   const ids = new Set<string>();
   const desconocidos: string[] = [];
   if (/debito/.test(f)) ids.add("bbva-debito");
@@ -72,15 +108,6 @@ export function productos(frase: string): { ids: string[]; desconocidos: string[
   if (/platinum/.test(f)) ids.add("bbva-mastercard-platinum");
   if (/black/.test(f)) ids.add("bbva-black");
   if (/infinite/.test(f)) ids.add("bbva-infinite");
-  // Tarjetas de marca: van antes del "crédito a secas" para que "Tarjetas de
-  // Crédito BBVA Sodimac" sea solo la Sodimac y no todas las de crédito.
-  if (/comunidad plus/.test(f)) ids.add("bbva-comunidad-plus");
-  if (/sodimac/.test(f)) ids.add("bbva-sodimac");
-  // Consolid Travel se elige Visa o Mastercard.
-  if (/consolid/.test(f)) {
-    ids.add("bbva-consolid-travel");
-    ids.add("bbva-consolid-travel-visa");
-  }
   // "Tarjetas de Crédito BBVA" a secas: todas las de crédito.
   // Pymes y corporativas van siempre junto a Internacional/Oro; no son
   // tarjetas de consumo y no se listan aparte.
@@ -129,7 +156,8 @@ function topes(legales: string): Map<string, number | null> {
   for (const linea of legales.split("\n")) {
     const l = sinAcentos(linea);
     if (/^tarjetas? de/.test(l) || /^tarjetas de cr/.test(l)) {
-      grupo = /platinum|black|infinite/.test(l) ? "alto" : /debito/.test(l) ? "debito" : /internacional|oro|credito/.test(l) ? "credito" : grupo;
+      // "Platinium": así lo escribe la ficha de 1900.
+      grupo = /platin|black|infinite/.test(l) ? "alto" : /debito/.test(l) ? "debito" : /internacional|oro|credito/.test(l) ? "credito" : grupo;
       continue;
     }
     const m = l.match(/tope de devolucion sera de ([\d.]+)\s*pesos/);
@@ -138,6 +166,32 @@ function topes(legales: string): Map<string, number | null> {
   }
   return out;
 }
+
+/**
+ * Topes por nivel de las tarjetas de los clubes, que los legales escriben en
+ * una sola frase: "el tope de devolución será de $3.700 pesos uruguayos para
+ * tarjetas Internacionales, $5.000 pesos uruguayos para tarjetas Oro y $6.300
+ * pesos uruguayos para tarjetas Platinum", o "$1.000 … para tarjetas
+ * internacionales, Oro y Platinum" (el mismo para los tres). Exportada para
+ * los tests.
+ */
+export function topesDeClub(legales: string): Map<"internacional" | "oro" | "platinum", number> {
+  const out = new Map<"internacional" | "oro" | "platinum", number>();
+  for (const linea of legales.split("\n")) {
+    const l = sinAcentos(linea);
+    if (!/tope de devolucion/.test(l)) continue;
+    for (const m of l.matchAll(/\$\s?([\d.]+)(?:\s*pesos(?: uruguayos)?)?\s+para tarjetas? ([a-z ,]+?)(?=,? ?\$|,? por |\.|$)/g)) {
+      const monto = Number(m[1]!.replace(/\./g, ""));
+      const niveles = m[2]!;
+      if (/internacional/.test(niveles) && !out.has("internacional")) out.set("internacional", monto);
+      if (/\boro\b/.test(niveles) && !out.has("oro")) out.set("oro", monto);
+      if (/platin/.test(niveles) && !out.has("platinum")) out.set("platinum", monto);
+    }
+  }
+  return out;
+}
+
+const NIVEL_DE_CLUB = /^bbva-(?:penarol|nacional)-(internacional|oro|platinum)$/;
 
 export function normalizarBbva(crudo: Crudo): Extraido {
   const lineas = crudo.contenido.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -212,8 +266,17 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     const f = sinAcentos(m[3]!);
     const clave = /platinum|black|infinite/.test(f) ? "alto" : /debito/.test(f) ? "debito" : "credito";
     for (const id of ids) if (id !== "bbva-debito") creditoDeLaPagina.add(id);
-    const tope_monto = tope.get(clave) ?? null;
-    tramos.push({
+    const topeDelTramo = tope.get(clave) ?? null;
+    // Las tarjetas de un club tienen un tope por nivel: si los legales los
+    // separan, va un tramo por tope (un beneficio guarda un solo tope).
+    const porNivel = ids.every((id) => NIVEL_DE_CLUB.test(id)) ? topesDeClub(legales_raw ?? "") : new Map();
+    const grupos = new Map<number | null, string[]>();
+    for (const id of ids) {
+      const nivel = id.match(NIVEL_DE_CLUB)?.[1] as "internacional" | "oro" | "platinum" | undefined;
+      const t = (nivel && porNivel.get(nivel)) ?? topeDelTramo;
+      grupos.set(t, [...(grupos.get(t) ?? []), id]);
+    }
+    for (const [tope_monto, idsDelGrupo] of grupos) tramos.push({
       comercio_key: slugificar(nombre),
       titulo: `${hasta ? "Hasta " : ""}${porcentaje}% de descuento${calificador ? ` (${calificador.toLowerCase()})` : ""}`,
       descuento_raw: calificador ? `${calificador}: ${l}` : l,
@@ -224,7 +287,7 @@ export function normalizarBbva(crudo: Crudo): Extraido {
       vigencia_desde: null,
       vigencia_hasta,
       departamentos: departamentos.length === 1 ? (departamentos as BeneficioNormalizado["departamentos"]) : [],
-      productos_elegibles: ids,
+      productos_elegibles: idsDelGrupo,
       tope_monto,
       tope_periodo: tope_monto != null ? "mes" : null,
       canal: "presencial",
