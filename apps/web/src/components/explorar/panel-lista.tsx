@@ -3,6 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import type { BeneficioListado } from "@/lib/consultas";
 import { NOMBRES_DIA } from "@/lib/filtros";
+import { alcanceCorto } from "@/lib/formato";
 import { colorFuente } from "@/lib/marca";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,15 @@ const ORDENES: { valor: Orden; label: string }[] = [
   { valor: "porcentaje", label: "Mayor descuento" },
   { valor: "locales", label: "Más locales" },
 ];
+
+/**
+ * "BBVA" o "BBVA · solo Nacional BBVA Mastercard Platinum": sin el alcance,
+ * un beneficio de una sola tarjeta se lee como de todas las del banco.
+ */
+export function conAlcance(b: Pick<BeneficioListado, "fuente_id" | "fuente_nombre" | "productos_elegibles">): string {
+  const alcance = alcanceCorto(b.fuente_id, b.productos_elegibles);
+  return alcance ? `${b.fuente_nombre} · solo ${alcance}` : b.fuente_nombre;
+}
 
 /** "25%" / "6c" / "2x1": la cifra que va grande en la card. */
 export function cifraDe(b: BeneficioListado): string {
@@ -200,8 +210,8 @@ export function PanelLista({
                           ✓ Para vos
                         </span>
                       ) : (
-                        <span className="text-humo truncate text-xs">
-                          {b.fuente_nombre}
+                        <span className="text-humo truncate text-xs" title={conAlcance(b)}>
+                          {conAlcance(b)}
                         </span>
                       )}
                     </span>

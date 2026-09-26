@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Bbox, PuntoMapa } from "@/lib/consultas";
 import { useBilletera } from "@/lib/billetera";
-import { cifraBeneficio } from "@/lib/formato";
+import { alcanceCorto, cifraBeneficio } from "@/lib/formato";
 import { colorFuente } from "@/lib/marca";
 
 // Leaflet toca `window` al importarse: el mapa sólo puede cargarse en el cliente.
@@ -156,8 +156,12 @@ export function CercaTuyo() {
                   <div className="truncate text-sm font-semibold text-tinta">
                     {p.comercio} · {p.direccion}
                   </div>
-                  <div className="text-xs text-tinta">
+                  <div className="truncate text-xs text-tinta">
                     {formatearDistancia(km)} · {p.mejor_fuente}
+                    {(() => {
+                      const alcance = alcanceCorto(p.mejor_fuente_id, p.mejor_productos);
+                      return alcance ? ` · solo ${alcance}` : "";
+                    })()}
                     {laTengo ? "" : " · no la tenés"}
                   </div>
                 </div>

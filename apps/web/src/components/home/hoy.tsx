@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { MejorDelRubro } from "@/lib/stats";
 import { useBilletera } from "@/lib/billetera";
-import { cifraBeneficio, tarjetaSugerida } from "@/lib/formato";
+import { alcanceCorto, cifraBeneficio, tarjetaSugerida } from "@/lib/formato";
 import { colorFuente } from "@/lib/marca";
 
 /**
@@ -32,6 +32,8 @@ export function Hoy({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
       >
         {rubros.map(({ rubro, beneficio }) => {
           const { producto, laTengo } = tarjetaSugerida(beneficio, mis);
+          // La tarjeta de la card es una sugerencia: el alcance dice con cuáles vale.
+          const alcance = alcanceCorto(beneficio.fuente_id, beneficio.productos_elegibles);
           const c = colorFuente(beneficio.fuente_id);
           const donde =
             beneficio.n_sucursales > 1
@@ -65,6 +67,11 @@ export function Hoy({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
                   {producto?.nombre ?? beneficio.fuente_nombre}
                 </span>
               </div>
+              {alcance && alcance !== producto?.nombre && (
+                <div className="text-humo col-span-2 -mt-1 truncate text-xs" title={`Solo con ${alcance}`}>
+                  Solo con {alcance}
+                </div>
+              )}
               <div className="col-span-2 flex justify-between gap-3 text-[13px] text-tinta">
                 <span className="min-w-0 truncate">{donde}</span>
                 {!laTengo && producto && (
