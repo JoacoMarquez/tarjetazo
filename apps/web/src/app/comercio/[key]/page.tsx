@@ -79,6 +79,11 @@ export default async function PaginaComercio({ params }: Props) {
 
   const hoy = beneficios.filter(aplicaHoy);
   const mejorHoy = hoy[0];
+  // Si hoy aplican otros de la misma fuente con la misma cifra (un tramo
+  // partido por nivel: "10% de descuento con Oro"), el título dice cuál es.
+  const conGemelos =
+    mejorHoy != null &&
+    hoy.some((b) => b !== mejorHoy && b.fuente_id === mejorHoy.fuente_id && cifra(b) === cifra(mejorHoy) && b.titulo !== mejorHoy.titulo);
   const porFuente = new Map<string, BeneficioFicha[]>();
   for (const b of beneficios) porFuente.set(b.fuente_id, [...(porFuente.get(b.fuente_id) ?? []), b]);
   const relacionados = await comerciosDelRubro(comercio.categoria, comercio.key);
@@ -151,6 +156,7 @@ export default async function PaginaComercio({ params }: Props) {
                 <span className="text-sm"> · tope {pesos(mejorHoy.tope_monto)}{mejorHoy.tope_periodo ? `/${mejorHoy.tope_periodo}` : ""}</span>
               )}
             </p>
+            {conGemelos && <p className="mt-0.5 text-sm font-medium">{mejorHoy.titulo}</p>}
             {hoy.length > 1 && <p className="mt-1 text-sm">Y {hoy.length - 1} más que también aplican hoy.</p>}
           </section>
         ) : (
