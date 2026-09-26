@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PRODUCTOS } from "@tarjetazo/core";
-import { normalizarBbva, productos, topesDeClub } from "./fuentes/bbva-parser.js";
+import { normalizarBbva, productos, topes, topesDeClub } from "./fuentes/bbva-parser.js";
 
 const ids = (frase: string) => productos(frase).ids.sort();
 const ACTIVOS = new Set(PRODUCTOS.filter((p) => p.activo !== false).map((p) => p.id));
@@ -133,5 +133,48 @@ describe("parser de BBVA: topes de los clubes", () => {
     ].join("\n");
     const r = normalizarBbva({ fuente_id: "bbva", external_id: "gastronomia-1900", url_fuente: "https://x", contenido, fetched_at: "" });
     assert.deepEqual(r.beneficios.map((b) => [b.porcentaje, b.tope_monto]), [[20, 4000], [30, 6000]]);
+  });
+});
+
+describe("parser de BBVA: topes con otra redacción", () => {
+  it("'con un tope de devolución de N pesos' bajo un encabezado", () => {
+    const t = topes([
+      "TARJETAS DE DÉBITO",
+      "El descuento será de un 20%, el cual se verá reflejado en el estado de cuenta, con un tope de devolución de 4000 pesos uruguayos por cierre de estado de cuenta.",
+      "Tarjetas de crédito Infinite, Platinum y Black",
+      "El descuento será de un 30%, el cual se verá reflejado en el estado de cuenta, con un tope de devolución de 6000 pesos uruguayos por cierre de estado de cuenta.",
+    ].join("\n"));
+    assert.equal(t.get("debito"), 4000);
+    assert.equal(t.get("alto"), 6000);
+  });
+
+  it("sin encabezados (Consolid): el tope general vale para el tramo", () => {
+    const contenido = [
+      "Consolid - Turismo internacional",
+      "Vigencia: 31 de Diciembre 2026",
+      "Descuento:",
+      "Martes y Jueves 10% Off con la tarjeta de crédito BBVA Consolid Travel.",
+      "",
+      "Legales:",
+      "El descuento será de un 10%, el cual se verá reflejado en el estado de cuenta, con un tope de devolución de 6000 pesos uruguayos por cierre de estado de cuenta. El descuento se verá reflejado en un plazo máximo de 30 días.",
+      "",
+      "Rubro según BBVA: viajes.",
+    ].join("\n");
+    const r = normalizarBbva({ fuente_id: "bbva", external_id: "viajes-consolid-turismo-internacional", url_fuente: "https://x", contenido, fetched_at: "" });
+    assert.deepEqual(r.beneficios.map((b) => [b.porcentaje, b.tope_monto, b.tope_periodo]), [[10, 6000, "mes"]]);
+  });
+
+  it("'tope de devolución 2.000 pesos' sin 'de'", () => {
+    assert.equal(topes("Se aplicará un 10% en el punto de venta, con tope de devolución 2.000 pesos uruguayos por mes.").get("general"), 2000);
+  });
+
+  it("el general no pisa el tope de un grupo", () => {
+    const t = topes([
+      "El tope de devolución será de 9000 pesos uruguayos.",
+      "TARJETAS DE DÉBITO",
+      "El descuento será de un 20%, con un tope de devolución de 1500 pesos uruguayos.",
+    ].join("\n"));
+    assert.equal(t.get("general"), 9000);
+    assert.equal(t.get("debito"), 1500);
   });
 });
