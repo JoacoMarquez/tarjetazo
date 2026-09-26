@@ -10,6 +10,7 @@ export const FUENTES: readonly Fuente[] = [
   { id: "prex", nombre: "Prex", tipo: "billetera", logo_url: null, url: "https://www.prexcard.com.uy", activa: true },
   { id: "bbva", nombre: "BBVA", tipo: "banco", logo_url: null, url: "https://www.bbva.com.uy", activa: true },
   { id: "midinero", nombre: "Midinero", tipo: "billetera", logo_url: null, url: "https://www.midinero.com.uy", activa: true },
+  { id: "nativa", nombre: "Nativa", tipo: "emisor", logo_url: null, url: "https://www.nativacabal.com.uy", activa: true },
 ] as const;
 
 export const PRODUCTOS: readonly Producto[] = [
@@ -111,6 +112,9 @@ export const PRODUCTOS: readonly Producto[] = [
   // Midinero (Redpagos): una sola tarjeta, prepaga Mastercard. "Midinero Más"
   // y "Cintepa" son la misma tarjeta con otra cuenta detrás.
   { id: "midinero-mastercard", fuente_id: "midinero", nombre: "Midinero Mastercard", instrumento: "prepaga", red: "mastercard", tier: null },
+
+  // Nativa: tarjeta de crédito de la red Cabal.
+  { id: "nativa-cabal", fuente_id: "nativa", nombre: "Nativa Cabal", instrumento: "credito", red: "cabal", tier: null },
 
   // Prex
   { id: "prex-saldo", fuente_id: "prex", nombre: "Saldo Prex", instrumento: "saldo", red: "propia", tier: null },
