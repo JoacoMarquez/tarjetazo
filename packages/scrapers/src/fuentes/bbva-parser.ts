@@ -149,8 +149,13 @@ function fecha(texto: string): string | null {
  * sigue es el de ese grupo. BBVA suele partir el descuento en dos mitades: una
  * en el local sin tope y otra en el estado de cuenta con tope mensual; el tope
  * que guardamos es ese.
+ *
+ * Las fichas de una sola tarjeta (Consolid, Sodimac) no tienen encabezados y
+ * lo escriben de otra forma ("con un tope de devolución de 6000 pesos"): el
+ * primero antes de cualquier encabezado queda como "general", para los tramos
+ * cuyo grupo no tiene tope propio. Exportada para los tests.
  */
-function topes(legales: string): Map<string, number | null> {
+export function topes(legales: string): Map<string, number | null> {
   const out = new Map<string, number | null>();
   let grupo = "";
   for (const linea of legales.split("\n")) {
@@ -160,8 +165,10 @@ function topes(legales: string): Map<string, number | null> {
       grupo = /platin|black|infinite/.test(l) ? "alto" : /debito/.test(l) ? "debito" : /internacional|oro|credito/.test(l) ? "credito" : grupo;
       continue;
     }
-    const m = l.match(/tope de devolucion sera de ([\d.]+)\s*pesos/);
-    if (m && grupo && !out.has(grupo)) out.set(grupo, Number(m[1]!.replace(/\./g, "")));
+    const clave = grupo || "general";
+    // "será de 2000 pesos", "de 6000 pesos", "tope de devolución 2.000 pesos".
+    const m = l.match(/tope de devolucion (?:sera )?(?:de )?\$?\s?([\d.]+)\s*pesos/);
+    if (m && !out.has(clave)) out.set(clave, Number(m[1]!.replace(/\./g, "")));
     else if (/sin tope de devolucion\.?$/.test(l) && grupo && !out.has(grupo)) out.set(grupo, null);
   }
   return out;
@@ -266,7 +273,7 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     const f = sinAcentos(m[3]!);
     const clave = /platinum|black|infinite/.test(f) ? "alto" : /debito/.test(f) ? "debito" : "credito";
     for (const id of ids) if (id !== "bbva-debito") creditoDeLaPagina.add(id);
-    const topeDelTramo = tope.get(clave) ?? null;
+    const topeDelTramo = (tope.has(clave) ? tope.get(clave) : tope.get("general")) ?? null;
     // Las tarjetas de un club tienen un tope por nivel: si los legales los
     // separan, va un tramo por tope (un beneficio guarda un solo tope).
     const porNivel = ids.every((id) => NIVEL_DE_CLUB.test(id)) ? topesDeClub(legales_raw ?? "") : new Map();
