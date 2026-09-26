@@ -5,7 +5,8 @@ import { CalendarDays, CreditCard, ExternalLink, Info, MapPin, ShieldCheck, Smar
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { CopiarLink } from "@/components/copiar-link";
-import { cifra, comercioFusionadoEn, fichaComercio, labelCategoria, nombreFuente, nombreProducto, pesos, type BeneficioFicha } from "@/lib/comercio";
+import { alcanceTarjetas } from "@tarjetazo/core";
+import { cifra, comercioFusionadoEn, fichaComercio, labelCategoria, nombreFuente, pesos, type BeneficioFicha } from "@/lib/comercio";
 import { NOMBRES_DIA } from "@/lib/filtros";
 import { createSupabaseClient } from "@/lib/supabase";
 import { FUENTES } from "@tarjetazo/core";
@@ -78,9 +79,9 @@ function Tramo({ b, comercioNombre }: { b: BeneficioFicha; comercioNombre: strin
       <span className="text-humo block text-xs">Confirmá en el local antes de pagar.</span>
     </>
   );
-  const tarjetas = b.productos_elegibles.length === 0
-    ? `Todas las tarjetas de ${nombreFuente(b.fuente_id)}`
-    : b.productos_elegibles.map(nombreProducto).join(", ");
+  // Agrupada por tarjeta comercial y sin tope de nombres; sin alcance, vale para todas.
+  const alcance = alcanceTarjetas(b.fuente_id, b.productos_elegibles, Infinity);
+  const tarjetas = alcance ? alcance.charAt(0).toUpperCase() + alcance.slice(1) : `Todas las tarjetas de ${nombreFuente(b.fuente_id)}`;
 
   return (
     <article className="mt-6">

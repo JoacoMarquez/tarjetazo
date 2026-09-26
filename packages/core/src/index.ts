@@ -7,6 +7,7 @@ export { esErrorDeTramo, normalizarNombreTarjeta, problemasDeMotivo } from "./re
 export { COSTO_MODELO_USD_POR_MTOK, costoEstimadoUsd, type UsoModelo } from "./costo";
 export {
   EQUIVALENCIAS_PRODUCTO,
+  alcanceTarjetas,
   FAMILIAS,
   FAMILIAS_TARJETA,
   FAMILIA_POR_ID,

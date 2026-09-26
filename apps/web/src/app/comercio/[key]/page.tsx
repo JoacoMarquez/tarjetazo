@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowRight, MapPin, Sparkles } from "lucide-react";
+import { alcanceTarjetas } from "@tarjetazo/core";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { CopiarLink } from "@/components/copiar-link";
@@ -47,6 +48,15 @@ function diasLegibles(dias: number[]) {
   return dias.map((d) => NOMBRES_DIA[d]!.slice(0, 3)).join(", ");
 }
 
+/**
+ * "Solo con …" cuando el beneficio no vale para todas las tarjetas de la
+ * fuente: sin esto, el 30% de 1900 (solo Nacional Platinum) se lee "30% con BBVA".
+ */
+function Alcance({ b, className }: { b: BeneficioFicha; className?: string }) {
+  const alcance = alcanceTarjetas(b.fuente_id, b.productos_elegibles);
+  return alcance ? <p className={className}>Solo con {alcance}</p> : null;
+}
+
 function FilaBeneficio({ b }: { b: BeneficioFicha }) {
   return (
     <li>
@@ -60,6 +70,7 @@ function FilaBeneficio({ b }: { b: BeneficioFicha }) {
             {nombreFuente(b.fuente_id)} · {diasLegibles(b.dias_semana)}
             {b.tope_monto != null && ` · tope ${pesos(b.tope_monto)}${b.tope_periodo ? `/${b.tope_periodo}` : ""}`}
           </p>
+          <Alcance b={b} className="text-pizarra mt-0.5 text-xs" />
         </div>
         <span className="num text-cielo shrink-0 text-xl font-bold">{cifra(b)}</span>
       </Link>
@@ -156,7 +167,11 @@ export default async function PaginaComercio({ params }: Props) {
                 <span className="text-sm"> · tope {pesos(mejorHoy.tope_monto)}{mejorHoy.tope_periodo ? `/${mejorHoy.tope_periodo}` : ""}</span>
               )}
             </p>
-            {conGemelos && <p className="mt-0.5 text-sm font-medium">{mejorHoy.titulo}</p>}
+            {alcanceTarjetas(mejorHoy.fuente_id, mejorHoy.productos_elegibles) ? (
+              <Alcance b={mejorHoy} className="mt-0.5 text-sm font-medium" />
+            ) : (
+              conGemelos && <p className="mt-0.5 text-sm font-medium">{mejorHoy.titulo}</p>
+            )}
             {hoy.length > 1 && <p className="mt-1 text-sm">Y {hoy.length - 1} más que también aplican hoy.</p>}
           </section>
         ) : (
