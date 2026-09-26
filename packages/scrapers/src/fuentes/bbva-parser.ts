@@ -53,9 +53,45 @@ const CREDITO = [
   "bbva-mastercard-platinum", "bbva-black", "bbva-infinite",
 ];
 
+/**
+ * Tarjetas de un club: una por nivel. "Internacionales, Oro y Platinum BBVA
+ * Club Atlético Peñarol" son esos tres niveles; "Tarjetas de crédito BBVA Club
+ * Atlético Peñarol" a secas, los tres.
+ */
+function nivelesDelClub(f: string, club: "penarol" | "nacional"): string[] {
+  const niveles = [
+    [/internacional/, "internacional"],
+    [/\boro\b/, "oro"],
+    [/platinum/, "platinum"],
+  ] as const;
+  const nombrados = niveles.filter(([re]) => re.test(f)).map(([, n]) => n);
+  return (nombrados.length > 0 ? nombrados : niveles.map(([, n]) => n)).map((n) => `bbva-${club}-${n}`);
+}
+
+/**
+ * Las tarjetas de marca: si la frase nombra una, los niveles que la acompañan
+ * ("Comunidad Plus Internacional, Oro e Infinite", "Internacionales, Oro y
+ * Platinum BBVA Club Nacional de Football") son de esa tarjeta, no las
+ * genéricas de BBVA.
+ */
+function deMarca(f: string): string[] {
+  const ids: string[] = [];
+  // "Nacional" a secas está dentro de "Internacional": el club se nombra entero.
+  if (/penarol/.test(f)) ids.push(...nivelesDelClub(f, "penarol"));
+  if (/club nacional|nacional de football/.test(f)) ids.push(...nivelesDelClub(f, "nacional"));
+  // Abtour y Consolid Travel se eligen Visa o Mastercard.
+  if (/abtour/.test(f)) ids.push("bbva-abtour-visa", "bbva-abtour-mastercard");
+  if (/consolid/.test(f)) ids.push("bbva-consolid-travel", "bbva-consolid-travel-visa");
+  if (/comunidad plus/.test(f)) ids.push("bbva-comunidad-plus");
+  if (/sodimac/.test(f)) ids.push("bbva-sodimac");
+  return ids;
+}
+
 /** "Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas" → ids. Exportada para los tests. */
 export function productos(frase: string): { ids: string[]; desconocidos: string[] } {
   const f = sinAcentos(frase);
+  const marca = deMarca(f);
+  if (marca.length > 0) return { ids: marca, desconocidos: [] };
   const ids = new Set<string>();
   const desconocidos: string[] = [];
   if (/debito/.test(f)) ids.add("bbva-debito");
@@ -72,15 +108,6 @@ export function productos(frase: string): { ids: string[]; desconocidos: string[
   if (/platinum/.test(f)) ids.add("bbva-mastercard-platinum");
   if (/black/.test(f)) ids.add("bbva-black");
   if (/infinite/.test(f)) ids.add("bbva-infinite");
-  // Tarjetas de marca: van antes del "crédito a secas" para que "Tarjetas de
-  // Crédito BBVA Sodimac" sea solo la Sodimac y no todas las de crédito.
-  if (/comunidad plus/.test(f)) ids.add("bbva-comunidad-plus");
-  if (/sodimac/.test(f)) ids.add("bbva-sodimac");
-  // Consolid Travel se elige Visa o Mastercard.
-  if (/consolid/.test(f)) {
-    ids.add("bbva-consolid-travel");
-    ids.add("bbva-consolid-travel-visa");
-  }
   // "Tarjetas de Crédito BBVA" a secas: todas las de crédito.
   // Pymes y corporativas van siempre junto a Internacional/Oro; no son
   // tarjetas de consumo y no se listan aparte.
