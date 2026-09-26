@@ -117,3 +117,59 @@ export function expandirProductos(ids: readonly string[]): string[] {
   }
   return out;
 }
+
+const INSTRUMENTO_PLURAL: Record<string, string> = {
+  credito: "tarjetas de crédito",
+  debito: "tarjetas de débito",
+  prepaga: "tarjetas prepagas",
+};
+
+/**
+ * "A", "A y B", "A, B y C". Si todos comparten el comienzo (los niveles de un
+ * club), se dice una vez: "Peñarol BBVA Mastercard Internacional, Oro y Platinum".
+ */
+function enumerar(nombres: string[]): string {
+  const lista = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs.at(-1)}`);
+  if (nombres.length < 2) return lista(nombres);
+  const palabras = nombres.map((n) => n.split(" "));
+  let comun = 0;
+  while (palabras.every((p) => p.length > comun + 1 && p[comun] === palabras[0]![comun])) comun++;
+  if (comun < 2) return lista(nombres);
+  return `${palabras[0]!.slice(0, comun).join(" ")} ${lista(palabras.map((p) => p.slice(comun).join(" ")))}`;
+}
+
+/**
+ * Para qué tarjetas es un beneficio, en pocas palabras, o null si vale para
+ * todas las de la fuente (lista vacía, o todas las activas). Agrupa por
+ * familia: un pack entero se nombra por el pack, y todas las de un
+ * instrumento, por el instrumento ("tarjetas de crédito"). Así el 30% de un
+ * restaurante que solo aplica con la Nacional Platinum no se lee como "30%
+ * con BBVA".
+ *
+ * Con más de `max` nombres no se enumera: "algunas tarjetas de crédito" (las
+ * de BBVA "de crédito" son las 7 genéricas, sin las de marca, y una lista
+ * así en cada beneficio no se lee). Con `max = Infinity`, la lista entera,
+ * para la ficha del beneficio.
+ */
+export function alcanceTarjetas(fuenteId: string, productos: readonly string[], max = 3): string | null {
+  const activos = PRODUCTOS_ACTIVOS.filter((p) => p.fuente_id === fuenteId);
+  const elegibles = new Set(expandirProductos(productos).filter((id) => activos.some((p) => p.id === id)));
+  if (elegibles.size === 0 || activos.every((p) => elegibles.has(p.id))) return null;
+  for (const [instrumento, plural] of Object.entries(INSTRUMENTO_PLURAL)) {
+    const delInstrumento = activos.filter((p) => p.instrumento === instrumento);
+    if (delInstrumento.length > 1 && delInstrumento.length === elegibles.size && delInstrumento.every((p) => elegibles.has(p.id))) {
+      return plural;
+    }
+  }
+  const nombres: string[] = [];
+  for (const f of familiasDe(fuenteId)) {
+    const suyos = f.productos.filter((p) => elegibles.has(p.id));
+    if (suyos.length === 0) continue;
+    if (suyos.length === f.productos.length) nombres.push(f.nombre);
+    else nombres.push(...suyos.map((p) => p.nombre));
+  }
+  if (nombres.length <= max) return enumerar(nombres);
+  const instrumentos = new Set(activos.filter((p) => elegibles.has(p.id)).map((p) => p.instrumento));
+  const [unico] = instrumentos;
+  return instrumentos.size === 1 && unico && INSTRUMENTO_PLURAL[unico] ? `algunas ${INSTRUMENTO_PLURAL[unico]}` : "algunas tarjetas";
+}
