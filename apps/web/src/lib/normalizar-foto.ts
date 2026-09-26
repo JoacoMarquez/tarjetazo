@@ -85,7 +85,59 @@ function cajaDeLaTarjeta(px: Buffer, w: number, h: number): Recorte | null {
   for (let y = caja.top; y < caja.top + caja.height; y++) {
     for (let x = caja.left; x < caja.left + caja.width; x++) if (esTarjeta((y * w + x) * 4)) adentro++;
   }
-  return adentro / (caja.width * caja.height) < LLENO ? null : caja;
+  if (adentro / (caja.width * caja.height) < LLENO) return null;
+  // Tampoco alcanza con una inclinación de ~20° (Nativa): la caja cae casi
+  // entera adentro de la tarjeta. Lo que no engaña son los bordes: en una
+  // tarjeta derecha, el borde izquierdo está en la misma columna en todas las
+  // filas del medio, y lo mismo el derecho, el de arriba y el de abajo.
+  return bordesRectos(esTarjeta, w, h, caja) ? caja : null;
+}
+
+/** Cuánto se puede apartar una medida de un borde de la mediana, sobre el largo del lado. */
+const TORCIDO = 0.015;
+/** Cuántas de las 9 medidas de cada borde tienen que coincidir. */
+const COINCIDEN = 7;
+
+/**
+ * Cada borde se mide en 9 filas (o columnas) del medio, buscando la tarjeta
+ * desde afuera de la caja hacia adentro. Alguna medida puede errar (una
+ * sombra, una parte del diseño del color del fondo): alcanza con que 7 caigan
+ * juntas. En una tarjeta inclinada el borde avanza fila a fila y casi ninguna
+ * coincide, en los cuatro bordes.
+ */
+function bordesRectos(esTarjeta: (i: number) => boolean, w: number, h: number, caja: Recorte): boolean {
+  // Filas y columnas del medio: las esquinas son redondeadas.
+  const medio = (a: number, largo: number) =>
+    Array.from({ length: 9 }, (_, i) => Math.round(a + largo * (0.25 + (0.5 * i) / 8)));
+  const borde = (desde: number, hasta: number, indice: (k: number) => number) => {
+    const paso = hasta > desde ? 1 : -1;
+    for (let k = desde; k !== hasta; k += paso) if (esTarjeta(indice(k))) return k;
+    return null;
+  };
+  const recto = (medidas: (number | null)[], largo: number) => {
+    const v = medidas.filter((x): x is number => x !== null).sort((a, b) => a - b);
+    if (v.length < COINCIDEN) return false;
+    const mediana = v[Math.floor(v.length / 2)]!;
+    return v.filter((x) => Math.abs(x - mediana) <= TORCIDO * largo).length >= COINCIDEN;
+  };
+  const mx = Math.round(0.15 * caja.width);
+  const my = Math.round(0.15 * caja.height);
+  const limX = (x: number) => Math.min(w, Math.max(-1, x));
+  const limY = (y: number) => Math.min(h, Math.max(-1, y));
+  const derecha = caja.left + caja.width - 1;
+  const abajo = caja.top + caja.height - 1;
+  const filas = medio(caja.top, caja.height);
+  const cols = medio(caja.left, caja.width);
+  const enFila = (y: number) => (x: number) => (y * w + x) * 4;
+  const enCol = (x: number) => (y: number) => (y * w + x) * 4;
+  // Una inclinación tuerce los cuatro bordes; una sombra o un diseño del color
+  // del fondo, uno solo. Alcanza con un borde recto por eje.
+  return (
+    (recto(filas.map((y) => borde(Math.max(0, caja.left - mx), limX(caja.left + mx), enFila(y))), caja.width) ||
+      recto(filas.map((y) => borde(Math.min(w - 1, derecha + mx), limX(derecha - mx), enFila(y))), caja.width)) &&
+    (recto(cols.map((x) => borde(Math.max(0, caja.top - my), limY(caja.top + my), enCol(x))), caja.height) ||
+      recto(cols.map((x) => borde(Math.min(h - 1, abajo + my), limY(abajo - my), enCol(x))), caja.height))
+  );
 }
 
 /**
