@@ -12,6 +12,7 @@ export const FUENTES: readonly Fuente[] = [
   { id: "midinero", nombre: "Midinero", tipo: "billetera", logo_url: null, url: "https://www.midinero.com.uy", activa: true },
   { id: "nativa", nombre: "Nativa", tipo: "emisor", logo_url: null, url: "https://www.nativacabal.com.uy", activa: true },
   { id: "club-el-pais", nombre: "Club El País", tipo: "club", logo_url: null, url: "https://www.clubelpais.com.uy", activa: true },
+  { id: "anda", nombre: "ANDA", tipo: "emisor", logo_url: null, url: "https://anda.com.uy", activa: true },
 ] as const;
 
 const BROU = "https://www.brou.com.uy/personas";
@@ -156,6 +157,11 @@ export const PRODUCTOS: readonly Producto[] = [
 
   // Club El País: la tarjeta de socio que viene con la suscripción al diario.
   // No es un medio de pago; el descuento se pide mostrándola al pagar.
+  // ANDA: la tarjeta de crédito propia, la ANDA VISA y la prepaga DEANDA Visa.
+  { id: "anda-credito", fuente_id: "anda", nombre: "Tarjeta ANDA", instrumento: "credito", red: "propia", tier: null, url_oficial: "https://anda.com.uy/tarjeta-de-credito/" },
+  { id: "anda-visa", fuente_id: "anda", nombre: "ANDA VISA", instrumento: "credito", red: "visa", tier: null, url_oficial: "https://anda.com.uy/tarjeta-de-credito/" },
+  { id: "anda-deanda", fuente_id: "anda", nombre: "DEANDA Visa Prepaga", instrumento: "prepaga", red: "visa", tier: null, url_oficial: "https://anda.com.uy/tarjeta-prepaga/" },
+
   { id: "club-el-pais-socio", fuente_id: "club-el-pais", nombre: "Socio Club El País", instrumento: "membresia", red: "propia", tier: null, url_oficial: "https://www.clubelpais.com.uy/suscribite/" },
 
   // Prex: una sola tarjeta. El saldo (QR Toke) es un medio de pago, no una tarjeta.
