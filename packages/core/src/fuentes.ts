@@ -158,8 +158,8 @@ export const PRODUCTOS: readonly Producto[] = [
   { id: "midinero-mastercard", fuente_id: "midinero", nombre: "Midinero Mastercard", instrumento: "prepaga", red: "mastercard", tier: null, url_oficial: "https://www.midinero.com.uy/productos/midinero-tarjeta-prepaga-uruguay/" },
   { id: "midinero-alimentacion", fuente_id: "midinero", nombre: "Midinero Alimentación", instrumento: "prepaga", red: "mastercard", tier: null, url_oficial: "https://www.midinero.com.uy/productos/midinero-alimentacion/" },
 
-  // Nativa: tarjeta de crédito de la red Cabal (#79).
-  { id: "nativa-cabal", fuente_id: "nativa", nombre: "Nativa Cabal", instrumento: "credito", red: "cabal", tier: null, url_oficial: "https://www.nativacabal.com.uy/tarjeta/" },
+  // Nativa Internacional: crédito de la red Cabal, con Diners y Discover (#79).
+  { id: "nativa-cabal", fuente_id: "nativa", nombre: "Nativa Internacional", instrumento: "credito", red: "cabal", tier: null, url_oficial: "https://www.nativacabal.com.uy/tarjeta/" },
 
   // Club El País: la tarjeta de socio que viene con la suscripción al diario.
   // No es un medio de pago; el descuento se pide mostrándola al pagar.
