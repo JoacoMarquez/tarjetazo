@@ -10,6 +10,7 @@ describe("direcciones escritas", () => {
     assert.equal(limpiarDireccion("Pesaro 2917 Esq. Madreselva"), "Pesaro 2917");
     assert.equal(limpiarDireccion("Dr. José Scosería 2612 - Local 2"), "Dr. José Scosería 2612");
     assert.equal(limpiarDireccion("García Cortinas 2357 Piso 5 - Edificio El Plata"), "García Cortinas 2357");
+    assert.equal(limpiarDireccion("Schroeder 6444, Local 4 – Carrasco"), "Schroeder 6444");
     assert.equal(limpiarDireccion("Ruta 60 km 19, Maldonado"), null);
     assert.equal(limpiarDireccion("Via Disegno Mall"), null);
   });

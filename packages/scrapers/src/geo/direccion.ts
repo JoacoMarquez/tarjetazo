@@ -26,7 +26,7 @@ export function limpiarDireccion(direccion: string): string | null {
   const d = direccion
     .replace(/\s+(esq\.?|esquina)\s+.*$/i, "")
     .replace(/[-–,]?\s*\b(local|loc\.?|piso|nivel|apto\.?|of\.?|oficina)\s*[\w.]+/gi, "")
-    .replace(/\s+-\s+.*$/, "")
+    .replace(/\s+[-–]\s+.*$/, "")
     .replace(/\s+/g, " ")
     .trim();
   if (/\b(ruta|km)\b/i.test(d)) return null;

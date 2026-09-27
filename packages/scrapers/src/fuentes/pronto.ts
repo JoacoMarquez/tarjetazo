@@ -3,6 +3,7 @@ import { bajarTexto } from "../http.js";
 import { htmlATexto } from "../texto.js";
 import { slugificar } from "../slug.js";
 import type { Crudo, DireccionDeFuente, Extraido } from "../tipos.js";
+import { departamentoDeLugar, departamentos } from "../geo/lugares.js";
 
 /**
  * Pronto+ (#10), la Visa de la financiera Pronto. `/promos-tarjeta/` lista una
@@ -79,20 +80,6 @@ export function crudoDePagina(url: string, html: string): Crudo | null {
     fetched_at: new Date().toISOString(),
     direcciones: direccionesDe(texto),
   };
-}
-
-/** Localidades que aparecen en las direcciones y no dicen su departamento. */
-const LOCALIDADES: Record<string, string> = {
-  "san jose de mayo": "san-jose", trinidad: "flores", "fray bentos": "rio-negro", mercedes: "soriano",
-  "san carlos": "maldonado", "punta del este": "maldonado", "ciudad de la costa": "canelones", lagomar: "canelones",
-  pando: "canelones", carmelo: "colonia", "nueva palmira": "colonia", "colonia del sacramento": "colonia", minas: "lavalleja",
-};
-
-function departamentoDeLugar(lugar: string): string | null {
-  const l = sinAcentos(lugar).replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
-  if (LOCALIDADES[l]) return LOCALIDADES[l]!;
-  const d = departamentos(l);
-  return d.length === 1 ? d[0]! : null;
 }
 
 /**
@@ -203,33 +190,6 @@ function tope(t: string): { monto: number; periodo: BeneficioNormalizado["tope_p
   const resto = m[2] ?? "";
   const periodo: BeneficioNormalizado["tope_periodo"] = /mes/.test(resto) ? "mes" : /dia/.test(resto) ? "dia" : /cuenta/.test(resto) ? "beneficio" : "compra";
   return { monto: Number(m[1]!.replace(/[.,]/g, "")), periodo };
-}
-
-/** Departamentos que nombra el texto; un nombre seguido de un número es una calle. */
-const LUGARES: [RegExp, string][] = [
-  [/montevideo|pocitos|carrasco|punta carretas|prado|mercado ferrando/g, "montevideo"],
-  [/canelones|ciudad de la costa|lagomar|\bpando\b|\bpinar\b|las piedras|barra de carrasco/g, "canelones"],
-  [/maldonado|punta del este|san carlos|piriapolis/g, "maldonado"],
-  [/colonia|carmelo|nueva palmira|rosario/g, "colonia"],
-  [/paysandu/g, "paysandu"], [/\bsalto\b/g, "salto"], [/rivera/g, "rivera"], [/\bartigas\b/g, "artigas"],
-  [/treinta y tres/g, "treinta-y-tres"], [/lavalleja|\bminas\b/g, "lavalleja"], [/\bflorida\b/g, "florida"],
-  [/soriano|mercedes/g, "soriano"], [/rio negro|fray bentos/g, "rio-negro"], [/san jose/g, "san-jose"],
-  [/\brocha\b/g, "rocha"], [/durazno/g, "durazno"], [/\bflores\b(?! de bach)|trinidad/g, "flores"], [/tacuarembo/g, "tacuarembo"],
-  [/cerro largo|\bmelo\b/g, "cerro-largo"],
-];
-
-export function departamentos(t: string): string[] {
-  const out = new Set<string>();
-  for (const [re, depto] of LUGARES) {
-    for (const m of t.matchAll(re)) {
-      const antes = t.slice(0, m.index!);
-      const despues = t.slice(m.index! + m[0].length);
-      if (/^\s*\d/.test(despues)) continue;
-      if (/\b(av|avda|avenida|br|bv|calle|rambla|esquina|esq)\.?\s+$/.test(antes)) continue;
-      out.add(depto);
-    }
-  }
-  return [...out].sort();
 }
 
 const RUBRO: [RegExp, string][] = [
