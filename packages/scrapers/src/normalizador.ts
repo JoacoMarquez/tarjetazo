@@ -79,6 +79,8 @@ Reglas:
 - \`porcentaje\` es cuánto se descuenta del precio de una compra. Una bonificación de un costo, un trámite o una comisión ("garantía de alquiler gratis", "sin costo de emisión") no es un descuento del 100%: si el beneficio no entra en ninguno de los tipos, poné es_beneficio=false.
 - \`descuento_raw\` y \`legales_raw\` van textuales, sin reescribir: se muestran como letra chica.
 - Las fechas del texto vienen en DD/MM/AAAA; devolvelas como AAAA-MM-DD.
+- Si las condiciones dan fechas concretas de la promoción ("válida del 1° al 31 de julio de 2023"), esas mandan sobre una línea "Vigencia" del sitio.
+- Una vigencia con un año muy lejano (3022, 2060) es un comodín del sitio para "sin fecha de fin": vigencia_hasta va en null.
 - Los montos son en pesos uruguayos salvo que diga USD, U$S, US$ o dólares. Sacá los separadores de miles.
 - Topes: copiá en \`tope_monto\` el número tal como lo escribe la página, sin hacer cuentas, y decí en qué moneda está (\`tope_moneda\`) y sobre qué es (\`tope_sobre\`):
   - \`tope_sobre\`="devolucion" si es lo máximo que te devuelven o descuentan ("tope de descuento", "tope de devolución", "tope de reintegro").
@@ -359,6 +361,21 @@ type TopeExtraido = Pick<
  * compra USD 2.000" → 300 USD por compra). Sin porcentaje (cuotas, 2x1) un
  * tope de compra no dice cuánto te devuelven y se descarta.
  */
+/** Más allá de esto, una fecha de fin es un comodín del sitio: Scotiabank publica "a 3022-06-20" en las promos sin fin. */
+const ANIOS_COMODIN = 3;
+
+/**
+ * vigencia_hasta a más de 3 años es "sin fecha de fin publicada" (null): la
+ * web la muestra así, con el aviso de confirmar en el local, en vez de
+ * "hasta el 20 de junio de 3022". Exportada para los tests.
+ */
+export function sinFechaComodin(fecha: string | null, hoy = new Date()): string | null {
+  if (!fecha) return null;
+  const limite = new Date(hoy);
+  limite.setFullYear(limite.getFullYear() + ANIOS_COMODIN);
+  return fecha > limite.toISOString().slice(0, 10) ? null : fecha;
+}
+
 export function topeDevolucion(t: TopeExtraido): Pick<BeneficioNormalizado, "tope_monto" | "tope_periodo" | "tope_moneda"> {
   const tope_moneda = t.tope_moneda ?? "UYU";
   if (t.tope_monto == null) return { tope_monto: null, tope_periodo: null, tope_moneda: "UYU" };
@@ -420,7 +437,7 @@ export async function normalizar(crudo: Crudo, cliente = new Anthropic()): Promi
       tipo: tramo.tipo,
       dias_semana: tramo.dias_semana,
       vigencia_desde: tramo.vigencia_desde,
-      vigencia_hasta: tramo.vigencia_hasta,
+      vigencia_hasta: sinFechaComodin(tramo.vigencia_hasta),
       departamentos: tramo.departamentos,
       productos_elegibles: ids,
       ...topeDevolucion(tramo),
