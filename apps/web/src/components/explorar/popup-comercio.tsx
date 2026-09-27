@@ -5,7 +5,7 @@ import type { Route } from "next";
 import { Send, X } from "lucide-react";
 import type { BeneficioListado } from "@/lib/consultas";
 import { colorFuente } from "@/lib/marca";
-import { cifraDe } from "./panel-lista";
+import { cifraDe, conAlcance } from "./panel-lista";
 
 const ANCHO = 320;
 
@@ -125,8 +125,8 @@ export function PopupComercio({
               >
                 {cifraDe(b)}
               </span>
-              <span className="text-humo min-w-0 flex-1 truncate text-[13px]">
-                {b.fuente_nombre}
+              <span className="text-humo min-w-0 flex-1 truncate text-[13px]" title={conAlcance(b)}>
+                {conAlcance(b)}
               </span>
               {tuya ? (
                 <span

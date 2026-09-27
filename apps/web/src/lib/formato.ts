@@ -1,6 +1,16 @@
-import type { Producto } from "@tarjetazo/core";
+import { alcanceTarjetas, type Producto } from "@tarjetazo/core";
 import type { BeneficioListado } from "./consultas";
 import { PRODUCTO_POR_ID, productosDe } from "./marca";
+
+/**
+ * El alcance para las cards chicas (home, listado, mapa): solo si nombra algo
+ * concreto. "Algunas tarjetas de crédito" no ayuda ahí; la página del
+ * comercio lo muestra con el detalle a un click.
+ */
+export function alcanceCorto(fuenteId: string, productos: readonly string[] | null | undefined): string | null {
+  const alcance = alcanceTarjetas(fuenteId, productos ?? []);
+  return alcance && !alcance.startsWith("algunas") ? alcance : null;
+}
 
 /** La cifra grande de una card: "15%", "2x1" o "12 cuotas". */
 export function cifraBeneficio(b: Pick<BeneficioListado, "porcentaje" | "cuotas" | "tipo">): string {
