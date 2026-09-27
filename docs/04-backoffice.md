@@ -155,7 +155,7 @@ Los 79 productos del catálogo semilla se verificaron contra el sitio oficial de
 Para que no vuelva a colarse una tarjeta fantasma (`20261022120000_catalogo_bajas.sql`):
 - **Sugerencia de baja:** el scraper de catálogo guarda qué familias dio cada página (`catalogo_pagina.familias`). Si una familia que se veía no aparece en una revisión **completa** de la fuente (sin `--limite`, sin páginas fallidas y sin una página que antes tenía tarjetas y ahora ninguna), deja una sugerencia `tipo = 'baja'`, una por familia. Solo cuenta lo que se vio alguna vez: TuApp o las tarjetas que viven en páginas que no se leen nunca se proponen.
 - **Nunca se aplica sola:** en `/admin/tarjetas` se confirma en el sitio del banco, se da de baja en código (`activo: false` en `PRODUCTOS` y una migración que pase los beneficios, como la de la auditoría) y se marca «Ya la di de baja». Si la familia vuelve a aparecer, la sugerencia pendiente se borra.
-- **Primera revisión:** las páginas extraídas antes de la columna no tienen familias y se vuelven a extraer una vez (unas 25 páginas). Esa revisión no propone bajas.
+- **Primera revisión:** las páginas extraídas antes de la columna no tenían familias. Las 25 (BROU, Santander, BBVA) se completaron a mano el 2026-09-27 sin la API: mismo hash que en la base (las páginas no habían cambiado), tarjetas extraídas con la consigna de `extraer.ts` y familias con `familiaPara`. No se cargaron sugerencias de campos: eran el mismo dato redactado distinto. Desde ahí, una revisión completa ya puede proponer bajas.
 - **Salud:** «Tarjetas sin página oficial» lista los productos activos sin `url_oficial`. Es accionable: se confirma que la tarjeta existe y se carga la url, o se la da de baja.
 
 ## Resumen diario por Telegram (F2)
