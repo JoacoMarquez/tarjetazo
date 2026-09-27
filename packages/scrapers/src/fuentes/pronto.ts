@@ -292,6 +292,7 @@ export function normalizarPronto(crudo: Crudo): Extraido {
     productos_elegibles: [],
     tope_monto: tp?.monto ?? null,
     tope_periodo: tp?.periodo ?? null,
+    tope_moneda: "UYU",
     canal,
     mecanica: [],
     acumulable: /no (es )?acumulable|no aplica con otras|no es aplicable con otras/.test(t) ? false : /acumulable con/.test(t) ? true : null,

@@ -1,6 +1,7 @@
 import { PRODUCTO_POR_ID } from "@/lib/marca";
 import { fechaCorta, numero } from "@/lib/admin/formato";
 import { diasCorto, type Tramo } from "@/lib/admin/paginas";
+import { topeLargo } from "@/lib/tope";
 import { cn } from "@/lib/utils";
 
 /**
@@ -94,7 +95,7 @@ function TarjetaTramo({ t }: { t: Tramo }) {
     ["Canal", t.canal],
   ];
   if (t.departamentos.length) filas.push(["Departamentos", t.departamentos.join(", ")]);
-  if (t.tope_monto !== null) filas.push(["Tope", `$ ${numero(Number(t.tope_monto))} por ${t.tope_periodo ?? "?"}`]);
+  if (t.tope_monto !== null) filas.push(["Tope", `${topeLargo(t)}${t.tope_periodo ? "" : " por ?"}`]);
   if (t.compra_minima !== null) filas.push(["Compra mínima", `$ ${numero(Number(t.compra_minima))}`]);
   if (t.requiere_activacion) filas.push(["Activación", "Requiere activarlo"]);
 

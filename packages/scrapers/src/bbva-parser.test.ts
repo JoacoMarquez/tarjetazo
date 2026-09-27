@@ -147,8 +147,8 @@ describe("parser de BBVA: topes con otra redacción", () => {
       "Tarjetas de crédito Infinite, Platinum y Black",
       "El descuento será de un 30%, el cual se verá reflejado en el estado de cuenta, con un tope de devolución de 6000 pesos uruguayos por cierre de estado de cuenta.",
     ].join("\n"));
-    assert.equal(t.get("debito"), 4000);
-    assert.equal(t.get("alto"), 6000);
+    assert.deepEqual(t.get("debito"), { monto: 4000, moneda: "UYU", periodo: "mes" });
+    assert.deepEqual(t.get("alto"), { monto: 6000, moneda: "UYU", periodo: "mes" });
   });
 
   it("sin encabezados (Consolid): el tope general vale para el tramo", () => {
@@ -164,11 +164,11 @@ describe("parser de BBVA: topes con otra redacción", () => {
       "Rubro según BBVA: viajes.",
     ].join("\n");
     const r = normalizarBbva({ fuente_id: "bbva", external_id: "viajes-consolid-turismo-internacional", url_fuente: "https://x", contenido, fetched_at: "" });
-    assert.deepEqual(r.beneficios.map((b) => [b.porcentaje, b.tope_monto, b.tope_periodo]), [[10, 6000, "mes"]]);
+    assert.deepEqual(r.beneficios.map((b) => [b.porcentaje, b.tope_monto, b.tope_periodo, b.tope_moneda]), [[10, 6000, "mes", "UYU"]]);
   });
 
   it("'tope de devolución 2.000 pesos' sin 'de'", () => {
-    assert.equal(topes("Se aplicará un 10% en el punto de venta, con tope de devolución 2.000 pesos uruguayos por mes.").get("general"), 2000);
+    assert.equal(topes("Se aplicará un 10% en el punto de venta, con tope de devolución 2.000 pesos uruguayos por mes.").get("general")?.monto, 2000);
   });
 
   it("el general no pisa el tope de un grupo", () => {
@@ -177,7 +177,58 @@ describe("parser de BBVA: topes con otra redacción", () => {
       "TARJETAS DE DÉBITO",
       "El descuento será de un 20%, con un tope de devolución de 1500 pesos uruguayos.",
     ].join("\n"));
-    assert.equal(t.get("general"), 9000);
-    assert.equal(t.get("debito"), 1500);
+    assert.equal(t.get("general")?.monto, 9000);
+    assert.equal(t.get("debito")?.monto, 1500);
+  });
+});
+
+describe("parser de BBVA: topes en dólares", () => {
+  it("Consolid primera compra: USD 100 por única vez", () => {
+    // Recorte de la ficha real viajes-consolid (pagina_cruda, 2026-09-27).
+    const contenido = [
+      "Consolid",
+      "Vigencia: 28 de Febrero 2027",
+      "Descuento:",
+      "10% Off en primera compra con la tarjeta de crédito BBVA Consolid Travel.*",
+      "",
+      "Legales:",
+      "Promoción válida del 06 de abril de 2026 al 28 de febrero de 2027.",
+      "El descuento será de un 10%, el cual se verá reflejado en el estado de cuenta. Tope de descuento por cuenta de tarjeta de crédito por primera compra por única vez para tarjetas Consolid sera de USD100 dolares americanos. El descuento realizado se verá reflejado en un plazo máximo de 30 días.",
+      "",
+      "Rubro según BBVA: viajes.",
+    ].join("\n");
+    const r = normalizarBbva({ fuente_id: "bbva", external_id: "viajes-consolid", url_fuente: "https://x", contenido, fetched_at: "" });
+    assert.deepEqual(
+      r.beneficios.map((b) => [b.porcentaje, b.tope_monto, b.tope_moneda, b.tope_periodo]),
+      [[10, 100, "USD", "beneficio"]],
+    );
+  });
+
+  it("reconoce USD100, USD 100, U$S 100 y US$ 100", () => {
+    for (const monto of ["USD100", "USD 100", "U$S 100", "US$ 100", "usd 100"]) {
+      assert.deepEqual(
+        topes(`El tope de devolución será de ${monto} por cierre de estado de cuenta.`).get("general"),
+        { monto: 100, moneda: "USD", periodo: "mes" },
+        monto,
+      );
+    }
+  });
+
+  it("miles con punto y período por día", () => {
+    assert.deepEqual(
+      topes("Tope de descuento: U$S 1.000 por tarjeta, por día.").get("general"),
+      { monto: 1000, moneda: "USD", periodo: "dia" },
+    );
+  });
+
+  it("un monto en dólares de otra oración no es el tope", () => {
+    assert.equal(topes("Sin tope de devolución. Compras mayores a USD 50 participan del sorteo.").size, 0);
+  });
+
+  it("los topes en pesos siguen igual", () => {
+    assert.deepEqual(
+      topes("el tope de devolución será de 4000 pesos uruguayos por cierre de estado de cuenta.").get("general"),
+      { monto: 4000, moneda: "UYU", periodo: "mes" },
+    );
   });
 });

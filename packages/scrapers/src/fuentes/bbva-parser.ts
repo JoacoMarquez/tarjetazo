@@ -1,4 +1,4 @@
-import type { BeneficioNormalizado } from "@tarjetazo/core";
+import type { BeneficioNormalizado, Moneda, TopePeriodo } from "@tarjetazo/core";
 import type { Crudo, Extraido } from "../tipos.js";
 import { slugificar } from "../slug.js";
 
@@ -142,6 +142,43 @@ function fecha(texto: string): string | null {
   return `${m[3]}-${String(mes).padStart(2, "0")}-${m[1]!.padStart(2, "0")}`;
 }
 
+/** Un tope ya leído: cuánto te devuelven como máximo, en qué moneda y cada cuánto. */
+export interface Tope {
+  monto: number;
+  moneda: Moneda;
+  periodo: TopePeriodo;
+}
+
+/** "USD100", "USD 100", "U$S 1.000", "US$ 100" (sobre el texto sin acentos y en minúsculas). */
+const MONTO_USD = /(?:usd|u\$s|us\$)\s?(\d{1,3}(?:[.,]\d{3})+|\d+)/;
+/** "tope de devolución/descuento … USD 100", dentro de la misma oración. */
+const TOPE_USD = new RegExp(`tope de (?:devolucion|descuento)\\b(?:[^.]|\\.\\d)*?${MONTO_USD.source}`);
+
+/** La oración de `l` que contiene la posición `i` (un punto seguido de espacio la corta; "2.000" no). */
+function oracion(l: string, i: number): string {
+  const antes = l.slice(0, i).split(/\.\s/).at(-1) ?? "";
+  const despues = l.slice(i).split(/\.(?:\s|$)/)[0] ?? "";
+  return antes + despues;
+}
+
+/**
+ * Tope en dólares de una línea. BBVA los escribe distinto que los de pesos:
+ * "Tope de descuento por cuenta … por primera compra por única vez … sera de
+ * USD100 dolares americanos". "Por única vez" es un tope del beneficio entero;
+ * si no dice el período, el mensual de siempre (por cierre de estado de cuenta).
+ */
+function topeUsd(l: string): { tope: Tope; indice: number } | null {
+  const m = TOPE_USD.exec(l);
+  if (!m) return null;
+  const o = oracion(l, m.index);
+  const periodo: TopePeriodo = /por unica vez|primera compra/.test(o)
+    ? "beneficio"
+    : /por dia\b/.test(o)
+      ? "dia"
+      : "mes";
+  return { tope: { monto: Number(m[1]!.replace(/[.,]/g, "")), moneda: "USD", periodo }, indice: m.index };
+}
+
 /**
  * Tope por grupo de tarjetas, leyendo los legales en orden: cada encabezado de
  * grupo ("TARJETAS DE DÉBITO", "Tarjetas de crédito Infinite, Platinum y
@@ -153,10 +190,11 @@ function fecha(texto: string): string | null {
  * Las fichas de una sola tarjeta (Consolid, Sodimac) no tienen encabezados y
  * lo escriben de otra forma ("con un tope de devolución de 6000 pesos"): el
  * primero antes de cualquier encabezado queda como "general", para los tramos
- * cuyo grupo no tiene tope propio. Exportada para los tests.
+ * cuyo grupo no tiene tope propio. Los topes en dólares ("USD100") se leen
+ * aparte (`topeUsd`). Exportada para los tests.
  */
-export function topes(legales: string): Map<string, number | null> {
-  const out = new Map<string, number | null>();
+export function topes(legales: string): Map<string, Tope | null> {
+  const out = new Map<string, Tope | null>();
   let grupo = "";
   for (const linea of legales.split("\n")) {
     const l = sinAcentos(linea);
@@ -168,7 +206,15 @@ export function topes(legales: string): Map<string, number | null> {
     const clave = grupo || "general";
     // "será de 2000 pesos", "de 6000 pesos", "tope de devolución 2.000 pesos".
     const m = l.match(/tope de devolucion (?:sera )?(?:de )?\$?\s?([\d.]+)\s*pesos/);
-    if (m && !out.has(clave)) out.set(clave, Number(m[1]!.replace(/\./g, "")));
+    const usd = topeUsd(l);
+    // Si la línea tiene los dos, vale el primero que aparece (como con los de pesos).
+    const tope: Tope | null =
+      usd && (!m || usd.indice < m.index!)
+        ? usd.tope
+        : m
+          ? { monto: Number(m[1]!.replace(/\./g, "")), moneda: "UYU", periodo: "mes" }
+          : null;
+    if (tope && !out.has(clave)) out.set(clave, tope);
     else if (/sin tope de devolucion\.?$/.test(l) && grupo && !out.has(grupo)) out.set(grupo, null);
   }
   return out;
@@ -252,7 +298,7 @@ export function normalizarBbva(crudo: Crudo): Extraido {
         comercio_key: slugificar(nombre), titulo: `${cuotas[1]} cuotas sin interés`, descuento_raw: l,
         porcentaje: null, cuotas: Number(cuotas[1]), tipo: "cuotas", dias_semana: diasActuales,
         vigencia_desde: null, vigencia_hasta, departamentos: departamentos.length === 1 ? (departamentos as BeneficioNormalizado["departamentos"]) : [],
-        productos_elegibles: ids, tope_monto: null, tope_periodo: null, canal: "presencial", mecanica: [],
+        productos_elegibles: ids, tope_monto: null, tope_periodo: null, tope_moneda: "UYU", canal: "presencial", mecanica: [],
         acumulable: null, compra_minima: null, requiere_activacion: false, legales_raw, como_usarlo: [], url_fuente: crudo.url_fuente,
       });
       continue;
@@ -286,14 +332,19 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     const topeDelTramo = (tope.has(clave) ? tope.get(clave) : tope.get("general")) ?? null;
     // Las tarjetas de un club tienen un tope por nivel: si los legales los
     // separan, va un tramo por tope (un beneficio guarda un solo tope).
-    const porNivel = ids.every((id) => NIVEL_DE_CLUB.test(id)) ? topesDeClub(legales_raw ?? "") : new Map();
-    const grupos = new Map<number | null, string[]>();
+    const porNivel = ids.every((id) => NIVEL_DE_CLUB.test(id)) ? topesDeClub(legales_raw ?? "") : new Map<string, number>();
+    // Agrupados por tope (monto, moneda y período): la clave es el texto.
+    const grupos = new Map<string, { tope: Tope | null; ids: string[] }>();
     for (const id of ids) {
       const nivel = id.match(NIVEL_DE_CLUB)?.[1] as "internacional" | "oro" | "platinum" | undefined;
-      const t = (nivel && porNivel.get(nivel)) ?? topeDelTramo;
-      grupos.set(t, [...(grupos.get(t) ?? []), id]);
+      const deClub = nivel ? porNivel.get(nivel) : undefined;
+      const t: Tope | null = deClub ? { monto: deClub, moneda: "UYU", periodo: "mes" } : topeDelTramo;
+      const k = t ? `${t.monto}|${t.moneda}|${t.periodo}` : "";
+      const g = grupos.get(k) ?? { tope: t, ids: [] };
+      g.ids.push(id);
+      grupos.set(k, g);
     }
-    for (const [tope_monto, idsDelGrupo] of grupos) tramos.push({
+    for (const { tope: t, ids: idsDelGrupo } of grupos.values()) tramos.push({
       comercio_key: slugificar(nombre),
       // Partido por tope, cada tramo dice de qué nivel es: si no, en la web se
       // ven tres "10% de descuento" iguales que solo cambian el tope.
@@ -307,8 +358,9 @@ export function normalizarBbva(crudo: Crudo): Extraido {
       vigencia_hasta,
       departamentos: departamentos.length === 1 ? (departamentos as BeneficioNormalizado["departamentos"]) : [],
       productos_elegibles: idsDelGrupo,
-      tope_monto,
-      tope_periodo: tope_monto != null ? "mes" : null,
+      tope_monto: t?.monto ?? null,
+      tope_periodo: t?.periodo ?? null,
+      tope_moneda: t?.moneda ?? "UYU",
       canal: "presencial",
       mecanica: [],
       acumulable: /no acumulable/i.test(legales_raw ?? "") ? false : null,

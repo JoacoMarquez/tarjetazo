@@ -24,7 +24,8 @@ Cobertura: todo el país en datos; geocoding y QA en Montevideo, Canelones y Mal
   - `categoria {slug, label, orden, en_home}`
   - `comercio {key, nombre, categoria, logo_url, best_pct, max_cuotas, n_beneficios, n_fuentes}`
   - `sucursal {comercio_key, direccion, localidad, departamento, geom (PostGIS)}`
-  - `beneficio {id, fuente_id, comercio_key, titulo, descuento_raw, porcentaje, cuotas, tipo: porcentaje|cuotas|reintegro|2x1, dias_semana[], vigencia_desde/hasta, departamentos[], productos_elegibles[], tope_monto, tope_periodo, canal: presencial|online|ambos, mecanica: [qr|nfc|app], acumulable, compra_minima, requiere_activacion, legales_raw, como_usarlo[], url_fuente, fetched_at, estado_revision}`
+  - `beneficio {id, fuente_id, comercio_key, titulo, descuento_raw, porcentaje, cuotas, tipo: porcentaje|cuotas|reintegro|2x1, dias_semana[], vigencia_desde/hasta, departamentos[], productos_elegibles[], tope_monto, tope_periodo, tope_moneda: UYU|USD, canal: presencial|online|ambos, mecanica: [qr|nfc|app], acumulable, compra_minima, requiere_activacion, legales_raw, como_usarlo[], url_fuente, fetched_at, estado_revision}`
+  - `tope_monto` es siempre cuánto te devuelven como máximo, en `tope_moneda` (default UYU). Un tope de compra se guarda ya convertido con el porcentaje: 15% con tope de compra USD 2.000 → 300 USD por compra.
 - Dos niveles geográficos: `beneficio.departamentos[]` filtra en lista; `sucursal.geom` alimenta el mapa. Comercio sin sucursal geocodificada no aparece en el mapa.
 
 ## Producto / UI

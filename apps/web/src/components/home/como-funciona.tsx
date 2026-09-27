@@ -7,6 +7,7 @@ import { useBilletera } from "@/lib/billetera";
 import { CANASTA_SEMANAL, PASOS } from "@/lib/contenido-home";
 import { tarjetaSugerida } from "@/lib/formato";
 import { GRADIENTE } from "@/lib/marca";
+import { topeEnPesos } from "@/lib/tope";
 
 /**
  * Ahorro mensual estimado: el porcentaje real de hoy en super, combustible y
@@ -22,9 +23,8 @@ function estimar(rubros: MejorDelRubro[], mis: string[]): number {
     if (!tarjetaSugerida(beneficio, mis).laTengo) continue;
     const porSemana = (canasta * beneficio.porcentaje) / 100;
     const mensual = porSemana * 4;
-    total += beneficio.tope_periodo === "mes" && beneficio.tope_monto
-      ? Math.min(mensual, beneficio.tope_monto)
-      : mensual;
+    const tope = beneficio.tope_periodo === "mes" ? topeEnPesos(beneficio) : null;
+    total += tope ? Math.min(mensual, tope) : mensual;
   }
   return Math.round(total);
 }

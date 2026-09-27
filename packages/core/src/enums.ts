@@ -8,6 +8,8 @@ export const TipoBeneficio = z.enum(["porcentaje", "cuotas", "reintegro", "2x1"]
 export const Canal = z.enum(["presencial", "online", "ambos"]);
 export const Mecanica = z.enum(["qr", "nfc", "app"]);
 export const TopePeriodo = z.enum(["dia", "semana", "mes", "compra", "beneficio"]);
+/** Moneda del tope: casi todos en pesos; algunos (BROU Agro, Scotiabank) en dólares. */
+export const Moneda = z.enum(["UYU", "USD"]);
 export const EstadoRevision = z.enum(["ok", "revisar", "descartado", "oculto"]);
 
 /** 0 = domingo … 6 = sábado (mismo criterio que Date#getDay). */
@@ -43,5 +45,6 @@ export type TipoBeneficio = z.infer<typeof TipoBeneficio>;
 export type Canal = z.infer<typeof Canal>;
 export type Mecanica = z.infer<typeof Mecanica>;
 export type TopePeriodo = z.infer<typeof TopePeriodo>;
+export type Moneda = z.infer<typeof Moneda>;
 export type EstadoRevision = z.infer<typeof EstadoRevision>;
 export type Departamento = z.infer<typeof Departamento>;

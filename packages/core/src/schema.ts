@@ -6,6 +6,7 @@ import {
   EstadoRevision,
   Instrumento,
   Mecanica,
+  Moneda,
   Red,
   Tier,
   TipoBeneficio,
@@ -97,8 +98,14 @@ const BeneficioBase = z.object({
   departamentos: z.array(Departamento).default([]),
   /** Vacío = todos los productos de la fuente. */
   productos_elegibles: z.array(Slug).default([]),
+  /**
+   * Cuánto te devuelven como máximo, en `tope_moneda`. Un tope "de compra"
+   * (el descuento aplica hasta cierto gasto) se guarda ya convertido:
+   * 15% con tope de compra USD 2.000 → 300 USD. Así todos los topes dicen lo mismo.
+   */
   tope_monto: z.number().nonnegative().nullable().default(null),
   tope_periodo: TopePeriodo.nullable().default(null),
+  tope_moneda: Moneda.default("UYU"),
   canal: Canal.default("presencial"),
   mecanica: z.array(Mecanica).default([]),
   acumulable: z.boolean().nullable().default(null),

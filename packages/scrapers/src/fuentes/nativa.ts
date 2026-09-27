@@ -193,6 +193,7 @@ export function normalizarNativa(crudo: Crudo): Extraido {
       tipo: "porcentaje",
       tope_monto: t?.monto ?? null,
       tope_periodo: t?.periodo ?? null,
+      tope_moneda: "UYU",
     } as BeneficioNormalizado);
   }
 
@@ -213,6 +214,7 @@ export function normalizarNativa(crudo: Crudo): Extraido {
         tipo: "reintegro",
         tope_monto: t?.monto ?? null,
         tope_periodo: t?.monto ? "compra" : null,
+        tope_moneda: "UYU",
       } as BeneficioNormalizado);
     }
   } else if (tipos.includes("cuotas-sin-recargo") || /cuotas/.test(p)) {
@@ -227,6 +229,7 @@ export function normalizarNativa(crudo: Crudo): Extraido {
         tipo: "cuotas",
         tope_monto: null,
         tope_periodo: null,
+        tope_moneda: "UYU",
       } as BeneficioNormalizado);
     }
   }

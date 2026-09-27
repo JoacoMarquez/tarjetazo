@@ -13,9 +13,9 @@ import {
   fichaComercio,
   labelCategoria,
   nombreFuente,
-  pesos,
   type BeneficioFicha, comercioFusionadoEn } from "@/lib/comercio";
 import { NOMBRES_DIA, diaEnUruguay } from "@/lib/filtros";
+import { topeCorto } from "@/lib/tope";
 
 // El cron corre una vez por día; una hora de caché por página es de sobra y
 // mantiene a Supabase fuera del camino de cada visita.
@@ -68,7 +68,7 @@ function FilaBeneficio({ b }: { b: BeneficioFicha }) {
           <p className="font-medium">{b.titulo}</p>
           <p className="text-humo mt-0.5 text-xs">
             {nombreFuente(b.fuente_id)} · {diasLegibles(b.dias_semana)}
-            {b.tope_monto != null && ` · tope ${pesos(b.tope_monto)}${b.tope_periodo ? `/${b.tope_periodo}` : ""}`}
+            {b.tope_monto != null && ` · tope ${topeCorto(b)}`}
           </p>
           <Alcance b={b} className="text-pizarra mt-0.5 text-xs" />
         </div>
@@ -164,7 +164,7 @@ export default async function PaginaComercio({ params }: Props) {
               <strong className="num text-2xl">{cifra(mejorHoy)}</strong> con{" "}
               <strong>{nombreFuente(mejorHoy.fuente_id)}</strong>
               {mejorHoy.tope_monto != null && (
-                <span className="text-sm"> · tope {pesos(mejorHoy.tope_monto)}{mejorHoy.tope_periodo ? `/${mejorHoy.tope_periodo}` : ""}</span>
+                <span className="text-sm"> · tope {topeCorto(mejorHoy)}</span>
               )}
             </p>
             {alcanceTarjetas(mejorHoy.fuente_id, mejorHoy.productos_elegibles) ? (

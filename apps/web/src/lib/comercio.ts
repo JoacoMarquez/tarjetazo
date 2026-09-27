@@ -1,6 +1,7 @@
 import { CATEGORIAS, FUENTES, PRODUCTOS } from "@tarjetazo/core";
 import { createSupabaseClient } from "./supabase";
 import { diaEnUruguay } from "./filtros";
+import type { MonedaTope } from "./tope";
 
 export interface Comercio {
   key: string;
@@ -30,6 +31,7 @@ export interface BeneficioFicha {
   productos_elegibles: string[];
   tope_monto: number | null;
   tope_periodo: string | null;
+  tope_moneda: MonedaTope;
   canal: "presencial" | "online" | "ambos";
   mecanica: string[];
   acumulable: boolean | null;
@@ -143,9 +145,7 @@ export function cifra(b: Pick<BeneficioFicha, "tipo" | "porcentaje" | "cuotas">)
   return b.tipo;
 }
 
-export function pesos(n: number): string {
-  return `$ ${n.toLocaleString("es-UY", { maximumFractionDigits: 0 })}`;
-}
+export { pesos } from "./tope";
 
 /**
  * Si el comercio se fusionó con otro (#25), la clave del que quedó. La URL

@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "./supabase";
 import { diaNumerico, type Filtros } from "./filtros";
+import type { MonedaTope } from "./tope";
 
 /** `null` significa "sin filtrar" en las funciones de la base. */
 function oNull(xs: string[]): string[] | null {
@@ -31,6 +32,7 @@ export interface BeneficioListado {
   dias_semana: number[];
   tope_monto: number | null;
   tope_periodo: string | null;
+  tope_moneda: MonedaTope;
   canal: string;
   vigencia_hasta: string | null;
   productos_elegibles: string[];
