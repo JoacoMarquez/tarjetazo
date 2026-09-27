@@ -237,7 +237,7 @@ export async function restaurarBeneficios(
 /** Lo que se compara para saber si un tramo cambió de verdad (#19). */
 const CAMPOS_TRAMO = [
   "titulo", "descuento_raw", "tipo", "porcentaje", "cuotas", "dias_semana", "vigencia_desde",
-  "vigencia_hasta", "departamentos", "productos_elegibles", "tope_monto", "tope_periodo", "canal",
+  "vigencia_hasta", "departamentos", "productos_elegibles", "tope_monto", "tope_periodo", "tope_moneda", "canal",
   "compra_minima", "requiere_activacion", "estado_revision",
 ] as const;
 

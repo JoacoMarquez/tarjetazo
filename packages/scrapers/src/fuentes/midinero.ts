@@ -251,6 +251,7 @@ export function normalizarMidinero(crudo: Crudo): Extraido {
     productos_elegibles: [PRODUCTO],
     tope_monto: t?.monto ?? null,
     tope_periodo: t?.periodo ?? null,
+    tope_moneda: "UYU",
     canal,
     mecanica: [],
     acumulable: null,

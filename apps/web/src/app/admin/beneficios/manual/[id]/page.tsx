@@ -37,6 +37,7 @@ export default async function EditarManual({ params }: { params: Promise<{ id: s
     vigencia_hasta: s(b.vigencia_hasta),
     tope_monto: s(b.tope_monto),
     tope_periodo: s(b.tope_periodo),
+    tope_moneda: b.tope_moneda === "USD" ? "USD" : "UYU",
     canal: b.canal,
     url_fuente: b.url_fuente,
     nota_manual: s(b.nota_manual),

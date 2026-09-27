@@ -26,6 +26,7 @@ export type ValoresManual = {
   vigencia_hasta: string;
   tope_monto: string;
   tope_periodo: string;
+  tope_moneda: "UYU" | "USD";
   canal: "presencial" | "online" | "ambos";
   url_fuente: string;
   nota_manual: string;
@@ -66,6 +67,7 @@ export function leerFormulario(form: FormData): ValoresManual {
     vigencia_hasta: s("vigencia_hasta"),
     tope_monto: s("tope_monto"),
     tope_periodo: s("tope_periodo"),
+    tope_moneda: s("tope_moneda") === "USD" ? "USD" : "UYU",
     canal: (s("canal") || "presencial") as ValoresManual["canal"],
     url_fuente: s("url_fuente"),
     nota_manual: s("nota_manual"),
@@ -106,6 +108,7 @@ export function validar(
     productos_elegibles: v.productos_elegibles.filter((p) => validos.has(p)),
     tope_monto: numero(v.tope_monto),
     tope_periodo: v.tope_monto ? v.tope_periodo || null : null,
+    tope_moneda: v.tope_monto ? v.tope_moneda : "UYU",
     canal: v.canal,
     url_fuente: v.url_fuente || fuente?.url || "https://tarjetazo.uy",
     fetched_at: new Date().toISOString(),

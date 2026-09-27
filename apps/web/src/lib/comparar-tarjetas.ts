@@ -2,6 +2,7 @@ import { PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 import type { BeneficioListado } from "./consultas";
 import { listarBeneficios } from "./consultas";
 import { FILTROS_VACIOS } from "./filtros";
+import { topeCorto, topeEnPesos } from "./tope";
 
 /**
  * Modelo de la pestaña Comparar, portado de `comparar-data.js` del handoff.
@@ -37,8 +38,10 @@ export function pctDe(
 export interface Oferta {
   /** Descuento equivalente, 0–100. */
   p: number;
-  /** Tope mensual en pesos, o `null` si no tiene. */
+  /** Tope en pesos (uno en dólares, a la cotización de referencia), o `null` si no tiene. */
   t: number | null;
+  /** El tope como lo publica la fuente ("US$ 300/compra"), para mostrarlo. */
+  tt: string | null;
   /** Comercio del mejor beneficio de ese día. */
   c: string;
   /** Cuántos comercios más dan beneficio ese día (para el "+N"). */
@@ -91,7 +94,7 @@ export async function matrizComparar(): Promise<Matriz> {
 
         const actual = porDia[d];
         if (!actual || p > actual.p) {
-          porDia[d] = { p, t: b.tope_monto, c: b.comercio, o: 0 };
+          porDia[d] = { p, t: topeEnPesos(b), tt: topeCorto(b), c: b.comercio, o: 0 };
         }
       }
     }

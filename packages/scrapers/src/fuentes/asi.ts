@@ -167,6 +167,7 @@ export function normalizarAsi(crudo: Crudo): Extraido {
     productos_elegibles: [PRODUCTO],
     tope_monto: null,
     tope_periodo: null,
+    tope_moneda: "UYU",
     canal,
     mecanica: [],
     acumulable: /no (es )?acumulable/.test(t) ? false : null,

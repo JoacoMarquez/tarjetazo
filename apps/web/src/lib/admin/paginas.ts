@@ -1,4 +1,5 @@
 import type { Route } from "next";
+import type { MonedaTope } from "../tope";
 
 /**
  * Una página cruda se identifica por `(fuente_id, external_id)`. Los ids de
@@ -45,6 +46,7 @@ export type Tramo = {
   productos_elegibles: string[];
   tope_monto: number | null;
   tope_periodo: string | null;
+  tope_moneda: MonedaTope;
   canal: string;
   compra_minima: number | null;
   requiere_activacion: boolean;
@@ -56,7 +58,7 @@ export type Tramo = {
 };
 
 export const COLUMNAS_TRAMO =
-  "id, titulo, descuento_raw, tipo, porcentaje, cuotas, dias_semana, vigencia_desde, vigencia_hasta, departamentos, productos_elegibles, tope_monto, tope_periodo, canal, compra_minima, requiere_activacion, legales_raw, estado_revision, verificado_hasta, updated_at, comercio_key";
+  "id, titulo, descuento_raw, tipo, porcentaje, cuotas, dias_semana, vigencia_desde, vigencia_hasta, departamentos, productos_elegibles, tope_monto, tope_periodo, tope_moneda, canal, compra_minima, requiere_activacion, legales_raw, estado_revision, verificado_hasta, updated_at, comercio_key";
 
 const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 
