@@ -32,7 +32,7 @@ export default async function NuevoBeneficio({
         inicial={{
           fuente_id: "", comercio: typeof comercio === "string" ? comercio.slice(0, 80) : "", categoria: "", titulo: "", descuento_raw: "", tipo: "porcentaje",
           porcentaje: "", cuotas: "", dias_semana: [], productos_elegibles: [], vigencia_desde: "",
-          vigencia_hasta: fechaUy(DIAS_DEFAULT), tope_monto: "", tope_periodo: "", canal: "presencial",
+          vigencia_hasta: fechaUy(DIAS_DEFAULT), tope_monto: "", tope_periodo: "", tope_moneda: "UYU", canal: "presencial",
           url_fuente: "", nota_manual: "",
         }}
         {...opciones}

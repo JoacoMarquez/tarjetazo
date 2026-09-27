@@ -5,13 +5,10 @@ import { CalendarDays, MapPin, Sparkles, Ticket } from "lucide-react";
 import { CATEGORIAS } from "@tarjetazo/core";
 import { NOMBRES_DIA } from "@/lib/filtros";
 import type { BeneficioListado } from "@/lib/consultas";
+import { topeCorto } from "@/lib/tope";
 import { cn } from "@/lib/utils";
 
 const LABEL_CATEGORIA = new Map(CATEGORIAS.map((c) => [c.slug, c.label]));
-
-function pesos(n: number): string {
-  return `$ ${n.toLocaleString("es-UY", { maximumFractionDigits: 0 })}`;
-}
 
 function diasLegibles(dias: number[]): string | null {
   if (dias.length === 0 || dias.length === 7) return null;
@@ -95,8 +92,7 @@ export function CardBeneficio({
         )}
         {b.tope_monto != null && (
           <span className="inline-flex items-center gap-1">
-            <Ticket className="size-3.5" /> tope {pesos(b.tope_monto)}
-            {b.tope_periodo ? `/${b.tope_periodo}` : ""}
+            <Ticket className="size-3.5" /> tope {topeCorto(b)}
           </span>
         )}
         {b.n_sucursales > 0 && (

@@ -284,6 +284,7 @@ export function normalizarAnda(crudo: Crudo): Extraido {
     productos_elegibles: productos,
     tope_monto: tp?.monto ?? null,
     tope_periodo: tp?.periodo ?? null,
+    tope_moneda: "UYU",
     canal,
     mecanica: [],
     acumulable: /no (es )?acumulable/.test(t) ? false : null,

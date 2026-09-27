@@ -8,6 +8,7 @@ import { CopiarLink } from "@/components/copiar-link";
 import { alcanceTarjetas } from "@tarjetazo/core";
 import { cifra, comercioFusionadoEn, fichaComercio, labelCategoria, nombreFuente, pesos, type BeneficioFicha } from "@/lib/comercio";
 import { NOMBRES_DIA } from "@/lib/filtros";
+import { topeLargo } from "@/lib/tope";
 import { createSupabaseClient } from "@/lib/supabase";
 import { FUENTES } from "@tarjetazo/core";
 
@@ -54,7 +55,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-const PERIODO: Record<string, string> = { dia: "por día", semana: "por semana", mes: "por mes", compra: "por compra", beneficio: "en total" };
 const CANAL: Record<string, string> = { presencial: "en el local", online: "online", ambos: "en el local y online" };
 const MECANICA: Record<string, string> = { qr: "pago con QR", nfc: "pago sin contacto", app: "desde la app" };
 
@@ -97,7 +97,7 @@ function Tramo({ b, comercioNombre }: { b: BeneficioFicha; comercioNombre: strin
         <Dato icono={CreditCard} label="Tarjetas">{tarjetas}</Dato>
         <Dato icono={CalendarDays} label="Días">{dias}</Dato>
         <Dato icono={Ticket} label="Tope">
-          {b.tope_monto != null ? `${pesos(b.tope_monto)} ${PERIODO[b.tope_periodo ?? ""] ?? ""}`.trim() : "Sin tope publicado"}
+          {topeLargo(b) ?? "Sin tope publicado"}
         </Dato>
         <Dato icono={Info} label="Vigencia">{vigencia}</Dato>
         <Dato icono={MapPin} label="Dónde">

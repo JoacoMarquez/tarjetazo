@@ -67,9 +67,9 @@ function Celda({
           <span className="text-sol block text-[12px] font-bold">
             {oferta.p}% · {oferta.c}
           </span>
-          {oferta.t != null && (
+          {oferta.tt != null && (
             <span className="text-humo-claro block text-[11px]">
-              Tope {fmt(oferta.t)}
+              Tope {oferta.tt}
             </span>
           )}
           {oferta.o > 0 && (

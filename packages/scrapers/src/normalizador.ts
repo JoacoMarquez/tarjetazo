@@ -41,7 +41,15 @@ const TramoSchema = z.object({
   vigencia_desde: z.string().nullable().describe("YYYY-MM-DD"),
   vigencia_hasta: z.string().nullable().describe("YYYY-MM-DD"),
   departamentos: z.array(z.enum(DEPARTAMENTOS)).describe("Vacío = todo el país"),
-  tope_monto: z.number().nullable().describe("En pesos uruguayos"),
+  tope_monto: z
+    .number()
+    .nullable()
+    .describe("El monto del tope tal como lo escribe la página, en tope_moneda y sin convertir"),
+  tope_moneda: z.enum(["UYU", "USD"]).nullable().describe("USD si el tope está en dólares (USD, U$S, US$), UYU si está en pesos"),
+  tope_sobre: z
+    .enum(["devolucion", "compra"])
+    .nullable()
+    .describe("devolucion: lo máximo que te devuelven o descuentan. compra: el gasto máximo sobre el que se aplica el descuento"),
   tope_periodo: z.enum(["dia", "semana", "mes", "compra", "beneficio"]).nullable(),
   canal: z.enum(["presencial", "online", "ambos"]),
   mecanica: z.array(z.enum(["qr", "nfc", "app"])),
@@ -71,7 +79,19 @@ Reglas:
 - \`porcentaje\` es cuánto se descuenta del precio de una compra. Una bonificación de un costo, un trámite o una comisión ("garantía de alquiler gratis", "sin costo de emisión") no es un descuento del 100%: si el beneficio no entra en ninguno de los tipos, poné es_beneficio=false.
 - \`descuento_raw\` y \`legales_raw\` van textuales, sin reescribir: se muestran como letra chica.
 - Las fechas del texto vienen en DD/MM/AAAA; devolvelas como AAAA-MM-DD.
-- Los montos son en pesos uruguayos salvo que diga USD. Sacá los separadores de miles.
+- Los montos son en pesos uruguayos salvo que diga USD, U$S, US$ o dólares. Sacá los separadores de miles.
+- Topes: copiá en \`tope_monto\` el número tal como lo escribe la página, sin hacer cuentas, y decí en qué moneda está (\`tope_moneda\`) y sobre qué es (\`tope_sobre\`):
+  - \`tope_sobre\`="devolucion" si es lo máximo que te devuelven o descuentan ("tope de descuento", "tope de devolución", "tope de reintegro").
+  - \`tope_sobre\`="compra" si es el gasto máximo sobre el que se aplica el descuento ("tope de compra", "tope de compra para efectuar el descuento", "tope de compra para devolución", "aplica a compras de hasta"). Nosotros lo pasamos a devolución con el porcentaje.
+  - "o su equivalente en pesos" no cambia la moneda: un tope de USD 200 sigue siendo USD.
+  - \`tope_periodo\`: "por día" es dia; "por mes" o "por cierre de estado de cuenta" es mes; "por única vez", "por cuenta" o "durante toda la vigencia" es beneficio; "por compra" es compra. Un tope de compra que no dice período es compra.
+  - Si la página publica más de un tope para el mismo tramo, el más chico en el tiempo (el diario antes que el total de la promoción).
+  - El tope va solo en el tramo al que se refiere: unas cuotas sin recargo no llevan el tope del descuento que está al lado, salvo que la página lo diga para las cuotas.
+  - Ejemplos:
+    - "Tope de descuento: U$S 200 por tarjeta, por día" → tope_monto 200, tope_moneda USD, tope_sobre devolucion, tope_periodo dia.
+    - "15% de ahorro. Tope de compra para efectuar el descuento USD 2.000 o su equivalente en pesos" → tope_monto 2000, tope_moneda USD, tope_sobre compra, tope_periodo compra.
+    - "Tope de devolución por cuenta es de USD120" → tope_monto 120, tope_moneda USD, tope_sobre devolucion, tope_periodo beneficio.
+    - "Tope de reintegro $ 1.500 por mes" → tope_monto 1500, tope_moneda UYU, tope_sobre devolucion, tope_periodo mes.
 - En \`productos\` copiá el nombre de cada tarjeta como aparece en la página, sin normalizar, y listalas por separado: "tarjetas de crédito y débito BROU VISA" son dos entradas ("BROU VISA crédito", "BROU VISA débito").
 - Si la página no describe un beneficio en un comercio concreto, poné es_beneficio=false y dejá tramos vacío. Eso incluye páginas institucionales, sorteos, listados y las características de la tarjeta en sí (compras en el exterior, seguros, asistencia al viajero): no son comercios.
 
@@ -328,6 +348,31 @@ export function productosPorTipo(
   return tipos.length > 0 ? porInstrumento(fuenteId, ...tipos) : [];
 }
 
+type TopeExtraido = Pick<
+  z.infer<typeof TramoSchema>,
+  "tipo" | "porcentaje" | "tope_monto" | "tope_moneda" | "tope_sobre" | "tope_periodo"
+>;
+
+/**
+ * El tope como lo guarda la base: siempre cuánto te devuelven como máximo. Un
+ * tope de compra se convierte con el porcentaje del tramo ("15% con tope de
+ * compra USD 2.000" → 300 USD por compra). Sin porcentaje (cuotas, 2x1) un
+ * tope de compra no dice cuánto te devuelven y se descarta.
+ */
+export function topeDevolucion(t: TopeExtraido): Pick<BeneficioNormalizado, "tope_monto" | "tope_periodo" | "tope_moneda"> {
+  const tope_moneda = t.tope_moneda ?? "UYU";
+  if (t.tope_monto == null) return { tope_monto: null, tope_periodo: null, tope_moneda: "UYU" };
+  if (t.tope_sobre !== "compra") return { tope_monto: t.tope_monto, tope_periodo: t.tope_periodo, tope_moneda };
+  if (t.porcentaje == null || t.porcentaje <= 0 || t.tipo === "cuotas") {
+    return { tope_monto: null, tope_periodo: null, tope_moneda: "UYU" };
+  }
+  return {
+    tope_monto: Math.round(t.tope_monto * t.porcentaje) / 100,
+    tope_periodo: t.tope_periodo ?? "compra",
+    tope_moneda,
+  };
+}
+
 export async function normalizar(crudo: Crudo, cliente = new Anthropic()): Promise<Extraido> {
   const res = await cliente.messages.parse({
     model: MODELO,
@@ -378,8 +423,7 @@ export async function normalizar(crudo: Crudo, cliente = new Anthropic()): Promi
       vigencia_hasta: tramo.vigencia_hasta,
       departamentos: tramo.departamentos,
       productos_elegibles: ids,
-      tope_monto: tramo.tope_monto,
-      tope_periodo: tramo.tope_periodo,
+      ...topeDevolucion(tramo),
       canal: tramo.canal,
       mecanica: tramo.mecanica,
       acumulable: tramo.acumulable,

@@ -121,15 +121,25 @@ export function FormularioManual({
         </div>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-5">
         <Campo etiqueta="Desde (opcional)">
           <input name="vigencia_desde" type="date" defaultValue={inicial.vigencia_desde} className={CLASE} />
         </Campo>
         <Campo etiqueta="Hasta" error={e.vigencia_hasta} ayuda="Obligatoria. Al vencer deja de verse.">
           <input name="vigencia_hasta" type="date" defaultValue={inicial.vigencia_hasta} className={CLASE} required />
         </Campo>
-        <Campo etiqueta="Tope $ (opcional)" error={e.tope_monto}>
-          <input name="tope_monto" type="number" min={0} defaultValue={inicial.tope_monto} className={CLASE} />
+        <Campo
+          etiqueta="Tope (opcional)"
+          error={e.tope_monto}
+          ayuda="Lo máximo que te devuelven. Un tope de compra, pasalo con el porcentaje: 15% de USD 2.000 son 300."
+        >
+          <input name="tope_monto" type="number" min={0} step="any" defaultValue={inicial.tope_monto} className={CLASE} />
+        </Campo>
+        <Campo etiqueta="Moneda del tope">
+          <select name="tope_moneda" defaultValue={inicial.tope_moneda} className={CLASE}>
+            <option value="UYU">Pesos ($)</option>
+            <option value="USD">Dólares (US$)</option>
+          </select>
         </Campo>
         <Campo etiqueta="Tope por" error={e.tope_periodo}>
           <select name="tope_periodo" defaultValue={inicial.tope_periodo} className={CLASE}>
