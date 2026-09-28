@@ -18,6 +18,66 @@ interface Tarjeta {
   resumen: string;
 }
 
+/**
+ * Lo que lee el parser (`santander-parser.ts`), en `Crudo.datos`: los campos
+ * de la tarjeta del listado y el cuerpo de la ficha, ya pasados a texto. El
+ * `contenido` sigue armándose como antes (con el recorte de 2.500 caracteres
+ * del listado) para que el hash de las páginas no cambie. No se guarda.
+ */
+export interface DatosSantander {
+  titulo: string;
+  /** Los párrafos del cuerpo de la tarjeta: "25% con Platinum…", "15% con crédito y débito.". */
+  resumen: string[];
+  /** Condiciones de la ficha; vacío si la ficha no respondió. */
+  condiciones: string;
+  /** Rubro del filtro del listado ("Ruta Gourmet", "Moda"), si salió en alguno. */
+  categoria: string | null;
+}
+
+/** Los filtros de rubro del listado (`?categoria=N`), con su etiqueta. */
+export function categoriasDelListado(html: string): { id: string; nombre: string }[] {
+  const out = new Map<string, string>();
+  for (const m of html.matchAll(/<a\b[^>]*name="categoria\[(\d+)\]"[^>]*>([\s\S]*?)<\/a>/g)) {
+    const nombre = htmlATexto(m[2]!).replace(/\s+/g, " ").trim();
+    if (nombre && !out.has(m[1]!)) out.set(m[1]!, nombre);
+  }
+  return [...out].map(([id, nombre]) => ({ id, nombre }));
+}
+
+/** Los paths de las fichas de un listado (entero o filtrado por rubro). */
+function pathsDelListado(html: string): string[] {
+  return [...new Set([...html.matchAll(/href="(\/beneficios\/[^"?#]+)"/g)].map((m) => m[1]!))];
+}
+
+/**
+ * Título y párrafos de cada tarjeta del listado, leyendo el <article> entero
+ * (la ventana de 2.500 caracteres de `tarjetasDelListado` a veces corta el
+ * cuerpo por la mitad).
+ */
+export function camposDelListado(html: string): Map<string, { titulo: string; resumen: string[] }> {
+  const out = new Map<string, { titulo: string; resumen: string[] }>();
+  const partes = html.split(/<article\b(?=[^>]*list-map-item-benefits)/).slice(1);
+  for (const parte of partes) {
+    const bloque = parte.split(/<\/article>/)[0]!;
+    const path = bloque.match(/href="(\/beneficios\/[^"?#]+)"/)?.[1];
+    if (!path || out.has(path)) continue;
+    const titulo = htmlATexto(bloque.match(/field--name-title[^>]*>([\s\S]*?)<\/span>/)?.[1] ?? "").trim();
+    const cuerpo = bloque.match(/field--name-body[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "";
+    const resumen = htmlATexto(cuerpo)
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    out.set(path, { titulo, resumen });
+  }
+  return out;
+}
+
+/** El cuerpo de la ficha (condiciones), sin los bloques del pie que usan la misma clase. */
+export function condicionesDe(html: string): string {
+  const m = html.match(/beneficios-modal-content[\s\S]*?field--name-body[^>]*>([\s\S]*?)<\/div>/);
+  return m ? htmlATexto(m[1]!).trim() : "";
+}
+
 function tarjetasDelListado(html: string): Tarjeta[] {
   const tarjetas = new Map<string, Tarjeta>();
   // El marcador de cada tarjeta es esta clase. Tomamos una ventana fija a
@@ -78,15 +138,31 @@ export function localesDe(html: string): SucursalDeFuente[] {
 export async function fetchSantander(): Promise<Crudo[]> {
   const listado = await bajarTexto(LISTADO);
   const tarjetas = tarjetasDelListado(listado);
+  const campos = camposDelListado(listado);
+
+  // El rubro no está en la tarjeta: sale de filtrar el listado por cada uno.
+  // Sirve para dar de alta comercios nuevos; si un filtro falla, sin rubro.
+  const rubroDe = new Map<string, string>();
+  for (const c of categoriasDelListado(listado)) {
+    try {
+      for (const path of pathsDelListado(await bajarTexto(`${LISTADO}?categoria=${c.id}`))) {
+        if (!rubroDe.has(path)) rubroDe.set(path, c.nombre);
+      }
+    } catch {
+      // Seguimos sin ese rubro.
+    }
+  }
 
   const crudos: Crudo[] = [];
   for (const t of tarjetas) {
     const url = `${BASE}${t.path}`;
     let detalle = "";
+    let condiciones = "";
     let sucursales: SucursalDeFuente[] = [];
     try {
       const html = await bajarTexto(url);
       detalle = htmlATexto(contenidoPrincipal(html));
+      condiciones = condicionesDe(html);
       sucursales = localesDe(html);
     } catch {
       // Si la ficha no responde nos quedamos con lo que dice el listado, que ya
@@ -108,6 +184,12 @@ export async function fetchSantander(): Promise<Crudo[]> {
       contenido,
       fetched_at: new Date().toISOString(),
       sucursales,
+      datos: {
+        titulo: campos.get(t.path)?.titulo || t.comercio,
+        resumen: campos.get(t.path)?.resumen ?? [],
+        condiciones,
+        categoria: rubroDe.get(t.path) ?? null,
+      } satisfies DatosSantander,
     });
   }
   return crudos;
