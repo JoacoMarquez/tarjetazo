@@ -14,6 +14,23 @@ const INDICE = `${BASE}/Personas/Tarjetas/Beneficios/default`;
  * comillas simples, comas finales, HTML adentro. Los evaluamos en un sandbox
  * de node:vm sin acceso a nada, que es más honesto que un parser a mano.
  */
+/**
+ * Lo que el parser (`scotiabank-parser.ts`) lee de cada beneficio: los campos
+ * del catálogo tal como vienen, más los legales ya pasados a texto (los de la
+ * ficha si tiene página propia, que son más completos). Viaja en `Crudo.datos`
+ * y no se guarda: el hash sigue siendo el del `contenido`.
+ */
+export interface DatosScotiabank {
+  titulo: string;
+  categoria: string;
+  descuentos: { pct: string; texto: string }[];
+  dias: string;
+  departamento: string;
+  desde: string | null;
+  hasta: string | null;
+  legal: string;
+}
+
 interface Item {
   categoria?: string;
   departamento?: string;
@@ -175,6 +192,16 @@ export async function fetchScotiabank(): Promise<Crudo[]> {
         .join("\n\n"),
       fetched_at,
       sucursales,
+      datos: {
+        titulo: htmlATexto(it.titulo!),
+        categoria: it.categoria ?? "",
+        descuentos: (it.descuentos ?? []).map((d) => ({ pct: d.pct ?? "", texto: d.texto ?? "" })),
+        dias: it.dias ?? "",
+        departamento: it.departamento ?? "",
+        desde: it.desde || null,
+        hasta: it.hasta || null,
+        legal,
+      } satisfies DatosScotiabank,
     });
   }
   return crudos;
