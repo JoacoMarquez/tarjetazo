@@ -129,7 +129,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       `ya hay una corrida de ${fuenteId} sin terminar; esperá a que cierre o marcala como terminada`,
     );
   }
-  const corridaId = await abrirCorrida(db, fuenteId);
+  const corridaId = await abrirCorrida(db, fuenteId, limite !== undefined);
 
   const reporte: Reporte = {
     fuente_id: fuenteId,

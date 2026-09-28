@@ -21,6 +21,7 @@ import {
   type TipoHallazgo,
 } from "@/lib/admin/salud";
 import { cn } from "@/lib/utils";
+import { marcarDistintos } from "./actions";
 
 export const metadata: Metadata = { title: "Salud de datos" };
 
@@ -302,7 +303,7 @@ export default async function Salud({
       <Seccion tipo="nombres_parecidos" total={cuenta.nombres_parecidos}>
         <Detalle n={dParecidos.length} total={cuenta.nombres_parecidos}>
           <Tabla
-            cabeceras={["Comercio A", "Comercio B", "Parecido", ""]}
+            cabeceras={["Comercio A", "Comercio B", "Parecido", "", ""]}
             numericas={[2]}
             filas={dParecidos.map((p) => ({
               key: `${p.key_a}|${p.key_b}`,
@@ -318,6 +319,14 @@ export default async function Salud({
                 >
                   Fusionar…
                 </Link>,
+                // Un par revisado que no es el mismo comercio no vuelve a aparecer.
+                <form key="d" action={marcarDistintos}>
+                  <input type="hidden" name="a" value={p.key_a} />
+                  <input type="hidden" name="b" value={p.key_b} />
+                  <button type="submit" className="text-humo hover:text-tinta hover:underline">
+                    No son el mismo
+                  </button>
+                </form>,
               ],
             }))}
           />

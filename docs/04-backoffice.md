@@ -200,4 +200,8 @@ Nombres tentativos; se cierran en cada issue.
   where estado_revision <> 'descartado'
   group by 1 order by 2 desc;
   ```
-- Umbrales a calibrar con datos reales: X% de salto entre corridas, 180 días de hash, 60% de porcentaje máximo.
+- Umbrales calibrados con tres semanas de corridas (2026-09-28, `20261102120000_salud_calibrada`):
+  - **Saltos:** 10 % (antes 20 %). Sin las corridas con `--limite`, la cantidad de páginas varía menos de 1 % (máximo 5,5 %) y las bajas por corrida son casi cero. Las corridas con `--limite` quedan con `corrida.parcial` y Salud no las compara.
+  - **Porcentaje máximo:** sigue en 60 %; el máximo real es 50 % (35 beneficios, todos legítimos).
+  - **Nombres parecidos:** sigue en 0,6 (por arriba de 0,8 son duplicados unos 2 de cada 3; entre 0,6 y 0,7, 1 de cada 3). Un par revisado se marca «No son el mismo» (`comercio_par_distinto`) y no vuelve; los comercios sin beneficios no se listan.
+  - **Frescura (180 días):** sin calibrar; la base tiene menos de un mes. Revisar cuando haya beneficios de más de 180 días.

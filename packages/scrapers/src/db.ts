@@ -359,10 +359,11 @@ export async function hayCorridaAbierta(
   return (data ?? []).length > 0;
 }
 
-export async function abrirCorrida(db: SupabaseClient, fuenteId: string): Promise<string> {
+/** `parcial`: con `--limite` trae pocas páginas; Salud no la compara como un salto. */
+export async function abrirCorrida(db: SupabaseClient, fuenteId: string, parcial = false): Promise<string> {
   const { data, error } = await db
     .from("corrida")
-    .insert({ fuente_id: fuenteId })
+    .insert({ fuente_id: fuenteId, parcial })
     .select("id")
     .single();
   if (error) throw new Error(`abriendo corrida: ${error.message}`);
