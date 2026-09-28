@@ -41,6 +41,7 @@ export default async function DetalleCorrida({
     ["Vencidos", numero(c.vencidos)],
     ["A revisar", numero(c.a_revisar)],
     ["Fallidas", numero(c.fallidas ?? 0)],
+    ["Pendientes (sin modelo)", numero(c.pendientes ?? 0)],
   ];
 
   return (

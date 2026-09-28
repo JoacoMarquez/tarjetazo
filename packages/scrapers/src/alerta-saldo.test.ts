@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lineaCorrida } from "./resumen.js";
-import { esErrorDeSaldo } from "./runner.js";
+import { esErrorDeSaldo, modoSinModelo } from "./runner.js";
 
 describe("esErrorDeSaldo", () => {
   it("reconoce el error de Anthropic sin crédito", () => {
@@ -38,5 +38,20 @@ describe("lineaCorrida", () => {
     const r = lineaCorrida("Scotiabank", { ...base, fallidas: 4, error: "Sin saldo en la API de Anthropic: 4 páginas no se pudieron normalizar. Cargá crédito en la consola." });
     assert.equal(r.problema, true);
     assert.ok(r.linea.startsWith("❌ Scotiabank: Sin saldo en la API de Anthropic"));
+  });
+});
+
+describe("modo sin modelo", () => {
+  it("se prende con SCRAPER_SIN_MODELO=1", () => {
+    assert.equal(modoSinModelo({ SCRAPER_SIN_MODELO: "1" }), true);
+    assert.equal(modoSinModelo({ SCRAPER_SIN_MODELO: "true" }), true);
+    assert.equal(modoSinModelo({ SCRAPER_SIN_MODELO: "" }), false);
+    assert.equal(modoSinModelo({}), false);
+    assert.equal(modoSinModelo({ SCRAPER_SIN_MODELO: "0" }), false);
+  });
+
+  it("las páginas pendientes se informan sin alarmar", () => {
+    const r = lineaCorrida("Itaú", { termino_en: "2026-09-28T06:10:00Z", nuevos: 0, actualizados: 0, vencidos: 0, a_revisar: 0, fallidas: 0, pendientes: 5, error: null });
+    assert.deepEqual(r, { linea: "✅ Itaú: 5 esperan normalización", problema: false });
   });
 });

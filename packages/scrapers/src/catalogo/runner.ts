@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { hash } from "../http.js";
-import { esErrorDeSaldo } from "../runner.js";
+import { esErrorDeSaldo, modoSinModelo } from "../runner.js";
 import { extraerTarjetas, type TarjetaVista } from "./extraer.js";
 import { bajarPagina, descubrirPaginas } from "./bajar.js";
 import { FUENTES_CATALOGO, NO_CONSUMO } from "./fuentes.js";
@@ -70,6 +70,14 @@ export async function correrCatalogo(
           if (previa && previa.hash === h && previa.extraido_en && previa.familias) {
             await db.from("catalogo_pagina").update({ visto_en: new Date().toISOString() }).eq("url", url);
             ahora.set(url, previa.familias as string[]);
+            continue;
+          }
+          if (modoSinModelo()) {
+            // Sin modelo no se extrae: la página queda como estaba (se reintenta
+            // cuando se apague el modo) y la fuente no propone bajas, porque
+            // no sabemos qué tarjetas trae ahora.
+            fallidasFuente++;
+            console.error(`  ${url}: cambió, pero el modo sin modelo no la extrae`);
             continue;
           }
           const { tarjetas, uso } = await extraerTarjetas({ url, texto: p.texto, imagenes: p.imagenes }, claude);

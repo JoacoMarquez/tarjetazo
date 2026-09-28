@@ -40,6 +40,17 @@ import type { Crudo, DireccionDeFuente, Extraido, SucursalDeFuente } from "./tip
  * El 2026-09-28 pasó en silencio: cada página fallaba, la corrida terminaba
  * "bien" y Telegram decía que todo había corrido. Exportada para los tests.
  */
+/**
+ * Modo sin modelo (variable SCRAPER_SIN_MODELO=1 en el workflow): para no
+ * gastar saldo de la API. Una página que cambió en una fuente sin parser propio
+ * se guarda con el contenido nuevo pero sin normalizar (como --solo-fetch) y
+ * sus beneficios siguen publicados; queda para normalizarla a mano o cuando se
+ * apague el modo. Exportada para los tests.
+ */
+export function modoSinModelo(env: NodeJS.ProcessEnv = process.env): boolean {
+  return /^(1|true|si|sí)$/i.test(env.SCRAPER_SIN_MODELO ?? "");
+}
+
 export function esErrorDeSaldo(e: unknown): boolean {
   return /credit balance is too low|insufficient[_ ]?(credit|balance|funds)|billing/i.test(String(e));
 }
@@ -54,6 +65,8 @@ export interface Reporte {
   a_revisar: number;
   sucursales: number;
   fallidas: number;
+  /** Páginas que cambiaron y esperan normalización (modo sin modelo). */
+  pendientes: number;
   tokens: UsoModelo;
 }
 
@@ -128,11 +141,14 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     a_revisar: 0,
     sucursales: 0,
     fallidas: 0,
+    pendientes: 0,
     tokens: { entrada: 0, cache_escritura: 0, cache_lectura: 0, salida: 0 },
   };
   // Después del primer "sin saldo" no se vuelve a llamar al modelo: cada
   // llamada fallaría igual.
   let sinSaldo = false;
+  const sinModelo = !propio && modoSinModelo();
+  if (sinModelo) console.error("  modo sin modelo: las páginas que cambiaron quedan pendientes");
 
   try {
     // Adentro del try: si las reglas no se pueden leer, la corrida queda
@@ -283,6 +299,16 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // Un normalizador propio no pasa por ahí, pero tampoco manda nombres de
       // tarjeta a la cola: el de BBVA resuelve todo con su plantilla y nunca
       // informa desconocidos, así que no hay nada a lo que ponerle un alias.
+      if (sinModelo) {
+        // Como --solo-fetch: el contenido nuevo queda guardado con
+        // `normalizada_en` en null, así la próxima corrida con modelo (o la
+        // normalización a mano) la toma. Los beneficios de antes siguen.
+        await guardarPagina(db, filaDePagina(crudo, h, null));
+        reporte.pendientes++;
+        const prefijo = `${fuenteId}:${crudo.external_id}:`;
+        for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
+        return;
+      }
       if (!propio && sinSaldo) throw new Error("sin saldo en la API de Anthropic (no se llamó al modelo)");
       const extraido = propio ? propio(crudo) : await normalizar(crudo, claude);
       // Comercio fusionado desde el backoffice: se escribe en el que quedó, así
@@ -414,6 +440,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         error: `Sin saldo en la API de Anthropic: ${reporte.fallidas} ${reporte.fallidas === 1 ? "página no se pudo" : "páginas no se pudieron"} normalizar. Cargá crédito en la consola.`,
       }),
       fallidas: reporte.fallidas,
+      pendientes: reporte.pendientes,
       paginas: reporte.paginas,
       sin_cambios: reporte.sin_cambios,
       nuevos: reporte.nuevos,
