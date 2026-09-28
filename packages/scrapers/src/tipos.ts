@@ -21,6 +21,12 @@ export interface Crudo {
    */
   direcciones?: DireccionDeFuente[];
   /**
+   * Comercio que la fuente ya nombra sin ambigüedad (cada landing de Itaú es
+   * de un restaurante). Gana sobre el que diga el modelo, que a veces toma el
+   * rubro ("Restaurantes") como nombre y junta ahí páginas de distintos locales.
+   */
+  comercio?: { nombre: string; categoria: string };
+  /**
    * Los campos que la fuente ya publica estructurados (Scotiabank), para su
    * normalizador propio: así no tiene que volver a leerlos del texto. No se
    * guarda ni entra en el hash, que sigue siendo el de `contenido`. Cada

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { conComercioDeFuente } from "./comercio-de-fuente.js";
 import { fechaFinDeTexto } from "./fechas.js";
 import { hash } from "./http.js";
 import { normalizar, usarReglasDb } from "./normalizador.js";
@@ -312,7 +313,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         return;
       }
       if (!propio && sinSaldo) throw new Error("sin saldo en la API de Anthropic (no se llamó al modelo)");
-      const extraido = propio ? propio(crudo) : await normalizar(crudo, claude);
+      const extraido = conComercioDeFuente(propio ? propio(crudo) : await normalizar(crudo, claude), crudo);
       // Sin fecha de fin, la de las condiciones ("del 21 al 25 de setiembre de
       // 2026"): si no, una promo vencida se muestra como vigente sin fecha.
       extraido.beneficios = extraido.beneficios.map((b) =>
