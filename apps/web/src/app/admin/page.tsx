@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: "Corridas" };
 /** Corridas que se muestran por fuente: con el cron diario, algo más de una semana. */
 const POR_FUENTE = 10;
 const COLUMNAS =
-  "id, fuente_id, empezo_en, termino_en, paginas, sin_cambios, nuevos, actualizados, vencidos, a_revisar, error, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida";
+  "id, fuente_id, empezo_en, termino_en, paginas, sin_cambios, nuevos, actualizados, vencidos, a_revisar, fallidas, error, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida";
 
 const NOMBRE_FUENTE = new Map(FUENTES.map((f) => [f.id as string, f.nombre]));
 
@@ -173,6 +173,7 @@ export default async function Corridas() {
                       <Th num>Actualizados</Th>
                       <Th num>Vencidos</Th>
                       <Th num>A revisar</Th>
+                      <Th num>Fallidas</Th>
                       <Th num>Duración</Th>
                       <Th num>Costo est.</Th>
                       <Th>Error</Th>
@@ -200,6 +201,7 @@ export default async function Corridas() {
                         </Td>
                         <Td destacar={c.vencidos > 0}>{numero(c.vencidos)}</Td>
                         <Td destacar={c.a_revisar > 0}>{numero(c.a_revisar)}</Td>
+                        <Td destacar={(c.fallidas ?? 0) > 0}>{numero(c.fallidas ?? 0)}</Td>
                         <Td>{duracion(c) ?? "—"}</Td>
                         <Td>{(() => {
                           const usd = costoCorrida(c);

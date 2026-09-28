@@ -27,6 +27,8 @@ type Corrida = {
   actualizados: number;
   vencidos: number;
   a_revisar: number;
+  /** Páginas que no se pudieron normalizar (quedan para la próxima corrida). */
+  fallidas: number;
   error: string | null;
   tokens_entrada: number;
   tokens_cache_escritura: number;
@@ -49,12 +51,37 @@ export interface OpcionesResumen {
 const nombre = (id: string) => FUENTES.find((f) => f.id === id)?.nombre ?? id;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
+/** Desde cuántas páginas fallidas una corrida que terminó cuenta como problema. */
+const FALLIDAS_PROBLEMA = 3;
+
+type CorridaLinea = Pick<Corrida, "termino_en" | "nuevos" | "actualizados" | "vencidos" | "a_revisar" | "fallidas" | "error">;
+
+/**
+ * La línea de una fuente. Una corrida con páginas fallidas no está "bien"
+ * aunque haya terminado: esas páginas no se actualizaron (así pasó en silencio
+ * cuando se acabó el saldo del modelo). Exportada para los tests.
+ */
+export function lineaCorrida(nombreFuente: string, c: CorridaLinea): { linea: string; problema: boolean } {
+  if (c.error) return { linea: `❌ ${nombreFuente}: ${c.error.split("\n")[0]!.slice(0, 120)}`, problema: true };
+  if (!c.termino_en) return { linea: `⏳ ${nombreFuente}: sigue abierta`, problema: true };
+  const fallidas = c.fallidas ?? 0;
+  const cambios = [
+    c.nuevos && `+${c.nuevos} ${c.nuevos === 1 ? "nuevo" : "nuevos"}`,
+    c.actualizados && `${c.actualizados} ${c.actualizados === 1 ? "cambió" : "cambiaron"}`,
+    c.vencidos && `−${c.vencidos} ${c.vencidos === 1 ? "baja" : "bajas"}`,
+    c.a_revisar && `${c.a_revisar} a revisar`,
+    fallidas && `${fallidas} ${fallidas === 1 ? "página falló" : "páginas fallaron"}`,
+  ].filter(Boolean);
+  const problema = fallidas >= FALLIDAS_PROBLEMA;
+  return { linea: `${problema ? "⚠️" : "✅"} ${nombreFuente}: ${cambios.length ? cambios.join(", ") : "sin cambios"}`, problema };
+}
+
 export async function armarResumen(db: SupabaseClient, o: OpcionesResumen): Promise<string> {
   const [corridas, cola, salud] = await Promise.all([
     db
       .from("corrida")
       .select(
-        "fuente_id, empezo_en, termino_en, paginas, nuevos, actualizados, vencidos, a_revisar, error, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida",
+        "fuente_id, empezo_en, termino_en, paginas, nuevos, actualizados, vencidos, a_revisar, fallidas, error, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida",
       )
       .gte("empezo_en", o.desde)
       .order("empezo_en", { ascending: false }),
@@ -81,21 +108,9 @@ export async function armarResumen(db: SupabaseClient, o: OpcionesResumen): Prom
     uso.cache_escritura += c.tokens_cache_escritura;
     uso.cache_lectura += c.tokens_cache_lectura;
     uso.salida += c.tokens_salida;
-    if (c.error) {
-      problemas++;
-      lineas.push(`❌ ${nombre(f)}: ${c.error.split("\n")[0]!.slice(0, 120)}`);
-    } else if (!c.termino_en) {
-      problemas++;
-      lineas.push(`⏳ ${nombre(f)}: sigue abierta`);
-    } else {
-      const cambios = [
-        c.nuevos && `+${c.nuevos} ${c.nuevos === 1 ? "nuevo" : "nuevos"}`,
-        c.actualizados && `${c.actualizados} ${c.actualizados === 1 ? "cambió" : "cambiaron"}`,
-        c.vencidos && `−${c.vencidos} ${c.vencidos === 1 ? "baja" : "bajas"}`,
-        c.a_revisar && `${c.a_revisar} a revisar`,
-      ].filter(Boolean);
-      lineas.push(`✅ ${nombre(f)}: ${cambios.length ? cambios.join(", ") : "sin cambios"}`);
-    }
+    const { linea, problema } = lineaCorrida(nombre(f), c);
+    lineas.push(linea);
+    if (problema) problemas++;
   }
 
   const alertas: string[] = [];
