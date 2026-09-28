@@ -23,6 +23,19 @@ const LANDINGS = [
 
 const BASE = "https://www.itau.com.uy/inst";
 
+/**
+ * Lo que lee el parser (`itau-parser.ts`) de una landing, en `Crudo.datos`.
+ * Cada tramo lleva las condiciones completas de la landing de la que salió
+ * (vigencia, tope, "no acumulable"), sin el recorte a 400 caracteres del
+ * `contenido`. No se guarda ni entra en el hash.
+ */
+export interface DatosItauLanding {
+  tipo: "landing";
+  nombre: string;
+  rubro: string;
+  tramos: { encabezado: string; ubicaciones: string[]; condiciones: string }[];
+}
+
 /** Nombres de imágenes que son navegación o del propio banco. */
 const NO_ES_COMERCIO = new Set([
   "itau", "logo", "banner", "icono", "icon", "imagen", "foto", "menu", "buscar",
@@ -82,10 +95,10 @@ function seccionesPorUbicacion(html: string): { ubicacion: string; seccion: HTML
  * caracteres iguales para todos los comercios de la landing: repetirlo en cada
  * página triplica el costo de normalizar y no agrega información.
  */
-function bases(html: string): string {
+function bases(html: string): { resumen: string; completas: string } {
   const texto = htmlATexto(html);
   const i = texto.search(/bases y condiciones/i);
-  if (i < 0) return "";
+  if (i < 0) return { resumen: "", completas: "" };
   const resto = texto.slice(i, i + 2000);
   const fin = resto.search(/\n(canales digitales|encontranos en|¿Conocés todos)/i);
   const bloque = (fin > 0 ? resto.slice(0, fin) : resto).trim();
@@ -94,7 +107,8 @@ function bases(html: string): string {
     .split(/\n|(?<=\.)\s+/)
     .filter((l) => /vigen|del \d|hasta el|tope|no acumulable/i.test(l))
     .map((l) => l.trim());
-  return [...new Set(utiles)].join(" ").slice(0, 400);
+  const completas = [...new Set(utiles)].join(" ");
+  return { resumen: completas.slice(0, 400), completas };
 }
 
 export async function fetchItauLandings(): Promise<Crudo[]> {
@@ -103,7 +117,13 @@ export async function fetchItauLandings(): Promise<Crudo[]> {
   // ubicaciones donde aplica.
   const porComercio = new Map<
     string,
-    { nombre: string; rubro: string; tramos: Map<string, Set<string>>; legales: string[] }
+    {
+      nombre: string;
+      rubro: string;
+      tramos: Map<string, Set<string>>;
+      legales: string[];
+      condiciones: Map<string, string>;
+    }
   >();
 
   for (const { pagina, rubro } of LANDINGS) {
@@ -114,7 +134,7 @@ export async function fetchItauLandings(): Promise<Crudo[]> {
     } catch {
       continue;
     }
-    const legales = bases(html);
+    const { resumen: legales, completas } = bases(html);
 
     for (const { ubicacion, seccion } of seccionesPorUbicacion(html)) {
       // Cada sección abre con su porcentaje y con qué tarjetas se paga; las
@@ -128,19 +148,22 @@ export async function fetchItauLandings(): Promise<Crudo[]> {
         const clave = slugificar(nombre);
         const entrada =
           porComercio.get(clave) ??
-          porComercio.set(clave, { nombre, rubro, tramos: new Map(), legales: [] }).get(clave)!;
+          porComercio
+            .set(clave, { nombre, rubro, tramos: new Map(), legales: [], condiciones: new Map() })
+            .get(clave)!;
 
         // Un mismo descuento en varias pestañas es un solo beneficio con varias
         // ubicaciones, no varios beneficios iguales.
         const ubicaciones = entrada.tramos.get(encabezado) ?? new Set<string>();
         ubicaciones.add(ubicacion);
         entrada.tramos.set(encabezado, ubicaciones);
+        if (!entrada.condiciones.has(encabezado)) entrada.condiciones.set(encabezado, completas);
         if (legales && !entrada.legales.includes(legales)) entrada.legales.push(legales);
       }
     }
   }
 
-  return [...porComercio].map(([clave, { nombre, rubro, tramos, legales }]) => ({
+  return [...porComercio].map(([clave, { nombre, rubro, tramos, legales, condiciones }]) => ({
     fuente_id: "itau",
     external_id: `landing-${clave}`,
     url_fuente: `${BASE}/restaurantes.html`,
@@ -155,5 +178,15 @@ export async function fetchItauLandings(): Promise<Crudo[]> {
       .filter(Boolean)
       .join("\n\n"),
     fetched_at,
+    datos: {
+      tipo: "landing",
+      nombre,
+      rubro,
+      tramos: [...tramos].map(([encabezado, ubicaciones]) => ({
+        encabezado,
+        ubicaciones: [...ubicaciones],
+        condiciones: condiciones.get(encabezado) ?? "",
+      })),
+    } satisfies DatosItauLanding,
   }));
 }

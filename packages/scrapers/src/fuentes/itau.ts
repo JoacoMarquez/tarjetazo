@@ -10,6 +10,20 @@ import type { Crudo, SucursalDeFuente } from "../tipos.js";
  */
 const FEED = "https://www.itau.com.uy/inst/aci/inst_camp.xml";
 
+/**
+ * Lo que lee el parser (`itau-parser.ts`) de un item del feed, en
+ * `Crudo.datos`: los campos ya pasados a texto. No se guarda ni entra en el
+ * hash, que sigue siendo el del `contenido`.
+ */
+export interface DatosItauFeed {
+  tipo: "feed";
+  titulo: string;
+  descripcion: string;
+  /** Listas del feed donde sale ("tarjeta de crédito", "paquete Full"…). */
+  listas: string[];
+  bases: string;
+}
+
 /** Cada lista del feed corresponde a un producto o paquete de Itaú. */
 const LISTAS: Record<string, string> = {
   list_debito: "tarjeta de débito",
@@ -90,6 +104,7 @@ export async function fetchItau(): Promise<Crudo[]> {
       contenido,
       fetched_at,
       sucursales,
+      datos: { tipo: "feed", titulo, descripcion, listas, bases } satisfies DatosItauFeed,
     });
   }
   return crudos;
