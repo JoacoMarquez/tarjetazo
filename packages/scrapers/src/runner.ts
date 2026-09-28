@@ -35,6 +35,15 @@ import { slugDepartamento } from "./geo/departamentos.js";
 import type { UsoModelo } from "@tarjetazo/core";
 import type { Crudo, DireccionDeFuente, Extraido, SucursalDeFuente } from "./tipos.js";
 
+/**
+ * El modelo no responde por falta de saldo ("Your credit balance is too low").
+ * El 2026-09-28 pasó en silencio: cada página fallaba, la corrida terminaba
+ * "bien" y Telegram decía que todo había corrido. Exportada para los tests.
+ */
+export function esErrorDeSaldo(e: unknown): boolean {
+  return /credit balance is too low|insufficient[_ ]?(credit|balance|funds)|billing/i.test(String(e));
+}
+
 export interface Reporte {
   fuente_id: string;
   paginas: number;
@@ -121,6 +130,9 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     fallidas: 0,
     tokens: { entrada: 0, cache_escritura: 0, cache_lectura: 0, salida: 0 },
   };
+  // Después del primer "sin saldo" no se vuelve a llamar al modelo: cada
+  // llamada fallaría igual.
+  let sinSaldo = false;
 
   try {
     // Adentro del try: si las reglas no se pueden leer, la corrida queda
@@ -158,6 +170,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         // significa que la fuente los haya dado de baja.
         const prefijo = `${fuenteId}:${crudo.external_id}:`;
         for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
+        if (esErrorDeSaldo(e)) sinSaldo = true;
         console.error(`  fallo en ${crudo.external_id}: ${String(e).slice(0, 160)}`);
       }
     }
@@ -270,6 +283,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // Un normalizador propio no pasa por ahí, pero tampoco manda nombres de
       // tarjeta a la cola: el de BBVA resuelve todo con su plantilla y nunca
       // informa desconocidos, así que no hay nada a lo que ponerle un alias.
+      if (!propio && sinSaldo) throw new Error("sin saldo en la API de Anthropic (no se llamó al modelo)");
       const extraido = propio ? propio(crudo) : await normalizar(crudo, claude);
       // Comercio fusionado desde el backoffice: se escribe en el que quedó, así
       // la corrida no vuelve a crear el duplicado (#25).
@@ -394,6 +408,12 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     }
 
     await cerrarCorrida(db, corridaId, {
+      // Sin saldo la corrida no terminó bien aunque no haya tirado excepción:
+      // con error, el dashboard y Telegram la marcan.
+      ...(sinSaldo && {
+        error: `Sin saldo en la API de Anthropic: ${reporte.fallidas} ${reporte.fallidas === 1 ? "página no se pudo" : "páginas no se pudieron"} normalizar. Cargá crédito en la consola.`,
+      }),
+      fallidas: reporte.fallidas,
       paginas: reporte.paginas,
       sin_cambios: reporte.sin_cambios,
       nuevos: reporte.nuevos,
@@ -410,6 +430,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     // Lo gastado en el modelo antes de fallar también cuenta.
     await cerrarCorrida(db, corridaId, {
       error: String(e),
+      fallidas: reporte.fallidas,
       tokens_entrada: reporte.tokens.entrada,
       tokens_cache_escritura: reporte.tokens.cache_escritura,
       tokens_cache_lectura: reporte.tokens.cache_lectura,

@@ -40,6 +40,7 @@ export default async function DetalleCorrida({
     ["Actualizados", numero(c.actualizados)],
     ["Vencidos", numero(c.vencidos)],
     ["A revisar", numero(c.a_revisar)],
+    ["Fallidas", numero(c.fallidas ?? 0)],
   ];
 
   return (

@@ -16,6 +16,8 @@ export type Corrida = {
   actualizados: number;
   vencidos: number;
   a_revisar: number;
+  /** Páginas que no se pudieron normalizar (p. ej. sin saldo en el modelo). */
+  fallidas?: number;
   error: string | null;
   tokens_entrada?: number;
   tokens_cache_escritura?: number;

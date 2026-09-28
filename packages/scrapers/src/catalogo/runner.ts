@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { hash } from "../http.js";
+import { esErrorDeSaldo } from "../runner.js";
 import { extraerTarjetas, type TarjetaVista } from "./extraer.js";
 import { bajarPagina, descubrirPaginas } from "./bajar.js";
 import { FUENTES_CATALOGO, NO_CONSUMO } from "./fuentes.js";
@@ -105,6 +106,8 @@ export async function correrCatalogo(
             console.error(`  ${url}: antes tenía tarjetas y ahora ninguna; no se proponen bajas de ${f.fuente_id}`);
           }
         } catch (e) {
+          // Sin saldo, cada página que cambió fallaría igual: la revisión termina con error.
+          if (esErrorDeSaldo(e)) throw new Error(`Sin saldo en la API de Anthropic (${url}). Cargá crédito en la consola.`);
           r.fallidas++;
           fallidasFuente++;
           console.error(`  falló ${url}: ${String(e).slice(0, 160)}`);
