@@ -15,6 +15,8 @@ export const FUENTES: readonly Fuente[] = [
   { id: "anda", nombre: "ANDA", tipo: "emisor", logo_url: null, url: "https://anda.com.uy", activa: true },
   { id: "asi", nombre: "Club ASI", tipo: "club", logo_url: null, url: "https://www.asi-clubdescuentos.com.uy", activa: true },
   { id: "pronto", nombre: "Pronto+", tipo: "emisor", logo_url: null, url: "https://www.pronto.com.uy", activa: true },
+  { id: "creditel", nombre: "Creditel", tipo: "emisor", logo_url: null, url: "https://www.creditel.com.uy", activa: true },
+  { id: "passcard", nombre: "Passcard", tipo: "emisor", logo_url: null, url: "https://www.passcard.com.uy", activa: true },
 ] as const;
 
 const BROU = "https://www.brou.com.uy/personas";
@@ -173,6 +175,13 @@ export const PRODUCTOS: readonly Producto[] = [
   // Pronto+: la Visa de la financiera Pronto, común y Premium.
   { id: "pronto-visa", fuente_id: "pronto", nombre: "Visa Pronto+", instrumento: "credito", red: "visa", tier: null, url_oficial: "https://www.pronto.com.uy/promos-tarjeta/" },
   { id: "pronto-visa-premium", fuente_id: "pronto", nombre: "Visa Pronto+ Premium", instrumento: "credito", red: "visa", tier: null, url_oficial: "https://www.pronto.com.uy/tarjeta-premium/" },
+
+  // Creditel y Passcard publican solo promos de rubro entero (todo-librerias…).
+  { id: "creditel-mastercard", fuente_id: "creditel", nombre: "Creditel Mastercard", instrumento: "credito", red: "mastercard", tier: null, url_oficial: "https://www.creditel.com.uy/tarjeta" },
+  { id: "passcard-clasica", fuente_id: "passcard", nombre: "Passcard", instrumento: "credito", red: "propia", tier: null, url_oficial: "https://www.passcard.com.uy/tarjeta/beneficios" },
+  { id: "passcard-like", fuente_id: "passcard", nombre: "Passcard Like", instrumento: "credito", red: "propia", tier: null, url_oficial: "https://www.passcard.com.uy/tarjeta/beneficios" },
+  { id: "passcard-experta", fuente_id: "passcard", nombre: "Passcard Experta", instrumento: "credito", red: "propia", tier: null, url_oficial: "https://www.passcard.com.uy/tarjeta/beneficios" },
+  { id: "passcard-black", fuente_id: "passcard", nombre: "Passcard Black", instrumento: "credito", red: "propia", tier: "black", url_oficial: "https://www.passcard.com.uy/tarjeta/beneficios" },
 
   { id: "club-asi", fuente_id: "asi", nombre: "Cliente ASI", instrumento: "membresia", red: "propia", tier: null, url_oficial: "https://asi.com.uy/" },
 

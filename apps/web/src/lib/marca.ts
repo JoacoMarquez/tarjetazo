@@ -44,6 +44,8 @@ const POR_FUENTE: Record<string, ColorFuente> = {
   anda: MENTA,
   asi: SOL,
   pronto: CORAL,
+  creditel: CIELO,
+  passcard: MENTA,
 };
 
 export function colorFuente(fuenteId: string): ColorFuente {
