@@ -1,4 +1,5 @@
 import { normalizarBbva } from "./fuentes/bbva-parser.js";
+import { normalizarScotiabank } from "./fuentes/scotiabank-parser.js";
 import { fetchMidinero, normalizarMidinero } from "./fuentes/midinero.js";
 import { fetchNativa, normalizarNativa } from "./fuentes/nativa.js";
 import { fetchClubElPais, normalizarClubElPais } from "./fuentes/club-el-pais.js";
@@ -22,6 +23,8 @@ type Crudo = import("./tipos.js").Crudo;
 type Extraido = import("./tipos.js").Extraido;
 const NORMALIZADORES: Record<string, (c: Crudo) => Extraido> = {
   bbva: normalizarBbva,
+  // El catálogo trae los campos estructurados (Crudo.datos): sin modelo.
+  scotiabank: normalizarScotiabank,
   midinero: normalizarMidinero,
   nativa: normalizarNativa,
   "club-el-pais": normalizarClubElPais,

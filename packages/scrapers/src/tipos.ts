@@ -20,6 +20,13 @@ export interface Crudo {
    * El runner los geocodifica y guarda el pin si es confiable (geo/direccion.ts).
    */
   direcciones?: DireccionDeFuente[];
+  /**
+   * Los campos que la fuente ya publica estructurados (Scotiabank), para su
+   * normalizador propio: así no tiene que volver a leerlos del texto. No se
+   * guarda ni entra en el hash, que sigue siendo el de `contenido`. Cada
+   * parser sabe su forma.
+   */
+  datos?: unknown;
 }
 
 export interface DireccionDeFuente {
