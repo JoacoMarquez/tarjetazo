@@ -147,16 +147,16 @@ export async function idsDeBeneficios(
  * `comercio|dirección` de todas las sucursales: con esto el runner no vuelve
  * a pedir el reverse de un local que ya tiene. Paginado (PostgREST corta en 1.000).
  */
-export async function localesGuardados(db: SupabaseClient): Promise<Set<string>> {
-  const out = new Set<string>();
+export async function localesGuardados(db: SupabaseClient): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
   for (let desde = 0; ; desde += 1000) {
     const { data, error } = await db
       .from("sucursal")
-      .select("id, comercio_key, direccion")
+      .select("id, comercio_key, direccion, departamento")
       .order("id")
       .range(desde, desde + 999);
     if (error) throw new Error(`leyendo sucursales: ${error.message}`);
-    for (const s of data ?? []) out.add(`${s.comercio_key}|${s.direccion}`);
+    for (const s of data ?? []) out.set(`${s.comercio_key}|${s.direccion}`, s.departamento ?? null);
     if ((data ?? []).length < 1000) return out;
   }
 }

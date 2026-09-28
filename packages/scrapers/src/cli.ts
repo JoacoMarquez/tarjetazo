@@ -1,6 +1,7 @@
 import { normalizarBbva } from "./fuentes/bbva-parser.js";
 import { normalizarScotiabank } from "./fuentes/scotiabank-parser.js";
 import { normalizarItau } from "./fuentes/itau-parser.js";
+import { normalizarSantander } from "./fuentes/santander-parser.js";
 import { fetchMidinero, normalizarMidinero } from "./fuentes/midinero.js";
 import { fetchNativa, normalizarNativa } from "./fuentes/nativa.js";
 import { fetchClubElPais, normalizarClubElPais } from "./fuentes/club-el-pais.js";
@@ -29,6 +30,8 @@ const NORMALIZADORES: Record<string, (c: Crudo) => Extraido> = {
   scotiabank: normalizarScotiabank,
   // Feed y landings traen sus campos estructurados (Crudo.datos): sin modelo.
   itau: normalizarItau,
+  // Listado y ficha traen sus campos estructurados (Crudo.datos): sin modelo.
+  santander: normalizarSantander,
   midinero: normalizarMidinero,
   nativa: normalizarNativa,
   "club-el-pais": normalizarClubElPais,

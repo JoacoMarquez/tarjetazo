@@ -34,7 +34,7 @@ import { reversaIde } from "./geo/ide.js";
 import { geocodificar } from "./geo/index.js";
 import { limpiarDireccion, puntoConfiable } from "./geo/direccion.js";
 import { slugDepartamento } from "./geo/departamentos.js";
-import type { UsoModelo } from "@tarjetazo/core";
+import type { BeneficioNormalizado, UsoModelo } from "@tarjetazo/core";
 import type { Crudo, DireccionDeFuente, Extraido, SucursalDeFuente } from "./tipos.js";
 
 /**
@@ -104,6 +104,27 @@ function filaDePagina(
 }
 
 /** `fuente:external_id:n` — determinista, para que el upsert sea idempotente. */
+/**
+ * Los departamentos de los locales que la fuente publicó con la página, según
+ * el reverse oficial de cada punto (lo que guarda `sucursal`). `null` si no hay
+ * locales o alguno no tiene departamento: entonces no se restringe (todo el
+ * país), mejor que dejar afuera un local que no supimos ubicar.
+ */
+export function departamentosDeLocales(
+  locales: Map<string, string | null>,
+  comercioKey: string,
+  sucursales: SucursalDeFuente[],
+): BeneficioNormalizado["departamentos"] | null {
+  if (sucursales.length === 0) return null;
+  const out = new Set<string>();
+  for (const s of sucursales) {
+    const d = locales.get(`${comercioKey}|${s.direccion}`);
+    if (!d) return null;
+    out.add(d);
+  }
+  return [...out].sort() as BeneficioNormalizado["departamentos"];
+}
+
 function idBeneficio(fuenteId: string, externalId: string, n: number): string {
   return `${fuenteId}:${externalId}:${n}`;
 }
@@ -203,9 +224,9 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       for (const s of sucursales) {
         const clave = `${comercioKey}|${s.direccion}`;
         if (locales.has(clave)) continue;
-        locales.add(clave);
         const r = await reversaIde(s.lat, s.lng);
         const departamento = slugDepartamento(r?.departamento ?? null);
+        locales.set(clave, departamento);
         if (!departamento) continue;
         filas.push({
           comercio_key: comercioKey,
@@ -343,6 +364,14 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         // fuente publicó junto al beneficio.
         reporte.sucursales += await guardarLocales(extraido.comercio.key, crudo.sucursales ?? []);
         reporte.sucursales += await guardarDirecciones(extraido.comercio.key, crudo.direcciones ?? []);
+        if (extraido.departamentosDeLocales) {
+          const deptos = departamentosDeLocales(locales, extraido.comercio.key, crudo.sucursales ?? []);
+          if (deptos) {
+            extraido.beneficios = extraido.beneficios.map((b) =>
+              b.departamentos.length > 0 ? b : { ...b, departamentos: deptos },
+            );
+          }
+        }
       }
 
       // Qué tramos cambiaron de verdad: una página puede cambiar (un banner, la

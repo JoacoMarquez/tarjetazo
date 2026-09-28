@@ -5,7 +5,19 @@ import { slugificar } from "../slug.js";
 import type { Crudo, Extraido } from "../tipos.js";
 import type { DatosItauFeed } from "./itau.js";
 import type { DatosItauLanding } from "./itau-landings.js";
-import { diasDe, diasEnTitulo, sinAcentos, topeDelTramo, topesDelLegal, vigenciaDelLegal } from "./legales.js";
+import {
+  MARCA,
+  clausulas,
+  diasDe,
+  diasEnTitulo,
+  sinAcentos,
+  topeDelTramo,
+  topesDelLegal,
+  vigenciaDelLegal,
+  type Clausula,
+} from "./legales.js";
+
+export { clausulas };
 
 /**
  * Itaú, sin modelo. Dos formas de página, las dos con los campos ya
@@ -316,44 +328,6 @@ export function comercioDelFeed(d: Pick<DatosItauFeed, "titulo" | "descripcion" 
     }
   }
   return { nombre, departamento };
-}
-
-/** Marcas de un tramo: un porcentaje, un 2x1 o unas cuotas. */
-const MARCA = /(?:hasta\s+)?\d{1,2}\s*%|\b2\s*x\s*1\b|\b\d{1,2}(?:\s*(?:y|o|,)\s*\d{1,2})*\s+cuotas\b/gi;
-
-interface Clausula {
-  tipo: BeneficioNormalizado["tipo"];
-  porcentaje: number | null;
-  cuotas: number | null;
-  hasta: boolean;
-  texto: string;
-  /** Oración del texto (las cláusulas de una misma oración comparten días y tarjetas). */
-  oracion: number;
-}
-
-/**
- * Parte un texto en cláusulas, una por marca: "20% menos … los días martes y
- * jueves y 15% menos todos los días pagando con tarjetas Platinum" → dos.
- * Exportada para los tests.
- */
-export function clausulas(texto: string): Clausula[] {
-  const t = texto.replace(/\s+/g, " ").trim();
-  const marcas = [...t.matchAll(MARCA)];
-  // Fin de oración: un punto seguido de espacio o pegado a la próxima marca ("Black).15% menos").
-  const finales = [...t.matchAll(/\.(?=\s|\d|$)/g)].map((m) => m.index!);
-  return marcas.map((m, k) => {
-    const desde = m.index!;
-    const hasta = k + 1 < marcas.length ? marcas[k + 1]!.index! : t.length;
-    const pedazo = t.slice(desde, hasta).replace(/\s+y\s*$/, "").trim();
-    const marca = sinAcentos(m[0]);
-    const oracion = finales.filter((f) => f < desde).length;
-    if (/cuotas/.test(marca)) {
-      const nums = marca.match(/\d{1,2}/g)!.map(Number);
-      return { tipo: "cuotas" as const, porcentaje: null, cuotas: Math.max(...nums), hasta: nums.length > 1, texto: pedazo, oracion };
-    }
-    if (/2\s*x\s*1/.test(marca)) return { tipo: "2x1" as const, porcentaje: null, cuotas: null, hasta: false, texto: pedazo, oracion };
-    return { tipo: "porcentaje" as const, porcentaje: Number(marca.match(/\d{1,2}/)![0]), cuotas: null, hasta: /hasta/.test(marca), texto: pedazo, oracion };
-  });
 }
 
 /** "… solo para compras en el locales de Montevideo y Maldonado" → esos departamentos. */

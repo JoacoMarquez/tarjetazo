@@ -60,6 +60,13 @@ export interface Extraido {
    * (institucional, sorteo, listado). Distinto de "no le pudo sacar tramos".
    */
   es_beneficio?: boolean;
+  /**
+   * Los beneficios sin departamentos toman los de los locales que la fuente
+   * publicó con la página (Santander: las direcciones casi nunca dicen el
+   * departamento, pero cada local trae su punto). Lo completa el runner, que
+   * es el que conoce el departamento de cada punto.
+   */
+  departamentosDeLocales?: boolean;
   /** Tokens del modelo. Ausente en normalizadores propios (sin modelo). */
   uso?: UsoModelo;
 }
