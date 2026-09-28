@@ -77,9 +77,9 @@ Mercado Pago y Prex. Tarjetazo tiene 5 en producción (6 con Prex, listo en rama
 | Mercado Pago | billetera | ✓ | in-app | 403 a bots, promos dentro de la app | inviable sin app |
 | **Club ASI** | club (financiera ASI) | — | **298 descuentos**, 212 propios (86 son de la Tarjeta Sonrisas de Tres Cruces), 318 locales con coordenadas | app Next.js sobre la API JSON de Mashkady (`api-fenix.servicios-ya.com/api/v3/mashkady/discounts?companyId=…`, header `countrycode: UY`); la misma red la comparten CINTEPA, COPAC y Créditos Directos | **hecho** (2026-09-26, parser propio, membresía) |
 | Pronto+ | financiera (Visa Pronto+) | — | **46 promos vigentes** por comercio (60 en el sitemap, con vencidas) | `pronto.com.uy/promos-tarjeta/` (lista armada con JS) → `/promo-<comercio>/`, texto libre ("15% de descuento", "Aplica los días…", "Tope…", "Válido hasta…") | medio: parser con reglas, costo cero |
-| PassCard | emisor | — | 7 promos de rubro entero (librerías los lunes, peluquerías los martes…, 25-30 % según el tier) | `passcard.com.uy/tarjeta/promociones` | no encaja: beneficios por rubro, no por comercio |
-| Creditel | financiera | — | 7 promos de rubro entero (20 %, 25 % con MODO) | `creditel.com.uy/api/v1/promotions` (JSON) | no encaja: por rubro |
-| Italmundo | emisor | — | ~6 promos genéricas (supermercados el 3er martes, combustible los miércoles) + Club El País a mitad de precio | `italmundo.com.uy/beneficios/` | no encaja: por rubro |
+| PassCard | emisor | — | 7 promos de rubro entero (librerías los lunes, peluquerías los martes…, 25-30 % según la tarjeta) | `passcard.com.uy/tarjeta/promociones` + bases en `/download-variable/3` (días y topes) | **hecho** (2026-09-28, rubro entero) |
+| Creditel | financiera | — | 7 promos de rubro entero (20 %, 25 % con MODO) | `creditel.com.uy/api/v1/promotions` (JSON; ignora `?page=`) | **hecho** (2026-09-28, rubro entero) |
+| Italmundo | emisor | — | ~6 promos genéricas (supermercados el 3er martes, combustible los miércoles) + Club El País a mitad de precio | `italmundo.com.uy/beneficios/` | no se carga: no publica porcentajes (son códigos de descuento sin monto) |
 | Tarjeta D (Créditos Directos) | financiera | — | cuotas sin recargo (18 generales, 3 en comestibles y combustible) con listas de adheridos en PDF de Drive | `creditosdirectos.com.uy/beneficios/` | bajo valor |
 | Crédito de Valor, Líder, Tarjeta Verde | | — | — | sin sitio que responda (`lider.com.uy` es una imprenta) | descartadas |
 | TuApp, Bandes | | — | 8 y 7 | vía BROU y vía Cabal | bajo valor |
