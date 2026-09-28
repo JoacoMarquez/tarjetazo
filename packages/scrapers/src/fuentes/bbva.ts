@@ -1,7 +1,8 @@
 import { bajarTexto, resolverRedireccion } from "../http.js";
 import { contenidoPrincipal, htmlATexto } from "../texto.js";
 import { slugificar } from "../slug.js";
-import type { Crudo, SucursalDeFuente } from "../tipos.js";
+import type { Crudo, DireccionDeFuente, SucursalDeFuente } from "../tipos.js";
+import { departamentoDeLugar } from "../geo/lugares.js";
 
 const BASE = "https://www.bbva.com.uy";
 const LISTADO = `${BASE}/personas/productos/tarjetas/descuentos`;
@@ -47,8 +48,24 @@ function coordenadas(href: string): { lat: number; lng: number } | null {
   return Number.isFinite(lat) && Number.isFinite(lng) && lat < -29 && lat > -36 ? { lat, lng } : null;
 }
 
-async function localesDe(html: string): Promise<SucursalDeFuente[]> {
+/**
+ * "Miguel Barreiro 3254, Pocitos" → la dirección con su departamento, para
+ * geocodificarla cuando el link "ir" no trae coordenadas. "Restaurant X: …" es
+ * un nombre de local adelante; sin localidad después de la coma no se sabe
+ * dónde buscar.
+ */
+export function direccionEscrita(texto: string): DireccionDeFuente | null {
+  const t = texto.replace(/^[^:,\d]{2,40}:\s*/, "").replace(/[\s,.]+$/, "").trim();
+  const i = t.lastIndexOf(",");
+  if (i < 0) return null;
+  const lugar = t.slice(i + 1).replace(/^[\s–-]*(local\s*\d+\s*[–-])?/i, "").trim();
+  const departamento = departamentoDeLugar(lugar);
+  return departamento ? { direccion: t, departamento } : null;
+}
+
+async function localesDe(html: string): Promise<{ sucursales: SucursalDeFuente[]; direcciones: DireccionDeFuente[] }> {
   const out: SucursalDeFuente[] = [];
+  const direcciones: DireccionDeFuente[] = [];
   // "Dirección, Localidad (<a href=maps>ir</a>)": la dirección es el texto
   // inmediatamente anterior al link. El link es un acortador goo.gl: hay que
   // seguirlo para llegar a las coordenadas.
@@ -56,11 +73,17 @@ async function localesDe(html: string): Promise<SucursalDeFuente[]> {
     const href = m[2]!;
     const destino = /goo\.gl|maps\.app/.test(href) ? await resolverRedireccion(href) : href;
     const punto = destino ? coordenadas(destino) : null;
-    if (!punto) continue;
     const direccion = htmlATexto(m[1]!).trim();
-    if (direccion) out.push({ nombre: null, direccion, ...punto });
+    if (!direccion) continue;
+    if (punto) {
+      out.push({ nombre: null, direccion, ...punto });
+    } else {
+      // El link lleva a un lugar sin coordenadas en la URL: queda la dirección.
+      const escrita = direccionEscrita(direccion);
+      if (escrita) direcciones.push(escrita);
+    }
   }
-  return out;
+  return { sucursales: out, direcciones };
 }
 
 export async function fetchBbva(): Promise<Crudo[]> {
@@ -91,7 +114,7 @@ export async function fetchBbva(): Promise<Crudo[]> {
       url_fuente: url,
       contenido: `${contenido}\n\nRubro según BBVA: ${rubro}.`,
       fetched_at: new Date().toISOString(),
-      sucursales: await localesDe(html),
+      ...(await localesDe(html)),
     });
   }
   return crudos;

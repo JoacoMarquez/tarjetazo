@@ -2,7 +2,8 @@
 // Correr con `pnpm --filter @tarjetazo/scrapers test`.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { arreglarCodificacion, crudoDePagina, departamentos, dias, direccionesDe, nombreDeTitulo, normalizarPronto, vigencia } from "./fuentes/pronto.js";
+import { arreglarCodificacion, crudoDePagina, dias, direccionesDe, nombreDeTitulo, normalizarPronto, vigencia } from "./fuentes/pronto.js";
+import { departamentos } from "./geo/lugares.js";
 
 function pagina(titulo: string, cuerpo: string): string {
   return `<html><head><title>${titulo}</title></head><body><main>${cuerpo}</main></body></html>`;
