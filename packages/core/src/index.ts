@@ -19,3 +19,12 @@ export {
   familiasDe,
   type Familia,
 } from "./catalogo";
+export {
+  PREFIJO_RUBRO,
+  RUBROS_ENTEROS,
+  RUBRO_POR_KEY,
+  esComercioDeRubro,
+  keyDeRubro,
+  rubrosDeComercio,
+  type RubroEntero,
+} from "./rubros";

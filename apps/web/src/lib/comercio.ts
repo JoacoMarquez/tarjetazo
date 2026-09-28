@@ -1,4 +1,4 @@
-import { CATEGORIAS, FUENTES, PRODUCTOS } from "@tarjetazo/core";
+import { CATEGORIAS, FUENTES, PRODUCTOS, keyDeRubro, rubrosDeComercio, type RubroEntero } from "@tarjetazo/core";
 import { createSupabaseClient } from "./supabase";
 import { diaEnUruguay } from "./filtros";
 import type { MonedaTope } from "./tope";
@@ -107,6 +107,32 @@ export async function fichaComercio(key: string): Promise<{
     beneficios: ((b.data ?? []) as BeneficioFicha[]).filter((x) => vigente(x, hoy)),
     sucursales,
   };
+}
+
+/**
+ * Beneficios de rubro entero que también aplican en este comercio: los de
+ * "Todas las librerías" en la página de una librería. Vigentes, del mejor al
+ * peor; vacío si el comercio no es de ningún rubro entero.
+ */
+export async function beneficiosDelRubro(
+  comercio: Pick<Comercio, "key" | "nombre" | "categoria">,
+): Promise<{ rubro: RubroEntero; beneficios: BeneficioFicha[] }[]> {
+  const rubros = rubrosDeComercio(comercio);
+  if (rubros.length === 0) return [];
+  const { data, error } = await createSupabaseClient()
+    .from("beneficio")
+    .select("*")
+    .in("comercio_key", rubros.map(keyDeRubro))
+    .eq("estado_revision", "ok")
+    .order("porcentaje", { ascending: false, nullsFirst: false })
+    .order("cuotas", { ascending: false, nullsFirst: false });
+  // Es un extra de la página: si falla, la página igual sirve.
+  if (error) return [];
+  const hoy = hoyISO();
+  const vigentes = ((data ?? []) as BeneficioFicha[]).filter((b) => vigente(b, hoy));
+  return rubros
+    .map((rubro) => ({ rubro, beneficios: vigentes.filter((b) => b.comercio_key === keyDeRubro(rubro)) }))
+    .filter((x) => x.beneficios.length > 0);
 }
 
 /** Otros comercios del mismo rubro con beneficios, para enlazar entre páginas. */

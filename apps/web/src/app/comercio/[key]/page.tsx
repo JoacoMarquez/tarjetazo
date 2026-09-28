@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowRight, MapPin, Sparkles } from "lucide-react";
-import { alcanceTarjetas } from "@tarjetazo/core";
+import { RUBRO_POR_KEY, alcanceTarjetas } from "@tarjetazo/core";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { CopiarLink } from "@/components/copiar-link";
 import {
   aplicaHoy,
   cifra,
+  beneficiosDelRubro,
   comerciosDelRubro,
   fichaComercio,
   labelCategoria,
@@ -97,7 +98,11 @@ export default async function PaginaComercio({ params }: Props) {
     hoy.some((b) => b !== mejorHoy && b.fuente_id === mejorHoy.fuente_id && cifra(b) === cifra(mejorHoy) && b.titulo !== mejorHoy.titulo);
   const porFuente = new Map<string, BeneficioFicha[]>();
   for (const b of beneficios) porFuente.set(b.fuente_id, [...(porFuente.get(b.fuente_id) ?? []), b]);
-  const relacionados = await comerciosDelRubro(comercio.categoria, comercio.key);
+  const [relacionados, delRubro] = await Promise.all([
+    comerciosDelRubro(comercio.categoria, comercio.key),
+    beneficiosDelRubro(comercio),
+  ]);
+  const rubroPropio = RUBRO_POR_KEY.get(comercio.key);
   const url = `${BASE}/comercio/${comercio.key}`;
 
   // Schema.org: manguito no lo tiene. Organization para el comercio y una
@@ -155,6 +160,13 @@ export default async function PaginaComercio({ params }: Props) {
           <CopiarLink url={url} />
         </div>
 
+        {rubroPropio && (
+          <p className="border-sol-ln bg-sol-s text-sol-ink mt-4 rounded-lg border p-3 text-sm">
+            Es un beneficio de todo el rubro: vale en {rubroPropio.plural} que adhieran a la promoción. Consultá en el local
+            antes de pagar.
+          </p>
+        )}
+
         {mejorHoy ? (
           <section className="border-menta-ln bg-menta-s text-menta-ink mt-6 rounded-lg border p-4">
             <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest">
@@ -185,6 +197,20 @@ export default async function PaginaComercio({ params }: Props) {
             <h2 className="text-humo text-xs font-semibold uppercase tracking-widest">
               Con {nombreFuente(fuenteId)}
             </h2>
+            <ul className="mt-3 space-y-2">
+              {lista.map((b) => <FilaBeneficio key={b.id} b={b} />)}
+            </ul>
+          </section>
+        ))}
+
+        {delRubro.map(({ rubro, beneficios: lista }) => (
+          <section key={rubro.id} className="mt-8">
+            <h2 className="text-humo text-xs font-semibold uppercase tracking-widest">
+              También en {rubro.nombre.toLowerCase()}
+            </h2>
+            <p className="text-humo mt-1 text-xs">
+              Promociones para todo el rubro: aplican si el local adhiere. Consultá antes de pagar.
+            </p>
             <ul className="mt-3 space-y-2">
               {lista.map((b) => <FilaBeneficio key={b.id} b={b} />)}
             </ul>
