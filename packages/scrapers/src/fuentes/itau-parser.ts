@@ -5,7 +5,7 @@ import { slugificar } from "../slug.js";
 import type { Crudo, Extraido } from "../tipos.js";
 import type { DatosItauFeed } from "./itau.js";
 import type { DatosItauLanding } from "./itau-landings.js";
-import { diasDe, sinAcentos, topeDelTramo, topesDelLegal, vigenciaDelLegal } from "./legales.js";
+import { diasDe, diasEnTitulo, sinAcentos, topeDelTramo, topesDelLegal, vigenciaDelLegal } from "./legales.js";
 
 /**
  * Itaú, sin modelo. Dos formas de página, las dos con los campos ya
@@ -189,6 +189,7 @@ function normalizarLanding(crudo: Crudo, d: DatosItauLanding): Extraido {
       continue;
     }
     const porcentaje = Number(m[2]);
+    const dias = diasDe(t.encabezado);
     const tarjetas = tarjetasDe(t.encabezado.slice(m.index! + m[0].length));
     desconocidos.push(...tarjetas.desconocidos);
     const vigencia = vigenciaDeLanding(t.condiciones, t.ubicaciones);
@@ -199,12 +200,12 @@ function normalizarLanding(crudo: Crudo, d: DatosItauLanding): Extraido {
     validar(
       candidato({
         comercio_key: key,
-        titulo: `${m[1] ? "Hasta " : ""}${porcentaje}% de descuento`,
+        titulo: `${m[1] ? "Hasta " : ""}${porcentaje}% de descuento${diasEnTitulo(dias)}`,
         descuento_raw: `${t.encabezado} En: ${t.ubicaciones.join(", ")}.`,
         porcentaje,
         cuotas: null,
         tipo: "porcentaje",
-        dias_semana: diasDe(t.encabezado),
+        dias_semana: dias,
         vigencia_desde: vigencia.desde,
         vigencia_hasta: sinFechaComodin(vigencia.hasta),
         departamentos: departamentosDeUbicaciones(t.ubicaciones),
@@ -362,17 +363,72 @@ function departamentosDeBases(bases: string): BeneficioNormalizado["departamento
   return departamentosQueNombra(m[1]!) as BeneficioNormalizado["departamentos"];
 }
 
-function tituloDe(c: Clausula): string {
+/** Dónde termina lo que se compra: "en cuponeras para jugar…", "en la compra de Iphone en Movigroup". */
+const FIN_OBJETO =
+  /\s+(?:en|con|pagando|para|todos|los|de (?:lunes|martes|miercoles|miércoles|jueves|viernes|sabados?|sábados?|domingos?))\b|[.,;:(]|$/i;
+
+/**
+ * Lo que se compra, para el título: "15% menos en cuponeras en PRAT Pádel" →
+ * "en cuponeras"; "24 cuotas sin interés en la compra de Iphone en Movigroup"
+ * → "en Iphone". Un "en …" que nombra al comercio, un lugar, los locales o la
+ * web no cuenta. Exportada para los tests.
+ */
+export function objetoDe(texto: string, comercio: string): string | null {
+  const c = sinAcentos(comercio);
+  for (const m of texto.matchAll(/\ben\s+/gi)) {
+    const resto = texto.slice(m.index! + m[0].length);
+    const x = resto
+      .slice(0, resto.search(FIN_OBJETO))
+      .replace(/\s+y$/i, "")
+      .trim()
+      .replace(/^(?:la\s+)?compras?\s+de\s+/i, "");
+    const s = sinAcentos(x);
+    if (!x || s.includes(c) || c.includes(s)) continue;
+    if (/^(?:el |los |la |las )?locale?s?\b|\bweb\b|online|cuotas|comercios adheridos/.test(s)) continue;
+    if (departamentoDeLugar(s)) continue;
+    return `en ${x}`;
+  }
+  return null;
+}
+
+function tituloDe(c: Clausula, dias: number[], objeto: string | null): string {
+  let valor: string;
   if (c.tipo === "cuotas") {
     const sinQue = /sin inter[eé]s/i.test(c.texto) ? " sin interés" : /sin recargo/i.test(c.texto) ? " sin recargo" : "";
-    return `${c.hasta ? "Hasta " : ""}${c.cuotas} cuotas${sinQue}`;
+    valor = `${c.hasta ? "Hasta " : ""}${c.cuotas} cuotas${sinQue}`;
+  } else if (c.tipo === "2x1") {
+    // El schema pide al menos 4 caracteres: "2x1" solo no pasa.
+    if (!objeto && dias.length === 0) return "Promoción 2x1";
+    valor = "2x1";
+  } else {
+    valor = `${c.hasta ? "Hasta " : ""}${c.porcentaje}% de descuento`;
   }
-  // "2x1 en helados de kilo y cucuruchos grandes": lo que se lleva, sin las tarjetas.
-  if (c.tipo === "2x1") {
-    const que = c.texto.replace(/^2\s*x\s*1\s*/i, "").split(/\s+(?:con|pagando|todos los d[ií]as)\b|[.,]/i)[0]!.trim();
-    return que ? `2x1 ${que}`.slice(0, 120) : "2x1 en entradas o productos";
+  return `${valor}${objeto ? ` ${objeto}` : ""}${diasEnTitulo(dias)}`.slice(0, 160);
+}
+
+/**
+ * Tramos que solo están en las bases, colgados de un tramo de la descripción
+ * con otros días y otras tarjetas: "2X1 en Movie todos los días pagando con
+ * tarjetas de débito Volar … y de lunes a miércoles con tarjetas de débito por
+ * pago de sueldos (azules) y Cuenta Pocket en la compra de entradas". Cada
+ * "y de <día> …" / "y los <día> …" con tarjetas propias es un tramo más.
+ */
+function tramosDeLasBases(bases: string, lista: Clausula[]): Clausula[] {
+  const extra: Clausula[] = [];
+  for (const b of clausulas(bases)) {
+    if (!lista.some((x) => x.tipo === b.tipo && x.porcentaje === b.porcentaje && x.cuotas === b.cuotas)) continue;
+    // sinAcentos no cambia el largo: los cortes valen en el texto original.
+    const s = sinAcentos(b.texto);
+    const cortes = [...s.matchAll(/\s+y\s+(?=(?:de|los)\s+(?:lunes|martes|miercoles|jueves|viernes|sabados?|domingos?)\b)/g)];
+    const marca = b.texto.match(MARCA)?.[0] ?? "";
+    for (const [k, corte] of cortes.entries()) {
+      const desde = corte.index! + corte[0].length;
+      const parte = b.texto.slice(desde, k + 1 < cortes.length ? cortes[k + 1]!.index! : undefined).split(/\.(?=\s|$)/)[0]!.trim();
+      if (tarjetasDe(parte).nombres.length === 0 || diasDe(parte).length === 0) continue;
+      extra.push({ ...b, texto: `${marca} ${parte}`, oracion: -1 });
+    }
   }
-  return `${c.hasta ? "Hasta " : ""}${c.porcentaje}% de descuento`;
+  return extra;
 }
 
 function normalizarFeed(crudo: Crudo, d: DatosItauFeed): Extraido {
@@ -389,6 +445,7 @@ function normalizarFeed(crudo: Crudo, d: DatosItauFeed): Extraido {
       if (c.tipo !== "cuotas" && !lista.some(igual)) lista.push({ ...c, oracion: -1 });
     }
   }
+  lista.push(...tramosDeLasBases(d.bases, lista));
   if (!comercio || lista.length === 0) {
     // Sin comercio (un rubro, un listado) o sin porcentaje, 2x1 ni cuotas.
     return { crudo, comercio: null, beneficios: [], productos_desconocidos: [], es_beneficio: false };
@@ -403,8 +460,13 @@ function normalizarFeed(crudo: Crudo, d: DatosItauFeed): Extraido {
   const departamentos: BeneficioNormalizado["departamentos"] =
     comercio.departamento ? [comercio.departamento as BeneficioNormalizado["departamentos"][number]] : departamentosDeBases(bases);
   const canal = canalDe(todo);
+  // "Cuenta Pocket válida únicamente en compras web": un tramo con la Pocket vale también online.
+  const pocketWeb = /pocket valida unicamente en compras web/.test(sinAcentos(todo));
   const acumulable = acumulableDe(todo);
   const topes = topesDelLegal(bases, (f) => tarjetasDe(f).ids);
+  // "2x1 en Movie": lo que se lleva lo dicen las bases ("… en la compra de entradas").
+  const deLasBases2x1 = clausulas(bases).find((c) => c.tipo === "2x1");
+  const objetoDe2x1 = deLasBases2x1 ? objetoDe(deLasBases2x1.texto.split(/\.(?=\s|$)/)[0]!, comercio.nombre) : null;
 
   // Días y tarjetas de cada cláusula; las que no los dicen los toman de sus
   // vecinas de la misma oración ("20% … martes y jueves y 15% … pagando con
@@ -444,7 +506,7 @@ function normalizarFeed(crudo: Crudo, d: DatosItauFeed): Extraido {
     validar(
       candidato({
         comercio_key: key,
-        titulo: tituloDe(l.c),
+        titulo: tituloDe(l.c, dias, objetoDe(l.c.texto, comercio.nombre) ?? (l.c.oracion === -1 ? objetoDe(d.titulo, comercio.nombre) : null) ?? (l.c.tipo === "2x1" ? objetoDe2x1 : null)),
         descuento_raw: l.c.texto.replace(/[\s.,;]+$/, ""),
         porcentaje: l.c.porcentaje,
         cuotas: l.c.cuotas,
@@ -462,7 +524,7 @@ function normalizarFeed(crudo: Crudo, d: DatosItauFeed): Extraido {
           tope_sobre: tope?.sobre ?? null,
           tope_periodo: tope?.periodo ?? null,
         }),
-        canal,
+        canal: canal === "presencial" && pocketWeb && /pocket/i.test(l.c.texto) ? "ambos" : canal,
         acumulable,
         legales_raw: bases || null,
         url_fuente: crudo.url_fuente,

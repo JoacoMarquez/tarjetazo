@@ -4,7 +4,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Departamento, PRODUCTOS } from "@tarjetazo/core";
-import { clausulas, comercioDelFeed, normalizarItau, tarjetasDe } from "./fuentes/itau-parser.js";
+import { clausulas, comercioDelFeed, normalizarItau, objetoDe, tarjetasDe } from "./fuentes/itau-parser.js";
+import { diasEnTitulo } from "./fuentes/legales.js";
 import type { DatosItauFeed } from "./fuentes/itau.js";
 import type { DatosItauLanding } from "./fuentes/itau-landings.js";
 import type { Crudo } from "./tipos.js";
@@ -110,6 +111,12 @@ describe("parser de Itaú: items del feed", () => {
     assert.equal(e.comercio?.key, "san-roque");
     assert.equal(e.comercio?.categoria, "farmacias");
     assert.deepEqual(e.beneficios.map((b) => [b.porcentaje, b.dias_semana]), [[25, [2, 4]], [20, [2, 4]], [15, []]]);
+    // Los días van en el título: distinguen los tramos del mismo comercio.
+    assert.deepEqual(e.beneficios.map((b) => b.titulo), [
+      "25% de descuento los martes y jueves",
+      "20% de descuento los martes y jueves",
+      "15% de descuento",
+    ]);
     assert.deepEqual(e.beneficios[0]!.productos_elegibles, PERSONAL_BANK_Y_BLACK);
     assert.deepEqual(e.beneficios[1]!.productos_elegibles, PLATINUM);
     assert.deepEqual(e.beneficios[2]!.productos_elegibles, [...CREDITO, "itau-debito-infinite"].sort());
@@ -162,19 +169,48 @@ describe("parser de Itaú: items del feed", () => {
     assert.deepEqual(e.beneficios[0]!.departamentos, ["salto"]);
   });
 
-  it("'Cuenta Pocket válida únicamente en compras web' no hace online un 2x1 de cine", () => {
+  it("Movie: el tramo de lunes a miércoles que solo está en las bases; la Pocket no hace online el de la Volar", () => {
     const e = normalizarItau(crudo("benef-80", {
       tipo: "feed",
       titulo: "2x1 en Movie",
       descripcion: "2x1 en Movie pagando con tu tarjeta de débito Volar.",
       listas: ["tarjeta de débito"],
-      bases: "2X1 en Movie todos los días pagando con tarjetas de débito Volar (incluye tarjeta de débito junior) en la compra de entradas. El tope de la promoción es de cuatro entradas por tarjeta. No se acumula con otras campañas vigentes. Cuenta Pocket válida unicamente en compras web. Vigencia de la campaña: del 01/01/2025 al 30/9/2026.",
+      bases: "2X1 en Movie todos los días pagando con tarjetas de débito Volar (incluye tarjeta de débito junior) en la compra de entradas y de lunes a miércoles con tarjetas de débito por pago de sueldos (azules) y Cuenta Pocket en la compra de entradas. El tope de la promoción es de cuatro entradas por tarjeta, es decir, dos compras de entradas 2x1 por función. No se acumula con otras campañas vigentes. Cuenta Pocket válida unicamente en compras web. Vigencia de la campaña: del 01/01/2025 al 30/9/2026.",
     }));
-    const b = e.beneficios[0]!;
-    assert.equal(b.canal, "presencial");
-    assert.deepEqual(b.productos_elegibles, ["itau-debito-volar"]);
+    assert.equal(e.beneficios.length, 2);
+    const [volar, sueldo] = e.beneficios;
+    assert.equal(volar!.titulo, "2x1 en entradas");
+    assert.equal(volar!.canal, "presencial");
+    assert.deepEqual(volar!.productos_elegibles, ["itau-debito-volar"]);
+    assert.deepEqual(volar!.dias_semana, []);
     // "cuatro entradas" no es un monto: sin tope.
-    assert.equal(b.tope_monto, null);
+    assert.equal(volar!.tope_monto, null);
+    assert.equal(sueldo!.titulo, "2x1 en entradas de lunes a miércoles");
+    assert.equal(sueldo!.tipo, "2x1");
+    assert.deepEqual(sueldo!.dias_semana, [1, 2, 3]);
+    assert.deepEqual(sueldo!.productos_elegibles, ["itau-debito-sueldo", "itau-debito-volar"]);
+    // La Pocket vale solo en la web; las de sueldo, en la boletería.
+    assert.equal(sueldo!.canal, "ambos");
+    assert.deepEqual([sueldo!.vigencia_desde, sueldo!.vigencia_hasta], ["2025-01-01", "2026-09-30"]);
+  });
+
+  it("títulos: lo que se compra, sin el comercio ni el lugar", () => {
+    assert.equal(objetoDe("15% menos en cuponeras en PRAT Pádel", "Prat Pádel"), "en cuponeras");
+    assert.equal(objetoDe("24 cuotas sin interés en la compra de Iphone en Movigroup y", "Movigroup"), "en Iphone");
+    assert.equal(objetoDe("12 cuotas sin recargo en compra de equipos.", "Movigroup"), "en equipos");
+    assert.equal(objetoDe("2x1 en Movie pagando con tu tarjeta de débito Volar.", "Movie"), null);
+    assert.equal(objetoDe("25% menos en farmacias San Roque los días martes", "San Roque"), null);
+    assert.equal(objetoDe("10% menos en locales de Montevideo", "Mosca"), null);
+    assert.equal(objetoDe("2x1 en helados de kilo y cucuruchos grandes con tarjetas", "Heladería La Nevada"), "en helados de kilo y cucuruchos grandes");
+  });
+
+  it("títulos: los días", () => {
+    assert.equal(diasEnTitulo([]), "");
+    assert.equal(diasEnTitulo([2, 4]), " los martes y jueves");
+    assert.equal(diasEnTitulo([6]), " los sábados");
+    assert.equal(diasEnTitulo([1, 2, 3]), " de lunes a miércoles");
+    assert.equal(diasEnTitulo([5, 6, 0]), " de viernes a domingo");
+    assert.equal(diasEnTitulo([1, 3, 5]), " los lunes, miércoles y viernes");
   });
 
   it("rango sin año: toma el único año que nombra el texto; la Black de 'Incluye Infinite y Black'", () => {

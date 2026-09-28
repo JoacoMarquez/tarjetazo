@@ -52,6 +52,21 @@ export function diasDe(texto: string): number[] {
   return [...new Set(sueltos)];
 }
 
+const DIA_SINGULAR = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const DIA_PLURAL = ["domingos", "lunes", "martes", "miércoles", "jueves", "viernes", "sábados"];
+
+/**
+ * Los días para el título: [1, 3] → " los lunes y miércoles"; tres o más
+ * seguidos, " de lunes a miércoles"; todos los días (vacío), nada.
+ */
+export function diasEnTitulo(dias: number[]): string {
+  if (dias.length === 0 || dias.length === 7) return "";
+  const seguidos = dias.length >= 3 && dias.every((d, i) => i === 0 || d === (dias[i - 1]! + 1) % 7);
+  if (seguidos) return ` de ${DIA_SINGULAR[dias[0]!]} a ${DIA_SINGULAR[dias.at(-1)!]}`;
+  const n = dias.map((d) => DIA_PLURAL[d]!);
+  return ` los ${n.length === 1 ? n[0] : `${n.slice(0, -1).join(", ")} y ${n.at(-1)}`}`;
+}
+
 /**
  * El campo `departamento` viene libre: "montevideo", "Maldonado,Montevideo",
  * "punta del este", "mercedes", "nacional", "web". Lo que no es un lugar de
