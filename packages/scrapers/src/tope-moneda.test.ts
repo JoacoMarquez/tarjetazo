@@ -120,3 +120,16 @@ describe("normalizador: lo que se le pide al modelo", () => {
     assert.match(SISTEMA, /USD120" → tope_monto 120, tope_moneda USD, tope_sobre devolucion, tope_periodo beneficio/);
   });
 });
+
+describe("schema normalizado: tope sin período", () => {
+  it("rechaza un tope sin período (antes llegaba a la base y fallaba la página)", () => {
+    const base = {
+      comercio_key: "el-porton", titulo: "25% de descuento", descuento_raw: "25%", porcentaje: 25, cuotas: null, tipo: "porcentaje",
+      dias_semana: [], vigencia_desde: null, vigencia_hasta: null, departamentos: [], productos_elegibles: [],
+      tope_monto: 3000, tope_periodo: null, canal: "presencial", mecanica: [], acumulable: null, compra_minima: null,
+      requiere_activacion: false, legales_raw: null, como_usarlo: [], url_fuente: "https://x",
+    };
+    assert.equal(BeneficioNormalizadoSchema.safeParse(base).success, false);
+    assert.equal(BeneficioNormalizadoSchema.safeParse({ ...base, tope_periodo: "compra" }).success, true);
+  });
+});

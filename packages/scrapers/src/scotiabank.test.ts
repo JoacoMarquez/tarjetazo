@@ -316,13 +316,13 @@ describe("parser de Scotiabank: piezas", () => {
     assert.deepEqual(vigenciaDelLegal("Tope de compra $10.000."), { desde: null, hasta: null });
   });
 
-  it("topes: por porcentaje explícito, tope de compra, sin período con acreditación posterior", () => {
+  it("topes: por porcentaje explícito, tope de compra, sin período escrito (por compra, como el modelo)", () => {
     const porPct = topesDelLegal("La devolución se realiza en el momento. Tope máximo de devolución del 15%: $1.500 (mil quinientos pesos). Tope máximo de devolución del 25%: $2.500 (dos mil quinientos pesos).");
     assert.deepEqual(porPct.map((t) => [t.pct, t.monto, t.sobre, t.periodo]), [[15, 1500, "devolucion", "compra"], [25, 2500, "devolucion", "compra"]]);
     const compra = topesDelLegal("Tope de factura o compra para obtener el descuento $ 15.000.");
     assert.deepEqual(compra.map((t) => [t.monto, t.sobre, t.periodo]), [[15000, "compra", "compra"]]);
     const despues = topesDelLegal("El descuento se verá reflejado en el estado de cuenta del cliente después de los 15 días de efectuada la compra. Tope de descuento: $3.000.");
-    assert.deepEqual(despues.map((t) => [t.monto, t.sobre, t.periodo]), [[3000, "devolucion", null]]);
+    assert.deepEqual(despues.map((t) => [t.monto, t.sobre, t.periodo]), [[3000, "devolucion", "compra"]]);
     const avista = topesDelLegal("El descuento se realiza en el momento de la compra y el tope de devolución por compra para el 15% es de $1.800 pesos uruguayos y para el 25% de $5.000 pesos uruguayos.");
     assert.deepEqual(avista.map((t) => [t.pct, t.monto]), [[15, 1800], [25, 5000]]);
   });

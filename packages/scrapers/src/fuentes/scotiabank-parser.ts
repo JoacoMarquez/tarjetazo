@@ -336,9 +336,9 @@ export function topesDelLegal(legal: string): TopeLeido[] {
           ? "compra"
           : /por cuenta y (?:por )?promocion|por unica vez|toda la vigencia|por promocion|por cuenta\b/.test(oracion)
             ? "beneficio"
-            : sobre === "compra" || alMomento
-              ? "compra"
-              : null;
+            // Sin período escrito ("Tope de descuento: $3.000"), por compra:
+            // lo mismo que guardaba el modelo, y la base exige un período.
+            : "compra";
     const pctsAnteriores = [
       ...new Set(porcentajes.filter((p) => p.indice >= finAnterior && p.indice < inicio).map((p) => p.pct)),
     ];

@@ -154,12 +154,21 @@ export const BeneficioSchema = BeneficioBase.superRefine((b, ctx) => {
   }
 });
 
-/** Lo que devuelve el normalizador de Claude antes de que el pipeline agregue metadatos. */
+/**
+ * Lo que devuelve un normalizador (el de Claude o uno propio) antes de que el
+ * pipeline agregue metadatos. Con la misma regla del tope que la base
+ * (`beneficio_tope_ck`): si no, un tramo inválido llega hasta el upsert y hace
+ * fallar la página entera en vez de ir a revisión.
+ */
 export const BeneficioNormalizadoSchema = BeneficioBase.omit({
   id: true,
   fuente_id: true,
   fetched_at: true,
   estado_revision: true,
+}).superRefine((b, ctx) => {
+  if (b.tope_monto !== null && b.tope_periodo === null) {
+    ctx.addIssue({ code: "custom", path: ["tope_periodo"], message: "un tope necesita período" });
+  }
 });
 
 export type Fuente = z.infer<typeof FuenteSchema>;
