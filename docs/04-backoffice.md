@@ -158,6 +158,11 @@ Para que no vuelva a colarse una tarjeta fantasma (`20261022120000_catalogo_baja
 - **Primera revisión:** las páginas extraídas antes de la columna no tenían familias. Las 25 (BROU, Santander, BBVA) se completaron a mano el 2026-09-27 sin la API: mismo hash que en la base (las páginas no habían cambiado), tarjetas extraídas con la consigna de `extraer.ts` y familias con `familiaPara`. No se cargaron sugerencias de campos: eran el mismo dato redactado distinto. Desde ahí, una revisión completa ya puede proponer bajas.
 - **Salud:** «Tarjetas sin página oficial» lista los productos activos sin `url_oficial`. Es accionable: se confirma que la tarjeta existe y se carga la url, o se la da de baja.
 
+## Modo sin modelo (2026-09-28)
+Para no gastar saldo de la API: con la variable del repo `SCRAPER_SIN_MODELO=1` (Settings → Variables de GitHub Actions), una página que cambió en una fuente sin parser propio se guarda con el contenido nuevo pero sin normalizar (`normalizada_en` null, como `--solo-fetch`), y sus beneficios de antes siguen publicados. La corrida cuenta cuántas quedaron (`corrida.pendientes`); el tablero y Telegram lo muestran como información, no como problema. En el catálogo semanal, las páginas que cambian no se extraen y la fuente no propone bajas. Se normalizan a mano (con `ingerir`) o apagando la variable. BBVA y las fuentes con parser propio no cambian.
+
+Aparte: si se acaba el saldo con el modo apagado, la corrida termina con el error "Sin saldo en la API de Anthropic…" y deja de llamar al modelo (`corrida.fallidas`, #103).
+
 ## Resumen diario por Telegram (F2)
 Paso final de `.github/workflows/scrapers.yml`. Una línea por fuente (ok / error, nuevos, bajas), cola de revisión, alertas de salud y frescura nuevas, manuales por vencer, link a `/admin`. Secrets nuevos: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
 

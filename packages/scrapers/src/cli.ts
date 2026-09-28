@@ -144,6 +144,7 @@ También: scraper revisiones   (revalida la cola de revisión manual)
       `a revisar:    ${reporte.a_revisar}`,
       `sucursales:   ${reporte.sucursales}`,
       `fallidas:     ${reporte.fallidas}`,
+      `pendientes:   ${reporte.pendientes}`,
     ].join("\n"),
   );
 }

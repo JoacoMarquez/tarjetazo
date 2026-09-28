@@ -29,6 +29,8 @@ type Corrida = {
   a_revisar: number;
   /** Páginas que no se pudieron normalizar (quedan para la próxima corrida). */
   fallidas: number;
+  /** Páginas que cambiaron y esperan normalización (modo sin modelo). */
+  pendientes: number;
   error: string | null;
   tokens_entrada: number;
   tokens_cache_escritura: number;
@@ -54,7 +56,9 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 /** Desde cuántas páginas fallidas una corrida que terminó cuenta como problema. */
 const FALLIDAS_PROBLEMA = 3;
 
-type CorridaLinea = Pick<Corrida, "termino_en" | "nuevos" | "actualizados" | "vencidos" | "a_revisar" | "fallidas" | "error">;
+type CorridaLinea = Pick<Corrida, "termino_en" | "nuevos" | "actualizados" | "vencidos" | "a_revisar" | "fallidas" | "error"> & {
+  pendientes?: number;
+};
 
 /**
  * La línea de una fuente. Una corrida con páginas fallidas no está "bien"
@@ -71,6 +75,8 @@ export function lineaCorrida(nombreFuente: string, c: CorridaLinea): { linea: st
     c.vencidos && `−${c.vencidos} ${c.vencidos === 1 ? "baja" : "bajas"}`,
     c.a_revisar && `${c.a_revisar} a revisar`,
     fallidas && `${fallidas} ${fallidas === 1 ? "página falló" : "páginas fallaron"}`,
+    // Modo sin modelo: no es un problema, es lo que se eligió; queda a la vista.
+    c.pendientes && `${c.pendientes} ${c.pendientes === 1 ? "espera" : "esperan"} normalización`,
   ].filter(Boolean);
   const problema = fallidas >= FALLIDAS_PROBLEMA;
   return { linea: `${problema ? "⚠️" : "✅"} ${nombreFuente}: ${cambios.length ? cambios.join(", ") : "sin cambios"}`, problema };
@@ -81,7 +87,7 @@ export async function armarResumen(db: SupabaseClient, o: OpcionesResumen): Prom
     db
       .from("corrida")
       .select(
-        "fuente_id, empezo_en, termino_en, paginas, nuevos, actualizados, vencidos, a_revisar, fallidas, error, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida",
+        "fuente_id, empezo_en, termino_en, paginas, nuevos, actualizados, vencidos, a_revisar, fallidas, pendientes, error, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida",
       )
       .gte("empezo_en", o.desde)
       .order("empezo_en", { ascending: false }),
