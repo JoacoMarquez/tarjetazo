@@ -26,6 +26,13 @@ export interface Crudo {
    * rubro ("Restaurantes") como nombre y junta ahí páginas de distintos locales.
    */
   comercio?: { nombre: string; categoria: string };
+  /**
+   * Los campos que la fuente ya publica estructurados (Scotiabank), para su
+   * normalizador propio: así no tiene que volver a leerlos del texto. No se
+   * guarda ni entra en el hash, que sigue siendo el de `contenido`. Cada
+   * parser sabe su forma.
+   */
+  datos?: unknown;
 }
 
 export interface DireccionDeFuente {

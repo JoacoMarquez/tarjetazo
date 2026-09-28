@@ -298,9 +298,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       }
 
       // Las reglas del backoffice (alias, ignorar) actúan en `mapearProductos`.
-      // Un normalizador propio no pasa por ahí, pero tampoco manda nombres de
-      // tarjeta a la cola: el de BBVA resuelve todo con su plantilla y nunca
-      // informa desconocidos, así que no hay nada a lo que ponerle un alias.
+      // El normalizador de BBVA no pasa por ahí, pero tampoco manda nombres de
+      // tarjeta a la cola: resuelve todo con su plantilla y nunca informa
+      // desconocidos. El de Scotiabank sí delega en `mapearProductos`, así que
+      // las reglas valen también para él.
       if (sinModelo) {
         // Como --solo-fetch: el contenido nuevo queda guardado con
         // `normalizada_en` en null, así la próxima corrida con modelo (o la

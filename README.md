@@ -134,6 +134,12 @@ plantilla, **no pasa por el modelo**: `bbva-parser.ts` las convierte en tramos d
 determinista y el runner usa ese normalizador propio (`normalizar?`) en vez de Claude.
 Es el patrón para cualquier fuente con plantilla fija.
 
+**Scotiabank** embebe su catálogo en el índice como objetos JS (`pushBenefit({...})`)
+con porcentaje, tarjetas, días, departamento, vigencia y legales por beneficio. Tampoco
+pasa por el modelo: el fetch le pasa esos campos a `scotiabank-parser.ts` en
+`Crudo.datos` (que no se guarda ni entra en el hash) y el parser saca de los legales
+solo lo que el catálogo no trae: topes, fechas concretas de la promo y "no acumulable".
+
 `scrape ingerir <json>` carga beneficios ya normalizados con las mismas guardas del
 pipeline (Zod, ids deterministas, upsert idempotente) y deja la página marcada como
 normalizada: sirve para un backfill hecho a mano o revisado. `--limite` llega también al
