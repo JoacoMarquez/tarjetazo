@@ -140,6 +140,12 @@ pasa por el modelo: el fetch le pasa esos campos a `scotiabank-parser.ts` en
 `Crudo.datos` (que no se guarda ni entra en el hash) y el parser saca de los legales
 solo lo que el catálogo no trae: topes, fechas concretas de la promo y "no acumulable".
 
+**Itaú** tampoco pasa por el modelo: el feed y las landings pasan sus campos en
+`Crudo.datos` a `itau-parser.ts`. Las landings son un encabezado fijo por tramo con sus
+pestañas (Montevideo, Punta del Este, Interior); los items del feed se parten en
+cláusulas, una por porcentaje, 2x1 o cuotas. La lectura de legales que comparten los dos
+parsers (días, departamentos, fechas, topes) está en `fuentes/legales.ts`.
+
 `scrape ingerir <json>` carga beneficios ya normalizados con las mismas guardas del
 pipeline (Zod, ids deterministas, upsert idempotente) y deja la página marcada como
 normalizada: sirve para un backfill hecho a mano o revisado. `--limite` llega también al
