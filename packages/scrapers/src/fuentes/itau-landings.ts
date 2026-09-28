@@ -144,6 +144,7 @@ export async function fetchItauLandings(): Promise<Crudo[]> {
     fuente_id: "itau",
     external_id: `landing-${clave}`,
     url_fuente: `${BASE}/restaurantes.html`,
+    comercio: { nombre, categoria: rubro },
     contenido: [
       `${nombre} (${rubro})`,
       ...[...tramos].map(

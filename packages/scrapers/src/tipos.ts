@@ -20,6 +20,12 @@ export interface Crudo {
    * El runner los geocodifica y guarda el pin si es confiable (geo/direccion.ts).
    */
   direcciones?: DireccionDeFuente[];
+  /**
+   * Comercio que la fuente ya nombra sin ambigüedad (cada landing de Itaú es
+   * de un restaurante). Gana sobre el que diga el modelo, que a veces toma el
+   * rubro ("Restaurantes") como nombre y junta ahí páginas de distintos locales.
+   */
+  comercio?: { nombre: string; categoria: string };
 }
 
 export interface DireccionDeFuente {
