@@ -14,7 +14,7 @@ export default async function EditarManual({ params }: { params: Promise<{ id: s
   const id = decodeURIComponent((await params).id);
   const { data: b } = await createSupabaseAdmin()
     .from("beneficio")
-    .select("*, comercio(nombre, categoria)")
+    .select("*, comercio(nombre, categoria), beneficio_nota(nota)")
     .eq("id", id)
     .eq("origen", "manual")
     .maybeSingle();
@@ -40,7 +40,7 @@ export default async function EditarManual({ params }: { params: Promise<{ id: s
     tope_moneda: b.tope_moneda === "USD" ? "USD" : "UYU",
     canal: b.canal,
     url_fuente: b.url_fuente,
-    nota_manual: s(b.nota_manual),
+    nota_manual: s(b.beneficio_nota?.nota),
   };
   return (
     <div className="mx-auto max-w-5xl">
