@@ -15,6 +15,9 @@ export default async function Busquedas() {
     .from("busqueda_sin_resultado")
     .select("q, dia, veces")
     .gte("dia", desde)
+    // Las más buscadas primero: si hay más filas que el límite, lo que queda
+    // afuera son las de una sola búsqueda.
+    .order("veces", { ascending: false })
     .limit(5000);
   const terminos = agruparBusquedas((data ?? []) as BusquedaDia[]);
 

@@ -6,8 +6,9 @@ export type Termino = { q: string; veces: number; dias: number; ultima: string }
 /**
  * Suma por término y saca los prefijos: el buscador consulta mientras se
  * escribe, así que "farmas" y "farmasho" llegan antes que "farmashopp". Un
- * término que es el comienzo de otro de la lista es ese mismo intento a medio
- * escribir.
+ * término que es el comienzo de otros es ese mismo intento a medio escribir,
+ * siempre que esos otros sumen al menos sus búsquedas: si no, es una búsqueda
+ * que se sostiene sola (y cualquiera que busque un texto más largo no la tapa).
  */
 export function agruparBusquedas(filas: BusquedaDia[]): Termino[] {
   const por = new Map<string, Termino>();
@@ -20,6 +21,9 @@ export function agruparBusquedas(filas: BusquedaDia[]): Termino[] {
   }
   const todos = [...por.values()];
   return todos
-    .filter((t) => !todos.some((o) => o.q !== t.q && o.q.startsWith(t.q)))
+    .filter((t) => {
+      const completos = todos.filter((o) => o.q !== t.q && o.q.startsWith(t.q));
+      return completos.length === 0 || completos.reduce((n, o) => n + o.veces, 0) < t.veces;
+    })
     .sort((a, b) => b.veces - a.veces || b.ultima.localeCompare(a.ultima) || a.q.localeCompare(b.q));
 }
