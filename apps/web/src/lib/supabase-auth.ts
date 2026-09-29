@@ -95,18 +95,7 @@ export async function refrescarSesion(request: NextRequest) {
   return { respuesta, usuario: data.user };
 }
 
-/**
- * Solo se acepta un `next` relativo al sitio: cualquier cosa que apunte afuera
- * (incluido `//host`) se descarta para no habilitar un redirect abierto.
- */
-export function destinoSeguro(
-  next: string | null | undefined,
-  porDefecto = "/app",
-) {
-  if (!next || !next.startsWith("/") || next.startsWith("//"))
-    return porDefecto;
-  return next;
-}
+export { destinoSeguro } from "./destino";
 
 /**
  * Qué proveedores de login tiene habilitados el proyecto de Supabase. Si
