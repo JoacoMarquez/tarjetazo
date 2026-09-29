@@ -3,12 +3,14 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { Send, X } from "lucide-react";
+import { CATEGORIAS } from "@tarjetazo/core";
 import { BotonFavorito } from "@/components/boton-favorito";
 import type { BeneficioListado } from "@/lib/consultas";
 import { colorFuente } from "@/lib/marca";
 import { cifraDe, conAlcance } from "./panel-lista";
 
 const ANCHO = 320;
+const LABEL_CATEGORIA = new Map(CATEGORIAS.map((c) => [c.slug, c.label]));
 
 /**
  * Ficha del comercio anclada al pin: va debajo si el pin está en la mitad
@@ -84,7 +86,7 @@ export function PopupComercio({
             {comercio}
           </span>
           <span className="text-humo block text-[13px]">
-            {primero.categoria} · {primero.n_sucursales}{" "}
+            {LABEL_CATEGORIA.get(primero.categoria) ?? primero.categoria} · {primero.n_sucursales}{" "}
             {primero.n_sucursales === 1 ? "local" : "locales"}
           </span>
         </span>
