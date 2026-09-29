@@ -147,7 +147,11 @@ export function crudoDeFicha(url: string, html: string): Crudo {
 
 export async function fetchMidinero(): Promise<Crudo[]> {
   const sitemap = await bajarTexto(SITEMAP);
-  const urls = [...sitemap.matchAll(/<loc>([^<]*\/beneficio\/[^<]+)<\/loc>/g)].map((m) => m[1]!.trim());
+  const host = new URL(SITEMAP).host;
+  // Solo fichas del mismo sitio: el sitemap podría listar cualquier URL.
+  const urls = [...sitemap.matchAll(/<loc>([^<]*\/beneficio\/[^<]+)<\/loc>/g)]
+    .map((m) => m[1]!.trim())
+    .filter((u) => URL.canParse(u) && new URL(u).host === host);
   const limite = Number(process.env.SCRAPER_LIMITE) || Infinity;
   const crudos: Crudo[] = [];
   for (const url of urls.slice(0, limite)) {

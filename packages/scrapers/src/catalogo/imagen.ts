@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchPublico, leerConTope } from "@tarjetazo/core/red";
+import { resolverDns } from "../http.js";
 
 const BUCKET = "tarjetas";
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -45,7 +47,8 @@ export async function bajarImagen(
   maxBytes = MAX_BYTES,
 ): Promise<{ bytes: Uint8Array; tipo: string; ext: string; hash: string }> {
   // Desde GitHub Actions, BBVA da 403 a la foto si falta el referer o los sec-fetch.
-  const res = await fetch(url, {
+  // La URL sale de la página del banco: `fetchPublico` no va a la red interna.
+  const res = await fetchPublico(url, {
     headers: {
       "user-agent":
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
@@ -57,10 +60,9 @@ export async function bajarImagen(
       ...(pagina ? { referer: pagina } : {}),
     },
     signal: AbortSignal.timeout(30_000),
-  });
+  }, { resolver: resolverDns });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  if (bytes.byteLength > maxBytes) throw new Error(`pesa más de ${Math.round(maxBytes / 1024)} KB`);
+  const bytes = await leerConTope(res, maxBytes);
   const header = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
   const tipo = EXTENSION[header] ? header : (tipoPorContenido(bytes) ?? header);
   const ext = EXTENSION[tipo];
