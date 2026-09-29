@@ -61,6 +61,47 @@ export async function ignorarUbicacion(form: FormData) {
 }
 
 /**
+ * Acepta un dato de contacto que sugirió OSM: pasa al comercio (sitio,
+ * Instagram) o al local (teléfono, horario) y se ve en el sitio.
+ */
+export async function aceptarInfo(form: FormData) {
+  await exigirAdmin();
+  const id = String(form.get("id") ?? "");
+  const key = String(form.get("comercio_key") ?? "");
+  const db = createSupabaseAdmin();
+  const { data: s } = await db
+    .from("info_sugerencia")
+    .select("comercio_key, sucursal_id, campo, valor")
+    .eq("id", id)
+    .eq("estado", "pendiente")
+    .maybeSingle<{ comercio_key: string; sucursal_id: string | null; campo: string; valor: string }>();
+  if (!s) volver(key, "La sugerencia ya no está pendiente.", true);
+
+  const { error } =
+    s.campo === "sitio_web" || s.campo === "instagram"
+      ? await db.from("comercio").update({ [s.campo]: s.valor }).eq("key", s.comercio_key)
+      : await db.from("sucursal").update({ [s.campo]: s.valor }).eq("id", s.sucursal_id!).eq("comercio_key", s.comercio_key);
+  if (error) volver(s.comercio_key, `No se pudo guardar: ${error.message}`, true);
+
+  await db.from("info_sugerencia").update({ estado: "aceptada", resuelta_en: new Date().toISOString() }).eq("id", id);
+  revalidatePath(`/comercio/${s.comercio_key}`);
+  volver(s.comercio_key, "Dato aceptado: ya se ve en el sitio.");
+}
+
+export async function ignorarInfo(form: FormData) {
+  await exigirAdmin();
+  const id = String(form.get("id") ?? "");
+  const key = String(form.get("comercio_key") ?? "");
+  const { error } = await createSupabaseAdmin()
+    .from("info_sugerencia")
+    .update({ estado: "ignorada", resuelta_en: new Date().toISOString() })
+    .eq("id", id)
+    .eq("estado", "pendiente");
+  if (error) volver(key, `No se pudo ignorar: ${error.message}`, true);
+  volver(key, "Dato ignorado: no se vuelve a sugerir.");
+}
+
+/**
  * Sucursal cargada a mano: se geocodifica con el servicio oficial y queda con
  * `fuente_direccion = 'manual'`. El scraper nunca borra sucursales, así que
  * no la pisa.

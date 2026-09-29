@@ -5,9 +5,9 @@ import { CATEGORIAS, Departamento, FUENTES } from "@tarjetazo/core";
 import { BotonEnviar } from "@/components/admin/boton-enviar";
 import { MiniMapa } from "@/components/admin/mini-mapa";
 import { createSupabaseAdmin, exigirAdmin } from "@/lib/admin";
-import { FUENTES_EDITABLES, urlOsm, type SucursalAdmin, type SugerenciaUbicacion } from "@/lib/admin/comercios";
+import { CAMPO_INFO, FUENTES_EDITABLES, urlOsm, type SucursalAdmin, type SugerenciaInfo, type SugerenciaUbicacion } from "@/lib/admin/comercios";
 import { paginaDeBeneficio, urlInspector } from "@/lib/admin/paginas";
-import { aceptarUbicacion, agregarSucursal, borrarSucursal, ignorarUbicacion } from "../actions";
+import { aceptarInfo, aceptarUbicacion, agregarSucursal, borrarSucursal, ignorarInfo, ignorarUbicacion } from "../actions";
 
 type Props = {
   params: Promise<{ key: string }>;
@@ -48,7 +48,7 @@ export default async function FichaComercio({ params, searchParams }: Props) {
   const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const db = createSupabaseAdmin();
 
-  const [comercio, beneficios, sucursales, sugerencias] = await Promise.all([
+  const [comercio, beneficios, sucursales, sugerencias, datos] = await Promise.all([
     db.from("comercio").select("key, nombre, categoria").eq("key", key).maybeSingle<{ key: string; nombre: string; categoria: string }>(),
     db
       .from("beneficio")
@@ -58,13 +58,21 @@ export default async function FichaComercio({ params, searchParams }: Props) {
       .order("id"),
     db.rpc("admin_sucursales", { p_key: key }),
     db.from("sucursal_sugerencia").select("*").eq("comercio_key", key).eq("estado", "pendiente").order("creada_en"),
+    db
+      .from("info_sugerencia")
+      .select("id, campo, valor, osm_ids, sucursal_id, sucursal(direccion)")
+      .eq("comercio_key", key)
+      .eq("estado", "pendiente")
+      .order("campo")
+      .order("creada_en"),
   ]);
   if (!comercio.data) notFound();
-  const fallo = beneficios.error ?? sucursales.error ?? sugerencias.error;
+  const fallo = beneficios.error ?? sucursales.error ?? sugerencias.error ?? datos.error;
 
   const bs = (beneficios.data ?? []) as Beneficio[];
   const ss = (sucursales.data ?? []) as SucursalAdmin[];
   const gs = (sugerencias.data ?? []) as SugerenciaUbicacion[];
+  const ds = (datos.data ?? []) as unknown as SugerenciaInfo[];
   const publicados = bs.filter((b) => b.estado_revision === "ok");
   const deptos = [...new Set(publicados.flatMap((b) => b.departamentos ?? []))];
   const puntos = [
@@ -131,6 +139,50 @@ export default async function FichaComercio({ params, searchParams }: Props) {
                     <input type="hidden" name="id" value={g.id} />
                     <input type="hidden" name="comercio_key" value={key} />
                     <BotonEnviar>No es este</BotonEnviar>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {ds.length > 0 ? (
+        <section className="mt-8" aria-labelledby="datos">
+          <h2 id="datos" className="text-lg">Datos de contacto sugeridos <span className="text-humo-oscuro text-sm font-normal">{ds.length}</span></h2>
+          <p className="text-pizarra mt-1 max-w-prose text-sm">
+            Vienen de OpenStreetMap, que edita cualquiera: revisá que el sitio y el
+            Instagram sean los del comercio antes de aceptar.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {ds.map((d) => (
+              <li key={d.id} className="border-linea bg-papel flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3">
+                <div className="min-w-0 text-sm">
+                  <p>
+                    <span className="text-humo-oscuro text-xs">{CAMPO_INFO[d.campo]}</span>{" "}
+                    <span className="font-medium break-all">{d.valor}</span>
+                  </p>
+                  <p className="text-pizarra text-xs">
+                    {d.sucursal ? `${d.sucursal.direccion} · ` : ""}
+                    {d.osm_ids.map((o, i) =>
+                      urlOsm(o) ? (
+                        <a key={o} href={urlOsm(o)!} target="_blank" rel="noreferrer noopener" className="text-cielo-ink hover:underline">
+                          {i === 0 ? "ver en OSM ↗" : ` ${i + 1} ↗`}
+                        </a>
+                      ) : null,
+                    )}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <form action={aceptarInfo}>
+                    <input type="hidden" name="id" value={d.id} />
+                    <input type="hidden" name="comercio_key" value={key} />
+                    <BotonEnviar primario>Aceptar</BotonEnviar>
+                  </form>
+                  <form action={ignorarInfo}>
+                    <input type="hidden" name="id" value={d.id} />
+                    <input type="hidden" name="comercio_key" value={key} />
+                    <BotonEnviar>No</BotonEnviar>
                   </form>
                 </div>
               </li>

@@ -65,7 +65,7 @@ export default async function Comercios({
       <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Dato titulo="Con beneficios vigentes" valor={numero(todas.length)} />
         <Dato titulo="Sin ubicación" valor={numero(sinPin)} detalle={`${Math.round((100 * sinPin) / Math.max(1, todas.length))} % no aparece en el mapa`} alerta={sinPin > 0} />
-        <Dato titulo="Con sugerencias" valor={numero(conSugerencias)} detalle={`${numero(sugerenciasTotal)} ubicaciones para revisar`} />
+        <Dato titulo="Con sugerencias" valor={numero(conSugerencias)} detalle={`${numero(sugerenciasTotal)} ubicaciones y datos para revisar`} />
         <div className="border-linea bg-papel flex flex-col justify-between rounded-xl border px-4 py-3">
           <dt className="text-humo-oscuro text-xs font-medium">Buscar en OpenStreetMap</dt>
           <dd className="mt-1 text-sm">

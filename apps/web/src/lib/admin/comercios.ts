@@ -51,6 +51,23 @@ export type SugerenciaUbicacion = {
   estado: "pendiente" | "aceptada" | "ignorada";
 };
 
+/** Sitio, Instagram, teléfono u horario que trae OSM y espera que el operador lo acepte. */
+export type SugerenciaInfo = {
+  id: string;
+  campo: "sitio_web" | "instagram" | "telefono" | "horario";
+  valor: string;
+  osm_ids: string[];
+  sucursal_id: string | null;
+  sucursal: { direccion: string } | null;
+};
+
+export const CAMPO_INFO: Record<SugerenciaInfo["campo"], string> = {
+  sitio_web: "Sitio web",
+  instagram: "Instagram",
+  telefono: "Teléfono",
+  horario: "Horario",
+};
+
 export type SucursalAdmin = {
   id: string;
   nombre: string | null;

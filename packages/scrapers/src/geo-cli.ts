@@ -1,6 +1,6 @@
 import { crearCliente } from "./db.js";
 import { geocodificarPendientes, importarDeOsm, importarLocalidades } from "./geo/job.js";
-import { completarInfoDeOsm } from "./geo/info.js";
+import { sugerirInfoDeOsm } from "./geo/info.js";
 import { sugerirUbicacionesOsm } from "./geo/sugerir.js";
 
 const TAREAS = {
@@ -19,10 +19,11 @@ async function main() {
     return;
   }
   if (tarea === "info") {
-    // Teléfono, horario, sitio e Instagram de los locales vinculados a OSM (#118).
-    const r = await completarInfoDeOsm(crearCliente());
+    // Teléfono, horario, sitio e Instagram de los locales vinculados a OSM (#118),
+    // como sugerencias para /admin/comercios.
+    const r = await sugerirInfoDeOsm(crearCliente());
     console.log(
-      [`locales:     ${r.locales}`, `teléfonos:   ${r.telefonos}`, `horarios:    ${r.horarios}`, `sitios:      ${r.sitios}`, `instagrams:  ${r.instagrams}`].join("\n"),
+      [`locales:     ${r.locales}`, "sugerencias nuevas:", `  teléfonos:  ${r.telefonos}`, `  horarios:   ${r.horarios}`, `  sitios:     ${r.sitios}`, `  instagrams: ${r.instagrams}`].join("\n"),
     );
     return;
   }
