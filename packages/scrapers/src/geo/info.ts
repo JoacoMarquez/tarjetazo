@@ -5,8 +5,8 @@ import { preguntar, type Elemento } from "./osm.js";
  * Información de comercios desde OpenStreetMap (#118). Los locales vinculados
  * por `osm_id` (los importados de cadenas y las sugerencias aceptadas) traen en
  * sus tags el teléfono y el horario del local, y a veces el sitio web y el
- * Instagram del comercio. Solo se completa lo vacío: lo que ya está (de una
- * fuente o cargado a mano) no se pisa.
+ * Instagram del comercio. Solo se sugiere lo vacío, y lo acepta el operador:
+ * OSM lo edita cualquiera.
  */
 
 interface LocalVinculado {
@@ -48,6 +48,7 @@ export function sitioWeb(v: string | undefined): string | null {
 
 /** "https://www.tata.com.uy/" → "tata.com.uy": para contar juntas las variantes del mismo sitio. */
 const dominio = (url: string) => new URL(url).hostname.replace(/^www\./, "");
+const dominioDe = (v: string) => (/^https?:/.test(v) ? dominio(v) : v);
 
 /**
  * El dato del comercio a partir de sus locales. Con uno o dos locales, el que
@@ -95,7 +96,25 @@ async function localesVinculados(db: SupabaseClient): Promise<LocalVinculado[]> 
   }
 }
 
-export async function completarInfoDeOsm(
+type Sugerencia = { comercio_key: string; sucursal_id: string | null; campo: string; valor: string; osm_ids: string[] };
+
+/** Sitio e Instagram que ya tienen los comercios: esos no se sugieren. */
+async function infoDeComercios(db: SupabaseClient, keys: string[]): Promise<Map<string, { sitio_web: string | null; instagram: string | null }>> {
+  const out = new Map<string, { sitio_web: string | null; instagram: string | null }>();
+  for (let i = 0; i < keys.length; i += 200) {
+    const { data, error } = await db.from("comercio").select("key, sitio_web, instagram").in("key", keys.slice(i, i + 200));
+    if (error) throw new Error(`leyendo comercios: ${error.message}`);
+    for (const c of data ?? []) out.set(c.key as string, { sitio_web: c.sitio_web as string | null, instagram: c.instagram as string | null });
+  }
+  return out;
+}
+
+/**
+ * Deja como sugerencias (`info_sugerencia`) lo que OSM tiene y el catálogo no.
+ * No publica nada: OSM lo edita cualquiera, y lo acepta el operador en
+ * /admin/comercios. Un valor ya sugerido (o ignorado) no se repite.
+ */
+export async function sugerirInfoDeOsm(
   db: SupabaseClient,
 ): Promise<{ locales: number; telefonos: number; horarios: number; sitios: number; instagrams: number }> {
   const locales = await localesVinculados(db);
@@ -112,43 +131,48 @@ export async function completarInfoDeOsm(
     for (const e of await preguntar(`[out:json][timeout:120];(${partes});out tags;`)) porId.set(`${e.type}/${e.id}`, e);
   }
 
-  let telefonos = 0;
-  let horarios = 0;
-  const porComercio = new Map<string, { sitios: (string | null)[]; instagrams: (string | null)[] }>();
+  const sugerencias: Sugerencia[] = [];
+  const porComercio = new Map<string, { sitios: (string | null)[]; instagrams: (string | null)[]; osm: string[] }>();
   for (const l of locales) {
     const tags = porId.get(l.osm_id)?.tags ?? {};
     const telefono = primero(tags.phone ?? tags["contact:phone"]);
     const horario = tags.opening_hours?.trim() || null;
-    const cambios: Record<string, string> = {};
-    if (!l.telefono && telefono) cambios.telefono = telefono;
-    if (!l.horario && horario) cambios.horario = horario;
-    if (Object.keys(cambios).length > 0) {
-      const { error } = await db.from("sucursal").update(cambios).eq("id", l.id);
-      if (error) throw new Error(`guardando la sucursal ${l.id}: ${error.message}`);
-      if (cambios.telefono) telefonos++;
-      if (cambios.horario) horarios++;
-    }
-    const c = porComercio.get(l.comercio_key) ?? { sitios: [], instagrams: [] };
+    if (!l.telefono && telefono) sugerencias.push({ comercio_key: l.comercio_key, sucursal_id: l.id, campo: "telefono", valor: telefono, osm_ids: [l.osm_id] });
+    if (!l.horario && horario) sugerencias.push({ comercio_key: l.comercio_key, sucursal_id: l.id, campo: "horario", valor: horario, osm_ids: [l.osm_id] });
+    const c = porComercio.get(l.comercio_key) ?? { sitios: [], instagrams: [], osm: [] };
     const web = tags.website ?? tags["contact:website"] ?? tags.url;
     c.sitios.push(sitioWeb(web));
     // Hay locales con el Instagram cargado como sitio web.
     c.instagrams.push(usuarioInstagram(tags["contact:instagram"] ?? tags.instagram ?? (web && /instagram\.com/i.test(web) ? web : undefined)));
+    c.osm.push(l.osm_id);
     porComercio.set(l.comercio_key, c);
   }
 
-  let sitios = 0;
-  let instagrams = 0;
+  const actuales = await infoDeComercios(db, [...porComercio.keys()]);
   for (const [key, c] of porComercio) {
+    const ya = actuales.get(key);
     const sitio = elegir(key, c.sitios, "sitio");
     const instagram = elegir(key, c.instagrams, "instagram");
-    if (sitio) {
-      const { data } = await db.from("comercio").update({ sitio_web: sitio }).eq("key", key).is("sitio_web", null).select("key");
-      sitios += (data ?? []).length;
-    }
-    if (instagram) {
-      const { data } = await db.from("comercio").update({ instagram }).eq("key", key).is("instagram", null).select("key");
-      instagrams += (data ?? []).length;
+    // De qué locales sale: para que el operador lo pueda mirar en OSM.
+    const de = (valores: (string | null)[], v: string) => c.osm.filter((_, i) => valores[i] && (valores[i] === v || dominioDe(valores[i]!) === dominioDe(v)));
+    if (sitio && ya && !ya.sitio_web) sugerencias.push({ comercio_key: key, sucursal_id: null, campo: "sitio_web", valor: sitio, osm_ids: de(c.sitios, sitio) });
+    if (instagram && ya && !ya.instagram) sugerencias.push({ comercio_key: key, sucursal_id: null, campo: "instagram", valor: instagram, osm_ids: de(c.instagrams, instagram) });
+  }
+
+  const nuevas = { telefonos: 0, horarios: 0, sitios: 0, instagrams: 0 };
+  for (let i = 0; i < sugerencias.length; i += 500) {
+    const { data, error } = await db
+      .from("info_sugerencia")
+      .upsert(sugerencias.slice(i, i + 500), { onConflict: "comercio_key,sucursal_id,campo,valor", ignoreDuplicates: true })
+      .select("campo");
+    if (error) throw new Error(`guardando sugerencias: ${error.message}`);
+    for (const r of data ?? []) {
+      const campo = r.campo as string;
+      if (campo === "telefono") nuevas.telefonos++;
+      else if (campo === "horario") nuevas.horarios++;
+      else if (campo === "sitio_web") nuevas.sitios++;
+      else nuevas.instagrams++;
     }
   }
-  return { locales: locales.length, telefonos, horarios, sitios, instagrams };
+  return { locales: locales.length, ...nuevas };
 }
