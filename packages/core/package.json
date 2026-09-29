@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./categorias": "./src/categorias.ts",
-    "./fuentes": "./src/fuentes.ts"
+    "./fuentes": "./src/fuentes.ts",
+    "./red": "./src/red.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

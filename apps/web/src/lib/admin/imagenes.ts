@@ -1,6 +1,8 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { lookup } from "node:dns/promises";
+import { fetchPublico, leerConTope } from "@tarjetazo/core/red";
 import type { createSupabaseAdmin } from "@/lib/admin";
 
 type Db = ReturnType<typeof createSupabaseAdmin>;
@@ -28,19 +30,26 @@ function tipoPorContenido(b: Uint8Array): string | null {
  * si se lo ofrecen, y el bucket no lo acepta.
  */
 export async function bajarImagen(url: string): Promise<{ bytes: Uint8Array; tipo: string }> {
-  const res = await fetch(url, {
-    headers: {
-      "user-agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-      accept: "image/webp,image/png,image/jpeg;q=0.9,*/*;q=0.5",
-      "accept-language": "es-UY,es;q=0.9",
+  // La URL la eligió el scraper en una página del banco: la función corre en
+  // Vercel y no tiene que poder ir a la red interna ni a la metadata.
+  const res = await fetchPublico(
+    url,
+    {
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        accept: "image/webp,image/png,image/jpeg;q=0.9,*/*;q=0.5",
+        "accept-language": "es-UY,es;q=0.9",
+      },
+      signal: AbortSignal.timeout(20_000),
+      cache: "no-store",
     },
-    signal: AbortSignal.timeout(20_000),
-    cache: "no-store",
-  });
+    { resolver: async (host) => (await lookup(host, { all: true })).map((r) => r.address) },
+  );
   if (!res.ok) throw new Error(`el banco respondió HTTP ${res.status}`);
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  if (bytes.byteLength > MAX_BYTES) throw new Error("la imagen pesa más de 4 MB");
+  const bytes = await leerConTope(res, MAX_BYTES).catch(() => {
+    throw new Error("la imagen pesa más de 4 MB");
+  });
   const header = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
   const tipo = EXTENSION[header] ? header : (tipoPorContenido(bytes) ?? header);
   if (!EXTENSION[tipo]) throw new Error(`formato no soportado (${tipo || "sin tipo"})`);

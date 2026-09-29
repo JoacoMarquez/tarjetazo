@@ -1,3 +1,12 @@
+import { lookup } from "node:dns/promises";
+import { DestinoNoPermitido, fetchPublico, leerConTope, revisarDestino, type Resolver } from "@tarjetazo/core/red";
+
+/** Las URLs salen de páginas de terceros: nada de ir a la red interna del runner. */
+export const resolverDns: Resolver = async (host) => (await lookup(host, { all: true })).map((r) => r.address);
+
+/** Una página de más de esto no es un beneficio: se corta antes de cargarla entera. */
+const MAX_TEXTO = 15 * 1024 * 1024;
+
 const UA =
   "Tarjetazo/0.1 (+https://tarjetazo.uy; agregador de beneficios; contacto@tarjetazo.uy)";
 
@@ -39,7 +48,7 @@ export async function bajarTexto(
     await esperarTurno();
     try {
       // Con `formulario` es un POST (el admin-ajax.php de WordPress, ANDA).
-      const res = await fetch(url, {
+      const res = await fetchPublico(url, {
         ...(opciones.formulario ? { method: "POST", body: new URLSearchParams(opciones.formulario) } : {}),
         headers: opciones.comoNavegador
           ? {
@@ -53,12 +62,13 @@ export async function bajarTexto(
             }
           : { "user-agent": UA, accept: "text/html,application/xhtml+xml", ...opciones.headers },
         signal: AbortSignal.timeout(30_000),
-      });
+      }, { resolver: resolverDns });
       if (res.status === 404 || res.status === 410) throw new PaginaInexistente(url, res.status);
       if (!res.ok) throw new Error(`HTTP ${res.status} en ${url}`);
-      return await res.text();
+      return new TextDecoder().decode(await leerConTope(res, MAX_TEXTO));
     } catch (e) {
-      if (e instanceof PaginaInexistente) throw e;
+      // Ni una página que no existe ni un destino prohibido mejoran reintentando.
+      if (e instanceof PaginaInexistente || e instanceof DestinoNoPermitido) throw e;
       ultimoError = e;
       // Backoff exponencial: 1s, 2s, 4s.
       await new Promise((r) => setTimeout(r, 1000 * 2 ** i));
@@ -74,6 +84,7 @@ export async function bajarTexto(
 export async function resolverRedireccion(url: string): Promise<string | null> {
   await esperarTurno();
   try {
+    await revisarDestino(new URL(url), resolverDns);
     const res = await fetch(url, {
       method: "HEAD",
       redirect: "manual",
