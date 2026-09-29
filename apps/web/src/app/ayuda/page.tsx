@@ -2,6 +2,7 @@ import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { PaginaTexto } from "@/components/pagina-texto";
 import { CATEGORIAS, FUENTES } from "@tarjetazo/core";
+import { JsonLd } from "@/components/json-ld";
 
 export const metadata: Metadata = {
   title: "Ayuda",
@@ -67,7 +68,7 @@ export default function Ayuda() {
       titulo="Ayuda"
       bajada="Lo que más nos preguntan sobre cómo funciona esto."
     >
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd datos={jsonLd} />
       {PREGUNTAS.map((p) => (
         <section key={p.q}>
           <h2>{p.q}</h2>

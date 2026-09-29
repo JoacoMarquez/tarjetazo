@@ -11,6 +11,7 @@ import { NOMBRES_DIA } from "@/lib/filtros";
 import { topeLargo } from "@/lib/tope";
 import { createSupabaseClient } from "@/lib/supabase";
 import { FUENTES } from "@tarjetazo/core";
+import { JsonLd } from "@/components/json-ld";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -174,7 +175,7 @@ export default async function PaginaBeneficio({ params }: Props) {
   return (
     <>
       <EncabezadoSitio />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd datos={jsonLd} />
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-8 md:pb-12">
         <nav aria-label="Migas" className="text-humo text-xs">
           <Link href="/app" className="hover:underline">Beneficios</Link>{" › "}
