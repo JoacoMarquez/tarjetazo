@@ -71,6 +71,13 @@ export interface Extraido {
   uso?: UsoModelo;
 }
 
+/**
+ * Un parser propio que no entiende una página con seguridad la devuelve así:
+ * queda pendiente (como en el modo sin modelo) y sus beneficios de antes
+ * siguen publicados, en vez de publicar algo dudoso.
+ */
+export class PaginaPendiente extends Error {}
+
 export interface Scraper {
   readonly id: string;
   fetch(): Promise<Crudo[]>;
