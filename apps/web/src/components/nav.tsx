@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, CreditCard, Home, Scale } from "lucide-react";
+import { Compass, CreditCard, Heart, Home, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Logo({ className }: { className?: string }) {
@@ -21,7 +21,7 @@ type Item = {
   icono: typeof Home;
   ruta: string;
   href?: {
-    pathname: "/" | "/app" | "/comparar";
+    pathname: "/" | "/app" | "/tarjetas" | "/favoritos";
     query?: Record<string, string>;
   };
 };
@@ -34,15 +34,23 @@ const ITEMS: Item[] = [
     ruta: "/app",
     href: { pathname: "/app" },
   },
+  // Comparar vive dentro de Tarjetas (y en el encabezado de escritorio): con
+  // Favoritos (#115) la barra no da para seis.
   {
-    label: "Comparar",
-    icono: Scale,
-    ruta: "/comparar",
-    href: { pathname: "/comparar" },
+    label: "Tarjetas",
+    icono: CreditCard,
+    ruta: "/tarjetas",
+    href: { pathname: "/tarjetas" },
+  },
+  {
+    label: "Favoritos",
+    icono: Heart,
+    ruta: "/favoritos",
+    href: { pathname: "/favoritos" },
   },
   {
     label: "Mis tarjetas",
-    icono: CreditCard,
+    icono: Wallet,
     ruta: "/app",
     href: { pathname: "/app", query: { perfil: "1" } },
   },
@@ -59,7 +67,8 @@ export function NavInferior() {
     >
       <ul className="mx-auto flex max-w-lg">
         {ITEMS.map((item) => {
-          const activo = ruta === item.ruta;
+          // /tarjeta/<familia> es parte de Tarjetas.
+          const activo = item.ruta === "/tarjetas" ? ruta.startsWith("/tarjeta") : ruta === item.ruta;
           const Icono = item.icono;
           return (
             <li key={item.label} className="flex-1">

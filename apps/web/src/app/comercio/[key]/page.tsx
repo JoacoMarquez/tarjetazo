@@ -5,6 +5,7 @@ import { ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { RUBRO_POR_KEY, alcanceTarjetas } from "@tarjetazo/core";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
+import { BotonFavorito } from "@/components/boton-favorito";
 import { CopiarLink } from "@/components/copiar-link";
 import {
   aplicaHoy,
@@ -157,7 +158,10 @@ export default async function PaginaComercio({ params }: Props) {
               {sucursales.length > 0 && ` · ${sucursales.length} ${sucursales.length === 1 ? "local" : "locales"}`}
             </p>
           </div>
-          <CopiarLink url={url} />
+          <div className="flex items-center gap-2">
+            <BotonFavorito comercioKey={comercio.key} nombre={comercio.nombre} />
+            <CopiarLink url={url} />
+          </div>
         </div>
 
         {rubroPropio && (
