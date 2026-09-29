@@ -21,9 +21,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  correr:
+  # Qué fuentes corren y desde cuándo contar para el resumen.
+  preparar:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    outputs:
+      inicio: ${{ steps.p.outputs.inicio }}
+      fuentes: ${{ steps.p.outputs.fuentes }}
+    steps:
+      - id: p
+        env:
+          FUENTE: ${{ inputs.fuente || 'todas' }}
+        run: |
+          echo "inicio=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          if [ "$FUENTE" = "todas" ]; then
+            echo 'fuentes=["brou","santander","itau","oca","scotiabank","bbva","midinero","nativa","club-el-pais","anda","asi","pronto","creditel","passcard"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "fuentes=[\"$FUENTE\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Una tarea por fuente, en paralelo: en serie, la corrida diaria pasaba los
+  # 30 minutos (BBVA sola tarda 12) y las últimas fuentes no corrían nunca.
+  # Cada una con su límite: una fuente trabada no frena a las demás.
+  correr:
+    needs: preparar
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        fuente: ${{ fromJSON(needs.preparar.outputs.fuentes) }}
+    name: ${{ matrix.fuente }}
     steps:
       - uses: actions/checkout@v5
 
@@ -36,11 +64,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Anotar inicio
-        run: echo "INICIO=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
-
       - name: Correr scraper
-        id: scrapers
         working-directory: packages/scrapers
         shell: bash
         env:
@@ -49,42 +73,52 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # "1" para no gastar saldo de la API: las páginas que cambian quedan pendientes.
           SCRAPER_SIN_MODELO: ${{ vars.SCRAPER_SIN_MODELO }}
-          FUENTE: ${{ inputs.fuente || 'todas' }}
+          FUENTE: ${{ matrix.fuente }}
           LIMITE: ${{ inputs.limite && format('--limite={0}', inputs.limite) || '' }}
         run: |
-          # Sin input (el cron) o con "todas": una fuente por vez, y que la
-          # caída de una no frene a las siguientes.
-          if [ "$FUENTE" = "todas" ]; then fuentes="brou santander itau oca scotiabank bbva midinero nativa club-el-pais anda asi pronto creditel passcard"; else fuentes="$FUENTE"; fi
-          estado=0
-          for f in $fuentes; do
-            echo "=== $f ==="   | tee -a "$RUNNER_TEMP/reporte.txt"
-            pnpm scrape "$f" $LIMITE 2>&1 | tee -a "$RUNNER_TEMP/reporte.txt" || estado=1
-          done
-          exit $estado
+          set -o pipefail
+          pnpm scrape "$FUENTE" $LIMITE 2>&1 | tee "$RUNNER_TEMP/reporte.txt"
 
-      # Siempre, haya fallado o no: si el mensaje no llega, esa es la alerta.
-      # Las pruebas manuales con límite no mandan nada, para no llenar el chat.
+      - name: Reporte
+        if: always()
+        run: |
+          {
+            echo "### ${{ matrix.fuente }}"
+            echo '```'
+            cat "$RUNNER_TEMP/reporte.txt" 2>/dev/null || echo 'sin reporte (la corrida falló antes de terminar)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Un solo mensaje con todas las fuentes, haya fallado alguna o no: si el
+  # mensaje no llega, esa es la alerta. Las pruebas manuales con límite no
+  # mandan nada, para no llenar el chat.
+  resumen:
+    needs: [preparar, correr]
+    if: always() && needs.preparar.result == 'success' && (github.event_name == 'schedule' || inputs.limite == '')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
       - name: Resumen a Telegram
-        if: always() && (github.event_name == 'schedule' || inputs.limite == '')
         working-directory: packages/scrapers
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          RESUMEN_DESDE: ${{ env.INICIO }}
+          RESUMEN_DESDE: ${{ needs.preparar.outputs.inicio }}
           RESUMEN_FUENTES: ${{ inputs.fuente || 'todas' }}
-          RESUMEN_ESTADO: ${{ steps.scrapers.outcome }}
+          # success, failure o cancelled: el de la matriz entera.
+          RESUMEN_ESTADO: ${{ needs.correr.result }}
           RESUMEN_MANUAL: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
           RESUMEN_URL_LOG: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: pnpm scrape resumen
-
-      - name: Reporte
-        if: always()
-        run: |
-          {
-            echo '### Corrida de scrapers'
-            echo '```'
-            cat "$RUNNER_TEMP/reporte.txt" 2>/dev/null || echo 'sin reporte (la corrida falló antes de terminar)'
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
