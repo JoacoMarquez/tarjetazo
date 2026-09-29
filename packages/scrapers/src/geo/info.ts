@@ -46,11 +46,38 @@ export function sitioWeb(v: string | undefined): string | null {
   }
 }
 
-/** El valor que más se repite entre los locales de un comercio. */
-function masComun(valores: (string | null)[]): string | null {
-  const cuenta = new Map<string, number>();
-  for (const v of valores) if (v) cuenta.set(v, (cuenta.get(v) ?? 0) + 1);
-  return [...cuenta].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+/** "https://www.tata.com.uy/" → "tata.com.uy": para contar juntas las variantes del mismo sitio. */
+const dominio = (url: string) => new URL(url).hostname.replace(/^www\./, "");
+
+/**
+ * El dato del comercio a partir de sus locales. Con uno o dos locales, el que
+ * haya. En una cadena, un solo local con dato puede ser una franquicia con
+ * su propia página ("estacionhimalaya.com" en ANCAP): vale si se repite en
+ * dos locales o más, o, para el sitio, si el dominio empieza con el nombre del
+ * comercio ("eldorado.com.uy" para El Dorado). Exportada para los tests.
+ */
+export function elegir(
+  comercioKey: string,
+  valores: (string | null)[],
+  tipo: "sitio" | "instagram",
+): string | null {
+  const grupos = new Map<string, string[]>();
+  for (const v of valores) {
+    if (!v) continue;
+    const clave = tipo === "sitio" ? dominio(v) : v;
+    grupos.set(clave, [...(grupos.get(clave) ?? []), v]);
+  }
+  const [mejor] = [...grupos].sort((a, b) => b[1].length - a[1].length);
+  if (!mejor) return null;
+  const [clave, variantes] = mejor;
+  const cadena = valores.length > 2;
+  const compacto = comercioKey.replace(/-/g, "");
+  const propio = tipo === "sitio" && clave.replace(/[^a-z0-9]/g, "").startsWith(compacto);
+  if (cadena && variantes.length < 2 && !propio) return null;
+  // Entre variantes del mismo sitio, la https (y con www si la hay).
+  return tipo === "sitio"
+    ? ([...variantes].sort((a, b) => Number(b.startsWith("https")) - Number(a.startsWith("https")) || b.length - a.length)[0] ?? null)
+    : clave;
 }
 
 async function localesVinculados(db: SupabaseClient): Promise<LocalVinculado[]> {
@@ -102,16 +129,18 @@ export async function completarInfoDeOsm(
       if (cambios.horario) horarios++;
     }
     const c = porComercio.get(l.comercio_key) ?? { sitios: [], instagrams: [] };
-    c.sitios.push(sitioWeb(tags.website ?? tags["contact:website"] ?? tags.url));
-    c.instagrams.push(usuarioInstagram(tags["contact:instagram"] ?? tags.instagram));
+    const web = tags.website ?? tags["contact:website"] ?? tags.url;
+    c.sitios.push(sitioWeb(web));
+    // Hay locales con el Instagram cargado como sitio web.
+    c.instagrams.push(usuarioInstagram(tags["contact:instagram"] ?? tags.instagram ?? (web && /instagram\.com/i.test(web) ? web : undefined)));
     porComercio.set(l.comercio_key, c);
   }
 
   let sitios = 0;
   let instagrams = 0;
   for (const [key, c] of porComercio) {
-    const sitio = masComun(c.sitios);
-    const instagram = masComun(c.instagrams);
+    const sitio = elegir(key, c.sitios, "sitio");
+    const instagram = elegir(key, c.instagrams, "instagram");
     if (sitio) {
       const { data } = await db.from("comercio").update({ sitio_web: sitio }).eq("key", key).is("sitio_web", null).select("key");
       sitios += (data ?? []).length;
