@@ -1,3 +1,5 @@
+import { setDefaultResultOrder } from "node:dns";
+import { setDefaultAutoSelectFamilyAttemptTimeout } from "node:net";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { FUENTES, costoEstimadoUsd, type UsoModelo } from "@tarjetazo/core";
 
@@ -155,17 +157,99 @@ export async function armarResumen(db: SupabaseClient, o: OpcionesResumen): Prom
   return partes.join("\n");
 }
 
-/** Sin credenciales de Telegram imprime el mensaje: sirve para probar a mano. */
-export async function enviarTelegram(texto: string): Promise<boolean> {
+/**
+ * Esperas entre intentos (cuatro en total). Además del ajuste de red de
+ * `redParaTelegram`, que un tropiezo de unos segundos no alcance para perder
+ * el mensaje.
+ */
+const ESPERAS_MS = [2_000, 5_000, 15_000];
+/** Tope para respetar el retry_after de un 429 sin colgar el workflow. */
+const ESPERA_MAX_MS = 60_000;
+
+/** No vale la pena reintentar un 4xx que no sea 429: token o chat mal puestos. */
+class ErrorTelegram extends Error {
+  constructor(
+    message: string,
+    readonly reintentable: boolean,
+    readonly esperaMs?: number,
+  ) {
+    super(message);
+  }
+}
+
+export interface OpcionesEnvio {
+  /** Para los tests: sin red y sin esperar de verdad. */
+  fetch?: typeof fetch;
+  dormir?: (ms: number) => Promise<void>;
+  log?: (msg: string) => void;
+}
+
+/**
+ * Los runners de GitHub resuelven api.telegram.org a IPv4 y a IPv6, pero no
+ * tienen ruta IPv6. Node (happy eyeballs, `autoSelectFamily`) le da a cada
+ * dirección solo 250 ms para conectar antes de pasar a la otra; IPv4 suele
+ * tardar ~150 ms, así que con un pico de latencia expira, IPv6 da ENETUNREACH
+ * y `fetch` falla con `AggregateError [ETIMEDOUT]` a los ~260 ms, lejos del
+ * timeout del pedido. IPv4 primero y un margen razonable por intento.
+ */
+function redParaTelegram() {
+  setDefaultResultOrder("ipv4first");
+  setDefaultAutoSelectFamilyAttemptTimeout(5_000);
+}
+
+/**
+ * Sin credenciales de Telegram imprime el mensaje: sirve para probar a mano.
+ * Reintenta los cortes de red, los 429 y los 5xx; si igual no sale, tira el
+ * último error.
+ */
+export async function enviarTelegram(texto: string, o: OpcionesEnvio = {}): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chat = process.env.TELEGRAM_CHAT_ID;
   if (!token || !chat) return false;
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+  const f = o.fetch ?? (redParaTelegram(), fetch);
+  const dormir = o.dormir ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const log = o.log ?? console.error;
+
+  for (let intento = 0; ; intento++) {
+    try {
+      await enviarUnaVez(f, token, chat, texto);
+      return true;
+    } catch (e) {
+      const reintentable = !(e instanceof ErrorTelegram) || e.reintentable;
+      if (!reintentable || intento >= ESPERAS_MS.length) throw e;
+      const espera = Math.min(e instanceof ErrorTelegram && e.esperaMs ? e.esperaMs : ESPERAS_MS[intento]!, ESPERA_MAX_MS);
+      log(`Telegram: falló el intento ${intento + 1} (${describirError(e)}); reintento en ${espera / 1000} s`);
+      await dormir(espera);
+    }
+  }
+}
+
+async function enviarUnaVez(f: typeof fetch, token: string, chat: string, texto: string) {
+  const res = await f(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ chat_id: chat, text: texto, disable_web_page_preview: true }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(30_000),
   });
-  if (!res.ok) throw new Error(`Telegram devolvió ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  return true;
+  if (res.ok) return;
+  const cuerpo = await res.text();
+  let retryAfter: number | undefined;
+  try {
+    retryAfter = (JSON.parse(cuerpo) as { parameters?: { retry_after?: number } }).parameters?.retry_after;
+  } catch {
+    // Un 502 de un proxy no trae JSON.
+  }
+  throw new ErrorTelegram(
+    `Telegram devolvió ${res.status}: ${cuerpo.slice(0, 200)}`,
+    res.status === 429 || res.status >= 500,
+    retryAfter ? retryAfter * 1000 : undefined,
+  );
+}
+
+/** "fetch failed" solo no dice nada: la causa (ETIMEDOUT, ECONNRESET…) sí. */
+export function describirError(e: unknown): string {
+  if (!(e instanceof Error)) return String(e);
+  const causa = e.cause as { code?: string; message?: string } | undefined;
+  const detalle = causa?.code ?? causa?.message;
+  return detalle ? `${e.message}: ${detalle}` : e.message;
 }
