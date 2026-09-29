@@ -435,15 +435,21 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       const antes = await tramosDePagina(db, fuenteId, crudo.external_id);
       const filas = extraido.beneficios.map((b, n) => {
         const id = idBeneficio(fuenteId, crudo.external_id, n);
-        const fila = {
+        const base = {
           ...b,
           id,
           fuente_id: fuenteId,
           fetched_at: crudo.fetched_at,
-          estado_revision: "ok" as const,
+          estado_revision: "ok" as "ok" | "oculto",
           updated_at: new Date().toISOString(),
         };
         const previo = antes.get(id);
+        // Lo que ocultó el admin sigue oculto mientras el banco publique lo
+        // mismo (volver a normalizar la página no alcanza para mostrarlo).
+        const fila =
+          previo && previo.firma === firmaTramo({ ...base, estado_revision: "oculto" })
+            ? { ...base, estado_revision: "oculto" as const }
+            : base;
         const cambio = !previo
           ? "nuevo"
           : previo.firma !== firmaTramo(fila)

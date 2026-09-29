@@ -136,7 +136,8 @@ export async function idsDeBeneficios(
     .from("beneficio")
     .select("id")
     .eq("fuente_id", fuenteId)
-    .neq("estado_revision", "descartado")
+    // Ni lo ya dado de baja ni lo que ocultó el admin: no son bajas nuevas.
+    .not("estado_revision", "in", "(descartado,oculto)")
     // Los cargados a mano no son de ninguna página: el runner no los da de baja.
     .eq("origen", "scraper");
   if (error) throw new Error(`leyendo beneficios: ${error.message}`);
@@ -295,7 +296,10 @@ export async function marcarVencidos(
   const { error } = await db
     .from("beneficio")
     .update({ estado_revision: "descartado", updated_at: new Date().toISOString(), corrida_id: corridaId, cambio: "baja" })
-    .in("id", ids);
+    .in("id", ids)
+    // Lo que ocultó el admin queda oculto: si pasara a descartado, la
+    // restauración (#48) lo volvería a publicar cuando la página vuelva.
+    .neq("estado_revision", "oculto");
   if (error) throw new Error(`marcando vencidos: ${error.message}`);
 }
 
