@@ -43,12 +43,18 @@ export async function guardarManual(_: EstadoFormulario, form: FormData): Promis
   const { error } = await db.from("beneficio").upsert({
     ...fila,
     origen: "manual",
-    nota_manual: v.nota_manual || null,
     cambio: v.id ? "actualizado" : "nuevo",
     corrida_id: null,
     updated_at: new Date().toISOString(),
   });
   if (error) return { error: `No se pudo guardar: ${error.message}` };
+
+  // La nota va aparte: `beneficio` lo lee cualquiera y la nota es interna.
+  const nota = v.nota_manual.trim();
+  const { error: e2 } = nota
+    ? await db.from("beneficio_nota").upsert({ beneficio_id: id, nota, updated_at: new Date().toISOString() })
+    : await db.from("beneficio_nota").delete().eq("beneficio_id", id);
+  if (e2) return { error: `Se guardó el beneficio pero no la nota: ${e2.message}` };
 
   revalidatePath("/admin/beneficios");
   revalidatePath(`/comercio/${comercioKey}`);
