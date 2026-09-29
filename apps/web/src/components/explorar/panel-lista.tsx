@@ -3,6 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { CATEGORIAS } from "@tarjetazo/core";
 import { BotonFavorito } from "@/components/boton-favorito";
+import { LogoComercio } from "@/components/logo-comercio";
 import type { BeneficioListado } from "@/lib/consultas";
 import { NOMBRES_DIA } from "@/lib/filtros";
 import { alcanceCorto } from "@/lib/formato";
@@ -49,14 +50,7 @@ export function diasDe(b: BeneficioListado): string {
     .join(", ");
 }
 
-function iniciales(nombre: string): string {
-  return nombre
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p.charAt(0))
-    .join("")
-    .toUpperCase();
-}
+
 
 export function PanelLista({
   beneficios,
@@ -202,12 +196,7 @@ export function PanelLista({
                       : {}),
                   }}
                 >
-                  <span
-                    className="bg-papel text-humo font-display inline-flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                    aria-hidden
-                  >
-                    {iniciales(b.comercio)}
-                  </span>
+                  <LogoComercio nombre={b.comercio} logo={b.logo_url} className="size-12" />
                   <span className="min-w-0 flex-1">
                     <span className="font-display block truncate text-[17px] font-bold">
                       {b.comercio}

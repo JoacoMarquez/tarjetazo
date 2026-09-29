@@ -77,6 +77,17 @@ export function datosDeFicha(html: string): DatosBrou | null {
   return { nombre, valores, resumen, vigencia, descripcion: lineas(cuerpo), condiciones: lineas(acordeon), categoria };
 }
 
+/** El logo del comercio en la ficha (`<img class="logo img-thumbnail">`). */
+export function logoDeFicha(html: string, pagina: string): string | null {
+  const src = html.match(/<img[^>]*\ssrc="([^"]+)"[^>]*class="logo\b/)?.[1] ?? html.match(/<img[^>]*class="logo\b[^>]*\ssrc="([^"]+)"/)?.[1];
+  if (!src) return null;
+  try {
+    return new URL(src, pagina).toString();
+  } catch {
+    return null;
+  }
+}
+
 const NO_SON_BENEFICIOS = new Set(["favicon", "fonts", "css", "js", "img", "images"]);
 
 function permitida(path: string): boolean {
@@ -152,6 +163,7 @@ export async function fetchBrou(): Promise<Crudo[]> {
       contenido: recortarBrou(htmlATexto(html)),
       fetched_at: new Date().toISOString(),
       datos: datosDeFicha(html) ?? undefined,
+      ...(logoDeFicha(html, url) ? { logo: logoDeFicha(html, url)! } : {}),
     });
   }
   return crudos;

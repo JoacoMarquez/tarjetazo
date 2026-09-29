@@ -60,7 +60,12 @@ function icono(p: PuntoMapa, mias?: string[], seleccionado = false): L.DivIcon {
     html: `<div style="display:flex;flex-direction:column;align-items:center;width:64px;transform-origin:50% 100%;${escala}${seleccionado ? "z-index:5;" : ""}">
       ${tag}
       <span style="position:relative;display:block">
-        <span class="font-display" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:${fondo};color:#fff;font-size:15px;font-weight:800;border:2.5px solid #fff;${anillo}">${escapar(inicial(p.comercio))}</span>
+        ${
+          p.logo_url
+            ? // Con logo: el logo sobre blanco, con un aro del color del banco (o gris).
+              `<span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#fff;border:2.5px solid ${fondo};overflow:hidden;${anillo}"><img src="${escapar(p.logo_url)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:3px" loading="lazy"></span>`
+            : `<span class="font-display" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:${fondo};color:#fff;font-size:15px;font-weight:800;border:2.5px solid #fff;${anillo}">${escapar(inicial(p.comercio))}</span>`
+        }
         <span style="position:absolute;left:50%;bottom:-5px;width:10px;height:10px;background:#fff;transform:translateX(-50%) rotate(45deg);border-radius:0 0 3px 0;z-index:-1"></span>
         ${mas}
       </span>

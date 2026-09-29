@@ -5,6 +5,7 @@ import type { Route } from "next";
 import { Send, X } from "lucide-react";
 import { CATEGORIAS } from "@tarjetazo/core";
 import { BotonFavorito } from "@/components/boton-favorito";
+import { LogoComercio } from "@/components/logo-comercio";
 import type { BeneficioListado } from "@/lib/consultas";
 import { colorFuente } from "@/lib/marca";
 import { cifraDe, conAlcance } from "./panel-lista";
@@ -74,13 +75,17 @@ export function PopupComercio({
       />
 
       <div className="relative flex items-start gap-3">
-        <span
-          className="font-display inline-flex size-12 shrink-0 items-center justify-center rounded-xl text-xl font-extrabold text-white"
-          style={{ background: c0.color }}
-          aria-hidden
-        >
-          {comercio.charAt(0).toUpperCase()}
-        </span>
+        {primero.logo_url ? (
+          <LogoComercio nombre={comercio} logo={primero.logo_url} className="size-12 rounded-xl" />
+        ) : (
+          <span
+            className="font-display inline-flex size-12 shrink-0 items-center justify-center rounded-xl text-xl font-extrabold text-white"
+            style={{ background: c0.color }}
+            aria-hidden
+          >
+            {comercio.charAt(0).toUpperCase()}
+          </span>
+        )}
         <span className="min-w-0 flex-1">
           <span className="font-display block truncate text-[18px] font-bold">
             {comercio}

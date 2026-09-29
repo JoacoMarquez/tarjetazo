@@ -26,8 +26,25 @@ function tipoPorContenido(b: Uint8Array): string | null {
  * en el Accept: BBVA la sirve en AVIF si se lo ofrecen y el bucket no lo acepta.
  */
 export async function guardarFotoSugerida(db: SupabaseClient, url: string, pagina?: string): Promise<string> {
-  // Como la pide un navegador al mostrar la página: desde GitHub Actions, BBVA
-  // da 403 a la foto si falta el referer o los sec-fetch.
+  const { bytes, tipo, ext, hash: h } = await bajarImagen(url, pagina);
+  const ruta = `_sugeridas/${h}.${ext}`;
+  const { error } = await db.storage.from(BUCKET).upload(ruta, bytes, { contentType: tipo, upsert: true, cacheControl: "31536000" });
+  if (error) throw new Error(`Storage: ${error.message}`);
+  return ruta;
+}
+
+/**
+ * Baja una imagen como la pide un navegador al mostrar la página y valida que
+ * sea PNG, JPEG o WebP de hasta `maxBytes`. El hash es del contenido (12
+ * caracteres), para nombrar el archivo. La usan las fotos de tarjeta y los
+ * logos de comercio.
+ */
+export async function bajarImagen(
+  url: string,
+  pagina?: string,
+  maxBytes = MAX_BYTES,
+): Promise<{ bytes: Uint8Array; tipo: string; ext: string; hash: string }> {
+  // Desde GitHub Actions, BBVA da 403 a la foto si falta el referer o los sec-fetch.
   const res = await fetch(url, {
     headers: {
       "user-agent":
@@ -43,18 +60,15 @@ export async function guardarFotoSugerida(db: SupabaseClient, url: string, pagin
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const bytes = new Uint8Array(await res.arrayBuffer());
-  if (bytes.byteLength > MAX_BYTES) throw new Error("pesa más de 4 MB");
+  if (bytes.byteLength > maxBytes) throw new Error(`pesa más de ${Math.round(maxBytes / 1024)} KB`);
   const header = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
   const tipo = EXTENSION[header] ? header : (tipoPorContenido(bytes) ?? header);
   const ext = EXTENSION[tipo];
   if (!ext) throw new Error(`formato no soportado (${tipo || "sin tipo"})`);
 
   const buf = await crypto.subtle.digest("SHA-256", bytes);
-  const h = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
-  const ruta = `_sugeridas/${h}.${ext}`;
-  const { error } = await db.storage.from(BUCKET).upload(ruta, bytes, { contentType: tipo, upsert: true, cacheControl: "31536000" });
-  if (error) throw new Error(`Storage: ${error.message}`);
-  return ruta;
+  const hash = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
+  return { bytes, tipo, ext, hash };
 }
 
 /**

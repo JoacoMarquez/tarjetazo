@@ -27,6 +27,11 @@ export interface Crudo {
    */
   comercio?: { nombre: string; categoria: string };
   /**
+   * El logo del comercio tal como lo publica la fuente (URL absoluta). El
+   * runner lo baja una vez por comercio, si todavía no tiene uno (#118).
+   */
+  logo?: string;
+  /**
    * Los campos que la fuente ya publica estructurados (Scotiabank), para su
    * normalizador propio: así no tiene que volver a leerlos del texto. No se
    * guarda ni entra en el hash, que sigue siendo el de `contenido`. Cada

@@ -6,6 +6,7 @@ import { Heart } from "lucide-react";
 import { CATEGORIAS } from "@tarjetazo/core";
 import type { ComercioFavorito } from "@/app/api/favoritos/route";
 import { BotonFavorito } from "@/components/boton-favorito";
+import { LogoComercio } from "@/components/logo-comercio";
 import { cifraDe, conAlcance, diasDe } from "@/components/explorar/panel-lista";
 import { useBilletera } from "@/lib/billetera";
 import type { BeneficioListado } from "@/lib/consultas";
@@ -89,7 +90,8 @@ export function FavoritosCliente() {
         return (
           <section key={c.key} className="border-linea bg-card rounded-2xl border p-4">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+              <LogoComercio nombre={c.nombre} logo={c.logo_url} className="size-11" />
+              <div className="min-w-0 flex-1">
                 <h2 className="font-display truncate text-lg font-bold">
                   <Link href={`/comercio/${c.key}`} className="hover:text-cielo hover:underline">
                     {c.nombre}

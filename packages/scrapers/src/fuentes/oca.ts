@@ -55,6 +55,7 @@ interface Beneficio {
   days?: string[];
   payment_method?: unknown;
   category?: { uid?: string }[];
+  images?: { img_detail?: string; img_list?: string };
   product?: unknown;
   location?: unknown;
   link?: unknown;
@@ -106,6 +107,20 @@ function href(valor: unknown): string | null {
  */
 function limpiar(html: unknown): string {
   return typeof html === "string" && html ? htmlATexto(html).trim() : "";
+}
+
+/**
+ * El logo del comercio (`images.img_detail`, cuadrado). Casi todos son SVG, que
+ * el bucket no acepta (un SVG puede traer scripts): esos quedan sin logo.
+ */
+function logoDe(b: Beneficio): string | null {
+  const url = b.images?.img_detail || b.images?.img_list;
+  if (!url || /\.svg(?:$|\?)/i.test(url)) return null;
+  try {
+    return encodeURI(decodeURI(url));
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchOca(): Promise<Crudo[]> {
@@ -181,6 +196,7 @@ export async function fetchOca(): Promise<Crudo[]> {
       url_fuente: href(b.link) ?? href(b.extern_link) ?? "https://oca.uy/beneficios",
       contenido,
       fetched_at,
+      ...(logoDe(b) ? { logo: logoDe(b)! } : {}),
       datos: {
         titulo: b.title ?? "",
         marca: b.brand ?? "",

@@ -298,3 +298,12 @@ describe("comercio y ficha de BROU", () => {
     });
   });
 });
+
+describe("logo de la ficha de BROU", () => {
+  it("la imagen con clase logo, como URL absoluta", async () => {
+    const { logoDeFicha } = await import("./fuentes/brou.js");
+    const html = `<div class="col-4"><img src="//beneficios.brou.com.uy/upload/beneficios/logos/91192bc5.jpg" class="logo img-thumbnail" alt="Logo Almacén Rural"></div>`;
+    assert.equal(logoDeFicha(html, "https://beneficios.brou.com.uy/beneficios/almacn-rural"), "https://beneficios.brou.com.uy/upload/beneficios/logos/91192bc5.jpg");
+    assert.equal(logoDeFicha("<img src='x.png' class='banner'>", "https://beneficios.brou.com.uy/"), null);
+  });
+});
