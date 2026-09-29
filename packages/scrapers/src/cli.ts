@@ -21,7 +21,7 @@ import { fetchBbva } from "./fuentes/bbva.js";
 import { correr } from "./runner.js";
 import { revalidarRevisiones } from "./revision.js";
 import { crearCliente, recalcularDerivados } from "./db.js";
-import { armarResumen, enviarTelegram } from "./resumen.js";
+import { armarResumen, describirError, enviarTelegram } from "./resumen.js";
 import { correrCatalogo } from "./catalogo/runner.js";
 
 type Crudo = import("./tipos.js").Crudo;
@@ -118,8 +118,16 @@ async function main() {
       texto = `🔴 Tarjetazo: no pude armar el resumen\n\n${String(e).slice(0, 300)}\n\n${process.env.RESUMEN_URL_LOG ?? ""}`;
     }
     console.log(texto);
-    const enviado = await enviarTelegram(texto);
-    console.log(enviado ? "\nenviado a Telegram" : "\n(sin TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID: no se envió)");
+    try {
+      const enviado = await enviarTelegram(texto);
+      console.log(enviado ? "\nenviado a Telegram" : "\n(sin TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID: no se envió)");
+    } catch (e) {
+      // Los scrapers ya corrieron: que no llegue el mensaje no convierte la
+      // corrida en fallida. Queda como aviso en el workflow (y el silencio en
+      // el chat es la alerta, como siempre).
+      console.error(e);
+      console.log(`::warning title=Resumen a Telegram::No se pudo enviar el resumen: ${describirError(e)}`);
+    }
     return;
   }
 
