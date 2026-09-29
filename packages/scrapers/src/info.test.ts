@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { sitioDe } from "./fuentes/santander.js";
-import { sitioWeb, usuarioInstagram } from "./geo/info.js";
+import { elegir, sitioWeb, usuarioInstagram } from "./geo/info.js";
 
 describe("info de comercios", () => {
   it("Instagram: URL, arroba o usuario", () => {
@@ -24,5 +24,14 @@ describe("info de comercios", () => {
     assert.equal(sitioDe(html), "https://www.aihaus.com.uy/");
     assert.equal(sitioDe(html.replace("www.aihaus.com.uy", "www.santander.com.uy")), null);
     assert.equal(sitioDe("<p>sin link</p>"), null);
+  });
+
+  it("en una cadena, el dato de un solo local no alcanza (salvo un dominio propio)", () => {
+    const ancap = ["https://estacionhimalaya.com/", null, null, null];
+    assert.equal(elegir("estaciones-ancap", ancap, "sitio"), null);
+    assert.equal(elegir("estaciones-ancap", ["ancapcardona", null, null], "instagram"), null);
+    assert.equal(elegir("el-dorado", ["https://eldorado.com.uy/", null, null, null], "sitio"), "https://eldorado.com.uy/");
+    assert.equal(elegir("tata", ["http://tata.com.uy/", "https://www.tata.com.uy/", "https://www.tata.com.uy/", null], "sitio"), "https://www.tata.com.uy/");
+    assert.equal(elegir("bar-tabare", ["http://www.bartabare.com/"], "sitio"), "http://www.bartabare.com/");
   });
 });
