@@ -1,10 +1,13 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { CATEGORIAS } from "@tarjetazo/core";
+import { BotonFavorito } from "@/components/boton-favorito";
 import type { BeneficioListado } from "@/lib/consultas";
 import { NOMBRES_DIA } from "@/lib/filtros";
 import { alcanceCorto } from "@/lib/formato";
 import { colorFuente } from "@/lib/marca";
+import { topeCorto } from "@/lib/tope";
 import { cn } from "@/lib/utils";
 
 const SUAVE = "cubic-bezier(.2,.8,.2,1)";
@@ -16,6 +19,8 @@ const ORDENES: { valor: Orden; label: string }[] = [
   { valor: "porcentaje", label: "Mayor descuento" },
   { valor: "locales", label: "Más locales" },
 ];
+
+const LABEL_CATEGORIA = new Map(CATEGORIAS.map((c) => [c.slug, c.label]));
 
 /**
  * "BBVA" o "BBVA · solo Nacional BBVA Mastercard Platinum": sin el alcance,
@@ -66,6 +71,7 @@ export function PanelLista({
   onElegir,
   esParaVos,
   tieneTarjetas,
+  abajo = false,
 }: {
   beneficios: BeneficioListado[];
   total: number;
@@ -79,16 +85,22 @@ export function PanelLista({
   onElegir: (b: BeneficioListado) => void;
   esParaVos: (b: BeneficioListado) => boolean;
   tieneTarjetas: boolean;
+  /** Celular: hoja de ancho completo abajo del mapa, en vez de columna. */
+  abajo?: boolean;
 }) {
   const n = beneficios.length;
   return (
     <div
-      className="absolute top-4 bottom-4 z-20 flex flex-col gap-2"
-      style={{
-        left: izquierda,
-        width: `min(100% - ${izquierda + 16}px, 380px)`,
-        transition: `left .3s ${SUAVE}`,
-      }}
+      className={cn("absolute z-20 flex flex-col gap-2", abajo ? "right-3 bottom-3 left-3 max-h-[46%]" : "top-4 bottom-4")}
+      style={
+        abajo
+          ? undefined
+          : {
+              left: izquierda,
+              width: `min(100% - ${izquierda + 16}px, 380px)`,
+              transition: `left .3s ${SUAVE}`,
+            }
+      }
     >
       {/* cabecera */}
       <div
@@ -98,9 +110,9 @@ export function PanelLista({
         <button
           type="button"
           onClick={() => onAbrir(!abierta)}
-          className="font-display min-w-0 flex-1 text-left text-[18px] font-bold"
+          className={cn("font-display min-w-0 flex-1 text-left font-bold", abajo ? "text-[16px] leading-tight" : "text-[18px]")}
         >
-          {cargando ? "Buscando…" : `${n} de ${total} locales`}
+          {cargando ? "Buscando…" : abajo ? `${n} de ${total}` : `${n} de ${total} locales`}
         </button>
         <select
           value={orden}
@@ -158,12 +170,21 @@ export function PanelLista({
               const tuya = esParaVos(b);
               const c = colorFuente(b.fuente_id);
               return (
-                <button
+                // Un div con rol de botón y no un <button>: adentro va el
+                // corazón, y un botón no puede contener otro.
+                <div
                   key={b.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onElegir(b)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onElegir(b);
+                    }
+                  }}
                   className={cn(
-                    "flex shrink-0 items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-left transition-[transform,box-shadow,opacity]",
+                    "flex shrink-0 cursor-pointer items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-left transition-[transform,box-shadow,opacity] focus-visible:outline-2 focus-visible:outline-offset-2",
                     "hover:-translate-y-px",
                     seleccion === b.id && "ring-2",
                   )}
@@ -192,7 +213,7 @@ export function PanelLista({
                       {b.comercio}
                     </span>
                     <span className="text-humo block truncate text-[13px]">
-                      {b.categoria}
+                      {LABEL_CATEGORIA.get(b.categoria) ?? b.categoria}
                     </span>
                     <span className="mt-1.5 flex items-center gap-1.5">
                       <span
@@ -218,17 +239,23 @@ export function PanelLista({
                     </span>
                   </span>
                   <span className="w-[86px] shrink-0 text-right">
+                    <span className="flex justify-end">
+                      <BotonFavorito comercioKey={b.comercio_key} nombre={b.comercio} compacto className="-mt-1 -mr-1 mb-1 size-7 border-0" />
+                    </span>
                     <span
                       className="num block text-[32px] leading-none font-bold"
                       style={{ color: tuya ? c.ink : "#6b7683" }}
                     >
                       {cifraDe(b)}
                     </span>
-                    <span className="text-humo mt-1 block text-[10px] leading-tight text-balance">
+                    {b.tope_monto != null && (
+                      <span className="text-humo block text-[10px] leading-tight">tope {topeCorto(b)}</span>
+                    )}
+                    <span className="text-humo mt-0.5 block text-[10px] leading-tight text-balance">
                       {diasDe(b)}
                     </span>
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>

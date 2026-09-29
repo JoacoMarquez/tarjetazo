@@ -81,6 +81,7 @@ export function RielFiltros({
   filtros,
   onCambiar,
   abierto,
+  compacto = false,
   onPlegar,
   misBancos,
   q,
@@ -89,6 +90,8 @@ export function RielFiltros({
   filtros: Filtros;
   onCambiar: (parcial: Partial<Filtros>) => void;
   abierto: boolean;
+  /** Celular: el riel no llega hasta abajo, donde va la hoja con la lista. */
+  compacto?: boolean;
   onPlegar: (v: boolean) => void;
   misBancos: string[];
   q: string;
@@ -124,6 +127,7 @@ export function RielFiltros({
       className="absolute top-4 bottom-4 left-4 z-21 flex flex-col gap-3.5 rounded-[18px] px-2.5 py-3.5"
       style={{
         width: abierto ? 200 : 56,
+        ...(compacto ? { bottom: "auto", maxHeight: "calc(52% - 24px)" } : {}),
         background: "#14202c",
         boxShadow: "0 20px 50px rgba(20,32,44,.25)",
         transition: `width .3s ${SUAVE}`,

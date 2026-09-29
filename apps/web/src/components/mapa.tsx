@@ -26,51 +26,62 @@ import { capturar } from "@/lib/analitica";
 /** Montevideo centro: el punto de partida razonable para Uruguay. */
 const CENTRO: [number, number] = [-34.9011, -56.1645];
 
+const escapar = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/** Primera letra (o número) del nombre, para la cara del pin. */
+function inicial(nombre: string): string {
+  return (nombre.match(/[\p{L}\p{N}]/u)?.[0] ?? "•").toUpperCase();
+}
+
 /**
- * Pin propio: el número es la información, no el ícono. Se dibuja con HTML
+ * Pin como el de manguito: la inicial del comercio en un círculo con el color
+ * del banco del mejor beneficio, el descuento en una etiqueta arriba y "+N"
+ * si el local tiene más beneficios. Si el usuario eligió tarjetas y ninguna
+ * sirve acá, el pin queda en gris: se ve, pero no compite. Se dibuja con HTML
  * porque Leaflet no acepta componentes de React dentro de un marcador.
  */
 function icono(p: PuntoMapa, mias?: string[], seleccionado = false): L.DivIcon {
   const etiqueta =
-    p.best_pct != null
-      ? `${Math.round(p.best_pct)}%`
-      : p.max_cuotas
-        ? `${p.max_cuotas}c`
-        : "•";
-  const color = colorFuente(p.mejor_fuente_id).color;
-  // Con la lista de tarjetas del usuario, el pin de un local que no puede
-  // aprovechar sale en blanco y punteado: se ve, pero no compite.
+    p.best_pct != null ? `${Math.round(p.best_pct)}%` : p.max_cuotas ? `${p.max_cuotas} cuotas` : null;
+  const c = colorFuente(p.mejor_fuente_id);
   const laTengo =
-    !mias ||
-    p.mejor_productos.length === 0 ||
-    p.mejor_productos.some((id) => mias.includes(id));
-  const base = laTengo
-    ? `background:${color};color:#fff;border:2px solid #fff`
-    : `background:#fff;color:var(--humo);border:1.5px dashed ${color}`;
-  // El pin elegido crece y se rodea con el color del banco.
-  const estilo = seleccionado
-    ? `${base};transform:scale(1.25);outline:3px solid ${color};outline-offset:3px;z-index:5`
-    : base;
+    !mias || p.mejor_productos.length === 0 || p.mejor_productos.some((id) => mias.includes(id));
+  const fondo = laTengo ? c.color : "#9aa5b1";
+  const escala = seleccionado ? "transform:scale(1.2);" : "";
+  const anillo = seleccionado ? `box-shadow:0 0 0 3px #fff,0 0 0 6px ${c.color},0 4px 10px rgba(20,32,44,.3);` : "box-shadow:0 3px 8px rgba(20,32,44,.3);";
+  const mas = p.n_beneficios > 1
+    ? `<span class="num" style="position:absolute;left:24px;bottom:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#14202c;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff">+${p.n_beneficios - 1}</span>`
+    : "";
+  const tag = etiqueta
+    ? `<span class="num" style="margin-bottom:3px;padding:1px 6px;border-radius:999px;font-size:11px;font-weight:800;line-height:16px;white-space:nowrap;${laTengo ? `background:${c.ink};color:#fff` : "background:#fff;color:#6b7683;border:1px solid #e4e0d6"}">${etiqueta}</span>`
+    : "";
   return L.divIcon({
     className: "",
-    html: `<span class="num flex h-7 min-w-7 items-center justify-center rounded-pill px-1.5 text-xs font-bold shadow-md" style="${estilo}">${etiqueta}</span>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14],
+    html: `<div style="display:flex;flex-direction:column;align-items:center;width:64px;transform-origin:50% 100%;${escala}${seleccionado ? "z-index:5;" : ""}">
+      ${tag}
+      <span style="position:relative;display:block">
+        <span class="font-display" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:${fondo};color:#fff;font-size:15px;font-weight:800;border:2.5px solid #fff;${anillo}">${escapar(inicial(p.comercio))}</span>
+        <span style="position:absolute;left:50%;bottom:-5px;width:10px;height:10px;background:#fff;transform:translateX(-50%) rotate(45deg);border-radius:0 0 3px 0;z-index:-1"></span>
+        ${mas}
+      </span>
+    </div>`,
+    iconSize: [64, 62],
+    iconAnchor: [32, 62],
+    popupAnchor: [0, -58],
   });
 }
 
 /**
  * Los clusters de react-leaflet-cluster vienen con su propio CSS, que sin
- * importar los deja invisibles. Los dibujamos nosotros y de paso quedan con la
- * marca, igual que los pines sueltos.
+ * importar los deja invisibles. Los dibujamos nosotros: un círculo oscuro con
+ * la cantidad, como en manguito, para que no compitan con los pines.
  */
 function iconoCluster(cluster: { getChildCount: () => number }): L.DivIcon {
   const n = cluster.getChildCount();
-  const tamano = n < 10 ? 32 : n < 50 ? 38 : 44;
+  const tamano = n < 10 ? 28 : n < 50 ? 34 : 40;
   return L.divIcon({
     className: "",
-    html: `<span class="num flex items-center justify-center rounded-pill border-2 border-white bg-[var(--cielo-ink)] text-xs font-bold text-white shadow-md" style="width:${tamano}px;height:${tamano}px">${n}</span>`,
+    html: `<span class="num" style="display:flex;align-items:center;justify-content:center;width:${tamano}px;height:${tamano}px;border-radius:50%;background:#14202c;color:#fff;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 3px 8px rgba(20,32,44,.3)">${n}</span>`,
     iconSize: [tamano, tamano],
     iconAnchor: [tamano / 2, tamano / 2],
   });
@@ -213,6 +224,7 @@ export default function Mapa({
   seleccion = null,
   onElegirPunto,
   onPosSeleccion,
+  conAviso = true,
 }: {
   puntos: PuntoMapa[];
   recortado: boolean;
@@ -228,6 +240,8 @@ export default function Mapa({
   /** Con esto Explorar maneja su propia ficha en vez del popup de Leaflet. */
   onElegirPunto?: (p: PuntoMapa) => void;
   onPosSeleccion?: (p: { x: number; y: number } | null) => void;
+  /** Explorar dibuja el aviso "Hay más locales" en el área libre, no encima de la lista. */
+  conAviso?: boolean;
 }) {
   const { ref, medido } = useMedido();
 
@@ -346,7 +360,7 @@ export default function Mapa({
         </MapContainer>
       )}
 
-      {medido && (recortado || cargando) && (
+      {conAviso && medido && (recortado || cargando) && (
         <p className="border-linea bg-card/95 text-humo absolute left-1/2 top-3 z-1000 -translate-x-1/2 rounded-pill border px-3 py-1.5 text-xs shadow-sm">
           {cargando
             ? "Buscando locales…"

@@ -178,10 +178,22 @@ function Pantalla() {
     return filtrados;
   }, [beneficios, q, orden, mis.length, esParaVos]);
 
+  // En el celular no entran riel, lista y mapa lado a lado: el riel arranca
+  // plegado y la lista pasa a ser una hoja abajo, de ancho completo (#117).
+  const compacto = area.ancho > 0 && area.ancho < 640;
+  const plegadoInicial = useRef(false);
+  useEffect(() => {
+    if (compacto && !plegadoInicial.current) {
+      plegadoInicial.current = true;
+      setRiel(false);
+    }
+  }, [compacto]);
+
   const anchoRiel = riel ? ANCHO_RIEL_ABIERTO : ANCHO_RIEL_PLEGADO;
-  const izquierdaPanel = anchoRiel + 32;
+  const izquierdaPanel = compacto ? 12 : anchoRiel + 32;
   const anchoPanel = Math.min(area.ancho - izquierdaPanel - 16, 380);
-  const libreDesde = izquierdaPanel + Math.max(anchoPanel, 0) + 16;
+  // Con la lista abajo, el área libre empieza a la derecha del riel.
+  const libreDesde = compacto ? anchoRiel + 24 : izquierdaPanel + Math.max(anchoPanel, 0) + 16;
 
   /*
    * La ficha muestra todas las tarjetas con beneficio en ese comercio, no solo
@@ -234,6 +246,7 @@ function Pantalla() {
           seleccion={sel}
           onElegirPunto={(p) => setSel(p.comercio_key)}
           onPosSeleccion={setPosSel}
+          conAviso={false}
         />
 
         <RielFiltros
@@ -244,6 +257,7 @@ function Pantalla() {
           misBancos={misBancos}
           q={q}
           onQ={setQ}
+          compacto={compacto}
         />
 
         <PanelLista
@@ -263,13 +277,14 @@ function Pantalla() {
           }}
           esParaVos={esParaVos}
           tieneTarjetas={mis.length > 0}
+          abajo={compacto}
         />
 
         {/* "Buscar en esta zona": centrado sobre el área libre del mapa */}
         <button
           type="button"
           onClick={() => ultimoBbox.current && pedirPuntos(ultimoBbox.current)}
-          className="bg-tinta absolute top-5 z-20 inline-flex h-10 items-center rounded-pill px-4 text-sm font-semibold text-white"
+          className="bg-tinta absolute top-5 z-20 inline-flex h-10 items-center rounded-pill px-4 text-sm font-semibold whitespace-nowrap text-white"
           style={{
             left: libreDesde + Math.max(area.ancho - libreDesde, 0) / 2,
             transform: "translateX(-50%)",
@@ -279,6 +294,22 @@ function Pantalla() {
         >
           Buscar en esta zona
         </button>
+
+        {/* El aviso va debajo, en el área libre: centrado en todo el mapa quedaba tapando la lista. */}
+        {(recortado || cargandoMapa) && (
+          <p
+            className="border-sol-ln bg-sol-s text-sol-ink absolute top-[68px] z-20 rounded-[14px] border px-3 py-1.5 text-center text-xs font-medium"
+            style={{
+              maxWidth: Math.max(area.ancho - libreDesde - 24, 160),
+              width: "max-content",
+              left: libreDesde + Math.max(area.ancho - libreDesde, 0) / 2,
+              transform: "translateX(-50%)",
+              transition: "left .3s cubic-bezier(.2,.8,.2,1)",
+            }}
+          >
+            {cargandoMapa ? "Buscando locales…" : "Hay más locales acá: acercá el mapa o buscá de nuevo"}
+          </p>
+        )}
 
         <button
           type="button"
