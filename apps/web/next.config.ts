@@ -15,16 +15,9 @@ try {
 const nextConfig: NextConfig = {
   transpilePackages: ["@tarjetazo/core"],
   typedRoutes: true,
-  // PostHog (#114) por un proxy propio: los bloqueadores de anuncios cortan
-  // sus dominios. Región EU.
-  async rewrites() {
-    return [
-      { source: "/ingest/static/:path*", destination: "https://eu-assets.i.posthog.com/static/:path*" },
-      { source: "/ingest/array/:path*", destination: "https://eu-assets.i.posthog.com/array/:path*" },
-      { source: "/ingest/:path*", destination: "https://eu.i.posthog.com/:path*" },
-    ];
-  },
-  // Los endpoints de PostHog llevan barra final; sin esto Next la saca y redirige.
+  // PostHog (#114) va por un proxy propio (app/ingest/[...ruta]), que no
+  // reenvía las cookies. Sus endpoints llevan barra final; sin esto Next la
+  // saca y redirige.
   skipTrailingSlashRedirect: true,
   experimental: {
     // Las fotos de tarjeta suben por server action (#26). El default es 1 MB;
