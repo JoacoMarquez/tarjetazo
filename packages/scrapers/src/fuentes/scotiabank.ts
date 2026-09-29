@@ -1,5 +1,5 @@
-import vm from "node:vm";
 import { bajarTexto } from "../http.js";
+import { argumentosDeLlamadas } from "../literal-js.js";
 import { htmlATexto } from "../texto.js";
 import { slugificar } from "../slug.js";
 import type { Crudo, SucursalDeFuente } from "../tipos.js";
@@ -11,8 +11,9 @@ const INDICE = `${BASE}/Personas/Tarjetas/Beneficios/default`;
  * Scotiabank embebe todo el catálogo en el índice como objetos JS
  * (`pushBenefit({...})`, uno por beneficio, ~420) y cada ficha con página
  * propia trae sus datos igual (`setBenefit('DETALLE', {...})`). No son JSON:
- * comillas simples, comas finales, HTML adentro. Los evaluamos en un sandbox
- * de node:vm sin acceso a nada, que es más honesto que un parser a mano.
+ * comillas simples, comas finales, HTML adentro. Se leen como literales, sin
+ * ejecutar el código de la página: node:vm no aísla, y un script del banco
+ * correría con los secretos del job.
  */
 /**
  * Lo que el parser (`scotiabank-parser.ts`) lee de cada beneficio: los campos
@@ -56,21 +57,17 @@ function bloquesScript(html: string, marca: string): string[] {
     .filter((s) => s.includes(marca));
 }
 
-function evaluar(bloques: string[], globales: Record<string, unknown>): vm.Context {
-  const ctx = vm.createContext({ ...globales, console: { warn() {}, error() {}, log() {} }, window: {} });
-  for (const b of bloques) {
-    try {
-      vm.runInContext(b, ctx, { timeout: 2000 });
-    } catch {
-      // Un bloque roto no invalida el resto del catálogo.
-    }
-  }
-  return ctx;
-}
+const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-function catalogo(html: string): Item[] {
-  const ctx = evaluar(bloquesScript(html, "pushBenefit("), {});
-  return ((ctx as { _allBenefits?: Item[] })._allBenefits ?? []).filter((i) => i.titulo);
+/** Exportada para los tests. */
+export function catalogo(html: string): Item[] {
+  return bloquesScript(html, "pushBenefit(")
+    .flatMap((b) => argumentosDeLlamadas(b, "pushBenefit"))
+    .map((args) => args[0])
+    // La página descarta los que traen menos de 5 campos (`Falta data`).
+    .filter((d) => esObjeto(d) && Object.keys(d).length >= 5)
+    .map((d) => d as Item)
+    .filter((i) => i.titulo);
 }
 
 /**
@@ -86,10 +83,15 @@ function fichasDelIndice(html: string): Map<string, string> {
   return fichas;
 }
 
-function detalle(html: string): Detalle | null {
-  const ctx = evaluar(bloquesScript(html, "setBenefit("), {});
-  const datos = (ctx as { _benefitData?: { DETALLE?: Detalle } })._benefitData;
-  return datos?.DETALLE ?? null;
+/** Exportada para los tests. */
+export function detalle(html: string): Detalle | null {
+  let out: Detalle | null = null;
+  for (const b of bloquesScript(html, "setBenefit(")) {
+    for (const [seccion, datos] of argumentosDeLlamadas(b, "setBenefit")) {
+      if (seccion === "DETALLE" && esObjeto(datos)) out = datos as Detalle;
+    }
+  }
+  return out;
 }
 
 /** Las coordenadas vienen en el link de Google Maps: `...!3dLAT!4dLNG` o `@LAT,LNG`. */
