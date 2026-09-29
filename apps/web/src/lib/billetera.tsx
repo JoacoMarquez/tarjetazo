@@ -10,7 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { FAMILIA_POR_ID, expandirProductos } from "@tarjetazo/core";
-import { bancosDe } from "./marca";
+import { urlImagen } from "./fichas";
+import { bancosDe, familiasEnBilletera } from "./marca";
+import { createSupabaseClient } from "./supabase";
 
 const CLAVE = "tarjetazo:mis-tarjetas";
 
@@ -40,6 +42,35 @@ interface Billetera {
   viajando: boolean;
   pedirConfirmacion: (productoId: string) => void;
   aceptarConfirmacion: () => void;
+  /** Foto del frente de cada familia que tiene ficha, por id de familia. */
+  fotos: Record<string, string>;
+}
+
+/**
+ * Las fotos se piden una sola vez por visita, la primera vez que se abre la
+ * billetera: la lectura de `producto_ficha` es pública y son unas 60 filas.
+ */
+let fotosCargadas: Promise<Record<string, string>> | null = null;
+function cargarFotos(): Promise<Record<string, string>> {
+  fotosCargadas ??= (async () => {
+    try {
+      const { data } = await createSupabaseClient()
+        .from("producto_ficha")
+        .select("familia_id, imagen_frente")
+        .not("imagen_frente", "is", null);
+      const out: Record<string, string> = {};
+      for (const f of data ?? []) {
+        const url = urlImagen(f.imagen_frente as string | null);
+        if (url) out[f.familia_id as string] = url;
+      }
+      return out;
+    } catch {
+      // Sin fotos la billetera igual funciona: cada tarjeta va con el color de su banco.
+      fotosCargadas = null;
+      return {};
+    }
+  })();
+  return fotosCargadas;
 }
 
 const Contexto = createContext<Billetera | null>(null);
@@ -68,6 +99,16 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
   const [banco, setBanco] = useState("brou");
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [viajando, setViajando] = useState(false);
+  const [fotos, setFotos] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (estado === 0) return;
+    let vivo = true;
+    cargarFotos().then((f) => vivo && setFotos(f));
+    return () => {
+      vivo = false;
+    };
+  }, [estado]);
 
   useEffect(() => {
     setMis(leer());
@@ -168,12 +209,16 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
   }, [estado, cerrar]);
 
   // Con la billetera abierta la rueda del mouse recorre la escalera de
-  // tarjetas en lugar de scrollear la página.
+  // tarjetas en lugar de scrollear la página. Sobre el panel de alta, la rueda
+  // es de la lista (#113: si no, la lista de tarjetas quedaba trabada).
+  // La escalera tiene una tarjeta por familia, no por plástico.
+  const enPila = familiasEnBilletera(mis).length;
   useEffect(() => {
     if (estado !== 2 || confirmando) return;
     let acumulado = 0;
     let bloqueoHasta = 0;
     const alRodar = (e: WheelEvent) => {
+      if (e.target instanceof Element && e.target.closest("[data-billetera-scroll]")) return;
       e.preventDefault();
       const ahora = Date.now();
       if (ahora < bloqueoHasta) return;
@@ -186,13 +231,13 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
         h == null
           ? dir > 0
             ? 0
-            : mis.length - 1
-          : Math.max(0, Math.min(mis.length - 1, h + dir)),
+            : enPila - 1
+          : Math.max(0, Math.min(enPila - 1, h + dir)),
       );
     };
     window.addEventListener("wheel", alRodar, { passive: false });
     return () => window.removeEventListener("wheel", alRodar);
-  }, [estado, mis.length, confirmando]);
+  }, [estado, enPila, confirmando]);
 
   const valor = useMemo<Billetera>(
     () => ({
@@ -214,6 +259,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
       viajando,
       pedirConfirmacion,
       aceptarConfirmacion,
+      fotos,
     }),
     [
       mis,
@@ -230,6 +276,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
       viajando,
       pedirConfirmacion,
       aceptarConfirmacion,
+      fotos,
     ],
   );
 

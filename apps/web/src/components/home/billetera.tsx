@@ -1,6 +1,6 @@
 "use client";
 
-import { FUENTES, type Producto } from "@tarjetazo/core";
+import { FUENTES, familiaDe, type Producto } from "@tarjetazo/core";
 import { useBilletera } from "@/lib/billetera";
 import {
   FUENTE_POR_ID,
@@ -16,6 +16,23 @@ import {
 } from "@/lib/marca";
 
 const SUAVE = "cubic-bezier(.2,.8,.2,1)";
+
+/**
+ * La foto de la tarjeta, ocupando toda la cara (ya viene horizontal y
+ * recortada, #72). Encima quedan el ✕ o el "NUEVA", que llevan su propio fondo.
+ */
+function Foto({ src, alt }: { src: string; alt: string }) {
+  return (
+    // Fotos del bucket de Supabase: sin optimizador de Next.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      draggable={false}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }}
+    />
+  );
+}
 
 /**
  * La billetera: se abre sobre la página, la tira con el broche se da vuelta y
@@ -155,6 +172,7 @@ export function Billetera() {
                   width: "100%",
                   height: "100%",
                   borderRadius: 12,
+                  overflow: "hidden",
                   background: colorFuente(fam.fuente_id).color,
                   border: "1.5px dashed transparent",
                   boxSizing: "border-box",
@@ -172,34 +190,62 @@ export function Billetera() {
                   position: "relative",
                 }}
               >
-                <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {nombreCortoFamilia(fam)}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.8 }}>{f?.nombre}</span>
-                </span>
-                {!confirmando && (
-                  <span style={{ fontSize: 14 }} aria-hidden>
-                    ✕
-                  </span>
+                {b.fotos[id] ? (
+                  <>
+                    <Foto src={b.fotos[id]!} alt="" />
+                    {!confirmando && (
+                      <span
+                        aria-hidden
+                        style={{
+                          position: "absolute",
+                          right: 8,
+                          top: 8,
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          background: "rgba(20,32,44,.7)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 11,
+                        }}
+                      >
+                        ✕
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {nombreCortoFamilia(fam)}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.8 }}>{f?.nombre}</span>
+                    </span>
+                    {!confirmando && (
+                      <span style={{ fontSize: 14 }} aria-hidden>
+                        ✕
+                      </span>
+                    )}
+                    <span
+                      style={{ position: "absolute", left: 12, top: 52, width: 26, height: 20, borderRadius: 4, background: "rgba(247,181,0,1)" }}
+                    />
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: 12,
+                        bottom: 12,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: ".06em",
+                        textTransform: "uppercase",
+                        opacity: 0.85,
+                      }}
+                    >
+                      {pieDeFamilia(fam)}
+                    </span>
+                  </>
                 )}
-                <span
-                  style={{ position: "absolute", left: 12, top: 52, width: 26, height: 20, borderRadius: 4, background: "rgba(247,181,0,1)" }}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    bottom: 12,
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: ".06em",
-                    textTransform: "uppercase",
-                    opacity: 0.85,
-                  }}
-                >
-                  {pieDeFamilia(fam)}
-                </span>
               </button>
             </div>
           );
@@ -396,10 +442,13 @@ function PanelDeAlta() {
   return (
     <div
       onClick={(e) => e.stopPropagation()}
+      // La rueda del mouse acá scrollea la lista y no recorre la pila (#113).
+      data-billetera-scroll
       className="absolute left-1/2 top-0 z-50 w-[300px] -translate-x-1/2 md:left-[320px] md:top-10 md:w-[320px] md:translate-x-0"
       style={{
         maxHeight: 440,
         overflow: "auto",
+        overscrollBehavior: "contain",
         background: "#fff",
         color: "#14202c",
         borderRadius: 18,
@@ -463,13 +512,17 @@ function PanelDeAlta() {
               <span
                 style={{
                   flex: "none",
-                  width: 34,
-                  height: 22,
+                  position: "relative",
+                  width: 48,
+                  height: 30,
                   borderRadius: 4,
+                  overflow: "hidden",
                   background: colorFuente(fam.fuente_id).color,
-                  opacity: tengo ? 1 : 0.35,
+                  opacity: tengo ? 1 : 0.55,
                 }}
-              />
+              >
+                {b.fotos[fam.id] && <Foto src={b.fotos[fam.id]!} alt="" />}
+              </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 14, fontWeight: 500 }}>{fam.nombre}</span>
                 <span style={{ display: "block", fontSize: 12, color: "#6b7683" }}>{pieDeFamilia(fam)}</span>
@@ -520,6 +573,7 @@ function Confirmacion({
   const b = useBilletera();
   const f = FUENTE_POR_ID[producto.fuente_id];
   const color = colorFuente(producto.fuente_id).color;
+  const foto = b.fotos[familiaDe(producto)];
 
   // Espera a la altura de la tarjeta más alta; al confirmar va al lugar que le
   // tocaría como última de la escalera.
@@ -606,6 +660,7 @@ function Confirmacion({
               width: "100%",
               height: "100%",
               borderRadius: 12,
+              overflow: "hidden",
               background: color,
               border: "2px solid #f7b500",
               boxSizing: "border-box",
@@ -616,6 +671,7 @@ function Confirmacion({
               fontWeight: 600,
             }}
           >
+            {foto && <Foto src={foto} alt="" />}
             <span
               style={{
                 position: "absolute",
@@ -632,27 +688,31 @@ function Confirmacion({
             >
               NUEVA
             </span>
-            <span style={{ display: "block", paddingRight: 52 }}>{nombreCorto(producto)}</span>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, opacity: 0.8 }}>
-              {f?.nombre}
-            </span>
-            <span
-              style={{ position: "absolute", left: 12, top: 52, width: 26, height: 20, borderRadius: 4, background: "#f7b500" }}
-            />
-            <span
-              style={{
-                position: "absolute",
-                left: 12,
-                bottom: 12,
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: ".06em",
-                textTransform: "uppercase",
-                opacity: 0.85,
-              }}
-            >
-              {pieDeTarjeta(producto)}
-            </span>
+            {!foto && (
+              <>
+                <span style={{ display: "block", paddingRight: 52 }}>{nombreCorto(producto)}</span>
+                <span style={{ display: "block", fontSize: 11, fontWeight: 500, opacity: 0.8 }}>
+                  {f?.nombre}
+                </span>
+                <span
+                  style={{ position: "absolute", left: 12, top: 52, width: 26, height: 20, borderRadius: 4, background: "#f7b500" }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    bottom: 12,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: ".06em",
+                    textTransform: "uppercase",
+                    opacity: 0.85,
+                  }}
+                >
+                  {pieDeTarjeta(producto)}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
