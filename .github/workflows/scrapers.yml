@@ -16,6 +16,11 @@ on:
         description: Máximo de páginas a normalizar (vacío = todas)
         type: string
 
+# El token de Actions solo lee el repo: los jobs manejan contenido de terceros
+# y no necesitan escribir nada en GitHub.
+permissions:
+  contents: read
+
 concurrency:
   group: scrapers
   cancel-in-progress: false
@@ -33,11 +38,14 @@ jobs:
           FUENTE: ${{ inputs.fuente || 'todas' }}
         run: |
           echo "inicio=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-          if [ "$FUENTE" = "todas" ]; then
-            echo 'fuentes=["brou","santander","itau","oca","scotiabank","bbva","midinero","nativa","club-el-pais","anda","asi","pronto","creditel","passcard"]' >> "$GITHUB_OUTPUT"
-          else
-            echo "fuentes=[\"$FUENTE\"]" >> "$GITHUB_OUTPUT"
-          fi
+          case "$FUENTE" in
+            todas)
+              echo 'fuentes=["brou","santander","itau","oca","scotiabank","bbva","midinero","nativa","club-el-pais","anda","asi","pronto","creditel","passcard"]' >> "$GITHUB_OUTPUT" ;;
+            brou|santander|itau|oca|scotiabank|bbva|midinero|nativa|club-el-pais|anda|asi|pronto|creditel|passcard)
+              echo "fuentes=[\"$FUENTE\"]" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "fuente desconocida" >&2; exit 1 ;;
+          esac
 
   # Una tarea por fuente, en paralelo: en serie, la corrida diaria pasaba los
   # 30 minutos (BBVA sola tarda 12) y las últimas fuentes no corrían nunca.
@@ -54,6 +62,8 @@ jobs:
     name: ${{ matrix.fuente }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
 
@@ -74,16 +84,19 @@ jobs:
           # "1" para no gastar saldo de la API: las páginas que cambian quedan pendientes.
           SCRAPER_SIN_MODELO: ${{ vars.SCRAPER_SIN_MODELO }}
           FUENTE: ${{ matrix.fuente }}
-          LIMITE: ${{ inputs.limite && format('--limite={0}', inputs.limite) || '' }}
+          LIMITE: ${{ inputs.limite }}
         run: |
           set -o pipefail
-          pnpm scrape "$FUENTE" $LIMITE 2>&1 | tee "$RUNNER_TEMP/reporte.txt"
+          [[ -z "$LIMITE" || "$LIMITE" =~ ^[0-9]+$ ]] || { echo "limite tiene que ser un número" >&2; exit 1; }
+          pnpm scrape "$FUENTE" ${LIMITE:+"--limite=$LIMITE"} 2>&1 | tee "$RUNNER_TEMP/reporte.txt"
 
       - name: Reporte
         if: always()
+        env:
+          FUENTE: ${{ matrix.fuente }}
         run: |
           {
-            echo "### ${{ matrix.fuente }}"
+            echo "### $FUENTE"
             echo '```'
             cat "$RUNNER_TEMP/reporte.txt" 2>/dev/null || echo 'sin reporte (la corrida falló antes de terminar)'
             echo '```'
@@ -98,6 +111,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
 

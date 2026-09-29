@@ -14,6 +14,11 @@ on:
         description: Máximo de comercios a buscar (vacío = todos los pendientes)
         type: string
 
+# El token de Actions solo lee el repo: los jobs manejan contenido de terceros
+# y no necesitan escribir nada en GitHub.
+permissions:
+  contents: read
+
 concurrency:
   group: ubicaciones
   cancel-in-progress: false
@@ -24,6 +29,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
@@ -35,9 +42,13 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: pnpm geo sugerir ${{ inputs.limite }}
+          # Por env y validado: un input interpolado en el script sería código.
+          LIMITE: ${{ inputs.limite }}
+        run: |
+          [[ -z "$LIMITE" || "$LIMITE" =~ ^[0-9]+$ ]] || { echo "limite tiene que ser un número" >&2; exit 1; }
+          pnpm geo sugerir ${LIMITE:+"$LIMITE"}
       # Teléfono, horario, sitio e Instagram de los locales ya vinculados a
-      # OSM (#118). Solo completa lo vacío; no depende del paso anterior.
+      # OSM (#118), como sugerencias para el backoffice; no depende del paso anterior.
       - name: Info de comercios
         if: always()
         working-directory: packages/scrapers
