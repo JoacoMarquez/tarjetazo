@@ -15,6 +15,30 @@ const API = "https://cdn.contentstack.io/v3/content_types/benefits/entries";
 const API_KEY = "blta9b90878af9436b4";
 const TOKEN = "cs79086e32ff712b934208ced7";
 
+/**
+ * Lo que lee el parser (`oca-parser.ts`), en `Crudo.datos`: los campos de la
+ * API tal como vienen, con los ids numéricos (el sitio los traduce en su JS:
+ * producto 1 = Visa, 2 = Mastercard, 3 = OCA Blue, 4 = préstamos, 5 =
+ * seguros; los días empiezan en 0 = lunes; los departamentos son 1..19 en
+ * orden alfabético). No se guarda ni entra en el hash.
+ */
+export interface DatosOca {
+  titulo: string;
+  marca: string;
+  tituloBeneficio: string;
+  tituloLista: string;
+  descripcion: string;
+  condiciones: string;
+  /** 0 = lunes … 6 = domingo, como los numera OCA. */
+  dias: number[];
+  desde: string | null;
+  hasta: string | null;
+  medios: number[];
+  productos: number[];
+  departamentos: number[];
+  categorias: string[];
+}
+
 interface Beneficio {
   uid: string;
   title?: string;
@@ -30,13 +54,20 @@ interface Beneficio {
   date_end?: string;
   days?: string[];
   payment_method?: unknown;
+  category?: { uid?: string }[];
   product?: unknown;
   location?: unknown;
   link?: unknown;
   extern_link?: unknown;
 }
 
-const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+// OCA numera los días desde el lunes (su sitio: names = ["lunes", …, "domingo"]).
+const DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+
+const CATEGORIAS = "https://cdn.contentstack.io/v3/content_types/marketing_benefits_category/entries";
+
+const ids = (valor: unknown): number[] =>
+  (Array.isArray(valor) ? valor : []).map((v) => Number(v)).filter((n) => Number.isInteger(n));
 
 /** Los campos de referencia vienen como objetos o listas; nos sirve su texto. */
 function nombres(valor: unknown): string[] {
@@ -98,6 +129,24 @@ export async function fetchOca(): Promise<Crudo[]> {
     if (pagina.length < 100 || beneficios.length >= (datos.count ?? 0)) break;
   }
 
+  // Los nombres de las categorías ("gastronomia", "moda"), para los comercios nuevos.
+  const categorias = new Map<string, string>();
+  try {
+    const url = new URL(CATEGORIAS);
+    url.searchParams.set("environment", "produccion");
+    url.searchParams.set("limit", "100");
+    const res = await fetch(url, {
+      headers: { api_key: API_KEY, access_token: TOKEN, accept: "application/json" },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (res.ok) {
+      const d = (await res.json()) as { entries?: { uid: string; title?: string }[] };
+      for (const c of d.entries ?? []) if (c.title) categorias.set(c.uid, c.title);
+    }
+  } catch {
+    // Sin categorías: los comercios nuevos quedan en "otros".
+  }
+
   const fetched_at = new Date().toISOString();
   const crudos: Crudo[] = [];
 
@@ -132,6 +181,21 @@ export async function fetchOca(): Promise<Crudo[]> {
       url_fuente: href(b.link) ?? href(b.extern_link) ?? "https://oca.uy/beneficios",
       contenido,
       fetched_at,
+      datos: {
+        titulo: b.title ?? "",
+        marca: b.brand ?? "",
+        tituloBeneficio: limpiar(b.title_ben),
+        tituloLista: limpiar(b.title_list),
+        descripcion: limpiar(b.description_list),
+        condiciones: [limpiar(b.description_terms), limpiar(b.important_tc)].filter(Boolean).join("\n"),
+        dias: ids(b.days),
+        desde: b.date_ini || null,
+        hasta: b.date_end || null,
+        medios: ids(b.payment_method),
+        productos: ids(b.product),
+        departamentos: ids(b.location),
+        categorias: (b.category ?? []).map((c) => categorias.get(c.uid ?? "") ?? "").filter(Boolean),
+      } satisfies DatosOca,
     });
   }
   return crudos;
