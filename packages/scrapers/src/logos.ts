@@ -55,3 +55,30 @@ export async function guardarLogo(db: SupabaseClient, comercioKey: string, url: 
   if (e2) throw new Error(`guardando logo: ${e2.message}`);
   return (data ?? []).length > 0;
 }
+
+/** Comercios que ya tienen sitio web (#118): esos no se tocan. */
+export async function comerciosConSitio(db: SupabaseClient): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await db.from("comercio").select("key").not("sitio_web", "is", null).order("key").range(desde, desde + 999);
+    if (error) throw new Error(`leyendo sitios: ${error.message}`);
+    for (const c of data ?? []) out.add(c.key as string);
+    if ((data ?? []).length < 1000) return out;
+  }
+}
+
+/** Locales (`comercio_key|direccion`) que ya tienen teléfono. */
+export async function localesConTelefono(db: SupabaseClient): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await db
+      .from("sucursal")
+      .select("id, comercio_key, direccion")
+      .not("telefono", "is", null)
+      .order("id")
+      .range(desde, desde + 999);
+    if (error) throw new Error(`leyendo teléfonos: ${error.message}`);
+    for (const s of data ?? []) out.add(`${s.comercio_key}|${s.direccion}`);
+    if ((data ?? []).length < 1000) return out;
+  }
+}

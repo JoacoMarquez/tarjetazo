@@ -36,3 +36,12 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: pnpm geo sugerir ${{ inputs.limite }}
+      # Teléfono, horario, sitio e Instagram de los locales ya vinculados a
+      # OSM (#118). Solo completa lo vacío; no depende del paso anterior.
+      - name: Info de comercios
+        if: always()
+        working-directory: packages/scrapers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: pnpm geo info

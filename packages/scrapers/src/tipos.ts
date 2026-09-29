@@ -31,6 +31,8 @@ export interface Crudo {
    * runner lo baja una vez por comercio, si todavía no tiene uno (#118).
    */
   logo?: string;
+  /** El sitio web del comercio, si la fuente lo publica (Santander: "Visitar Página"). */
+  sitioWeb?: string;
   /**
    * Los campos que la fuente ya publica estructurados (Scotiabank), para su
    * normalizador propio: así no tiene que volver a leerlos del texto. No se
@@ -51,6 +53,8 @@ export interface SucursalDeFuente {
   direccion: string;
   lat: number;
   lng: number;
+  /** El teléfono del local, si la fuente lo publica (Santander). */
+  telefono?: string | null;
 }
 
 /** Una página puede contener varios beneficios (uno por tramo de tarjeta). */
