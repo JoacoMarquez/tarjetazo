@@ -52,15 +52,23 @@ function esDecoracion(nombre: string): boolean {
   return NO_ES_COMERCIO.has(n) || n.startsWith("itau ") || n.startsWith("logo ");
 }
 
-function comerciosDe(elemento: HTMLElement): string[] {
-  const nombres = new Set<string>();
+/** Cada comercio de la sección, con su logo (la imagen de la que sale el nombre). */
+function comerciosDe(elemento: HTMLElement, pagina: string): { nombre: string; logo: string | null }[] {
+  const out = new Map<string, string | null>();
   for (const img of elemento.querySelectorAll("img[alt]")) {
     const n = (img.getAttribute("alt") ?? "").trim();
     // Los alt decorativos son frases; los comercios son nombres.
-    if (!n || esDecoracion(n) || n.split(/\s+/).length > 6) continue;
-    nombres.add(n);
+    if (!n || esDecoracion(n) || n.split(/\s+/).length > 6 || out.has(n)) continue;
+    const src = img.getAttribute("src") ?? img.getAttribute("data-src");
+    let logo: string | null = null;
+    try {
+      logo = src ? new URL(src, pagina).toString() : null;
+    } catch {
+      // Un src roto: sin logo.
+    }
+    out.set(n, logo);
   }
-  return [...nombres];
+  return [...out].map(([nombre, logo]) => ({ nombre, logo }));
 }
 
 /**
@@ -123,6 +131,7 @@ export async function fetchItauLandings(): Promise<Crudo[]> {
       tramos: Map<string, Set<string>>;
       legales: string[];
       condiciones: Map<string, string>;
+      logo: string | null;
     }
   >();
 
@@ -144,13 +153,14 @@ export async function fetchItauLandings(): Promise<Crudo[]> {
       if (!lineas.some((l) => /\d{1,2}\s*%\s*menos/i.test(l))) continue;
       const encabezado = lineas.join(" ").trim();
 
-      for (const nombre of comerciosDe(seccion)) {
+      for (const { nombre, logo } of comerciosDe(seccion, url)) {
         const clave = slugificar(nombre);
         const entrada =
           porComercio.get(clave) ??
           porComercio
-            .set(clave, { nombre, rubro, tramos: new Map(), legales: [], condiciones: new Map() })
+            .set(clave, { nombre, rubro, tramos: new Map(), legales: [], condiciones: new Map(), logo })
             .get(clave)!;
+        entrada.logo ??= logo;
 
         // Un mismo descuento en varias pestañas es un solo beneficio con varias
         // ubicaciones, no varios beneficios iguales.
@@ -163,11 +173,12 @@ export async function fetchItauLandings(): Promise<Crudo[]> {
     }
   }
 
-  return [...porComercio].map(([clave, { nombre, rubro, tramos, legales, condiciones }]) => ({
+  return [...porComercio].map(([clave, { nombre, rubro, tramos, legales, condiciones, logo }]) => ({
     fuente_id: "itau",
     external_id: `landing-${clave}`,
     url_fuente: `${BASE}/restaurantes.html`,
     comercio: { nombre, categoria: rubro },
+    ...(logo ? { logo } : {}),
     contenido: [
       `${nombre} (${rubro})`,
       ...[...tramos].map(

@@ -7,6 +7,7 @@ import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { BotonFavorito } from "@/components/boton-favorito";
 import { CopiarLink } from "@/components/copiar-link";
+import { LogoComercio } from "@/components/logo-comercio";
 import {
   aplicaHoy,
   cifra,
@@ -150,13 +151,16 @@ export default async function PaginaComercio({ params }: Props) {
         </nav>
 
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-3xl md:text-4xl">{comercio.nombre}</h1>
-            <p className="text-humo mt-1 text-sm">
-              {beneficios.length} {beneficios.length === 1 ? "beneficio" : "beneficios"} de{" "}
-              {porFuente.size} {porFuente.size === 1 ? "fuente" : "fuentes"}
-              {sucursales.length > 0 && ` · ${sucursales.length} ${sucursales.length === 1 ? "local" : "locales"}`}
-            </p>
+          <div className="flex min-w-0 items-center gap-4">
+            {comercio.logo_url && <LogoComercio nombre={comercio.nombre} logo={comercio.logo_url} className="size-16 rounded-2xl" />}
+            <div className="min-w-0">
+              <h1 className="text-3xl md:text-4xl">{comercio.nombre}</h1>
+              <p className="text-humo mt-1 text-sm">
+                {beneficios.length} {beneficios.length === 1 ? "beneficio" : "beneficios"} de{" "}
+                {porFuente.size} {porFuente.size === 1 ? "fuente" : "fuentes"}
+                {sucursales.length > 0 && ` · ${sucursales.length} ${sucursales.length === 1 ? "local" : "locales"}`}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <BotonFavorito comercioKey={comercio.key} nombre={comercio.nombre} />

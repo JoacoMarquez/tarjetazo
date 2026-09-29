@@ -54,8 +54,8 @@ function pathsDelListado(html: string): string[] {
  * (la ventana de 2.500 caracteres de `tarjetasDelListado` a veces corta el
  * cuerpo por la mitad).
  */
-export function camposDelListado(html: string): Map<string, { titulo: string; resumen: string[] }> {
-  const out = new Map<string, { titulo: string; resumen: string[] }>();
+export function camposDelListado(html: string): Map<string, { titulo: string; resumen: string[]; logo: string | null }> {
+  const out = new Map<string, { titulo: string; resumen: string[]; logo: string | null }>();
   const partes = html.split(/<article\b(?=[^>]*list-map-item-benefits)/).slice(1);
   for (const parte of partes) {
     const bloque = parte.split(/<\/article>/)[0]!;
@@ -67,7 +67,9 @@ export function camposDelListado(html: string): Map<string, { titulo: string; re
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean);
-    out.set(path, { titulo, resumen });
+    // El logo del comercio va en la cabecera de la tarjeta (miniatura cuadrada).
+    const src = bloque.match(/field--name-field-company-logo[\s\S]*?<img[^>]*\ssrc="([^"]+)"/)?.[1];
+    out.set(path, { titulo, resumen, logo: src ? new URL(src.replace(/&amp;/g, "&"), BASE).toString() : null });
   }
   return out;
 }
@@ -184,6 +186,7 @@ export async function fetchSantander(): Promise<Crudo[]> {
       contenido,
       fetched_at: new Date().toISOString(),
       sucursales,
+      ...(campos.get(t.path)?.logo ? { logo: campos.get(t.path)!.logo! } : {}),
       datos: {
         titulo: campos.get(t.path)?.titulo || t.comercio,
         resumen: campos.get(t.path)?.resumen ?? [],

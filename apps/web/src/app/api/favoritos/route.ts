@@ -11,6 +11,7 @@ export interface ComercioFavorito {
   key: string;
   nombre: string;
   categoria: string;
+  logo_url: string | null;
   beneficios: BeneficioListado[];
 }
 
@@ -38,9 +39,11 @@ export async function GET(request: Request) {
     const destino = new Map((alias ?? []).map((a) => [a.alias_key as string, a.comercio_key as string]));
     const actuales = [...new Set(guardadas.map((k) => destino.get(k) ?? k))];
 
-    const { data: filas, error: e2 } = await db.from("comercio").select("key, nombre, categoria").in("key", actuales);
+    const { data: filas, error: e2 } = await db.from("comercio").select("key, nombre, categoria, logo_url").in("key", actuales);
     if (e2) throw new Error(e2.message);
-    const porKey = new Map((filas ?? []).map((c) => [c.key as string, c as { key: string; nombre: string; categoria: string }]));
+    const porKey = new Map(
+      (filas ?? []).map((c) => [c.key as string, c as { key: string; nombre: string; categoria: string; logo_url: string | null }]),
+    );
 
     const beneficios = new Map(
       await Promise.all(
@@ -55,7 +58,14 @@ export async function GET(request: Request) {
     for (const guardada of guardadas) {
       const c = porKey.get(destino.get(guardada) ?? guardada);
       if (!c || comercios.some((x) => x.key === c.key)) continue;
-      comercios.push({ guardada, key: c.key, nombre: c.nombre, categoria: c.categoria, beneficios: beneficios.get(c.key) ?? [] });
+      comercios.push({
+        guardada,
+        key: c.key,
+        nombre: c.nombre,
+        categoria: c.categoria,
+        logo_url: c.logo_url,
+        beneficios: beneficios.get(c.key) ?? [],
+      });
     }
     return NextResponse.json(
       { comercios },

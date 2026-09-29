@@ -244,3 +244,20 @@ describe("departamentos de los locales (runner)", () => {
     assert.equal(departamentosDeLocales(locales, "bigg", []), null);
   });
 });
+
+describe("listado de Santander", () => {
+  it("título, párrafos y logo de cada tarjeta", async () => {
+    const { camposDelListado } = await import("./fuentes/santander.js");
+    const html = `<article data-history-node-id="670" class="node list-map-item list-map-item-benefits">
+      <div class="field field--name-field-company-logo"><div><img loading="lazy" src="/sites/default/files/styles/1_1_square_thumb/public/2026-04/Optica.png.webp?itok=H01vFrBE&amp;x=1" width="112"></div></div>
+      <h3><span class="field field--name-title">Optica Estela Jinchuk</span></h3>
+      <div class="field field--name-body"><p>15% de descuento todos los días.</p></div>
+      <a href="/beneficios/optica-estela-jinchuk">Ver más detalles</a></article>`;
+    const c = camposDelListado(html).get("/beneficios/optica-estela-jinchuk");
+    assert.deepEqual(c, {
+      titulo: "Optica Estela Jinchuk",
+      resumen: ["15% de descuento todos los días."],
+      logo: "https://www.santander.com.uy/sites/default/files/styles/1_1_square_thumb/public/2026-04/Optica.png.webp?itok=H01vFrBE&x=1",
+    });
+  });
+});

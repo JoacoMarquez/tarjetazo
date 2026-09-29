@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { conComercioDeFuente } from "./comercio-de-fuente.js";
+import { comerciosConLogo, guardarLogo } from "./logos.js";
 import { fechaFinDeTexto } from "./fechas.js";
 import { hash } from "./http.js";
 import { normalizar, usarReglasDb } from "./normalizador.js";
@@ -69,6 +70,8 @@ export interface Reporte {
   fallidas: number;
   /** Páginas que cambiaron y esperan normalización (modo sin modelo). */
   pendientes: number;
+  /** Logos de comercio guardados en esta corrida (solo para el log). */
+  logos: number;
   tokens: UsoModelo;
 }
 
@@ -165,6 +168,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     sucursales: 0,
     fallidas: 0,
     pendientes: 0,
+    logos: 0,
     tokens: { entrada: 0, cache_escritura: 0, cache_lectura: 0, salida: 0 },
   };
   // Después del primer "sin saldo" no se vuelve a llamar al modelo: cada
@@ -193,6 +197,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     // vez que una fuente empieza a publicarlos (Santander) no hay que pasar
     // ninguna página por el modelo.
     const locales = await localesGuardados(db);
+    const conLogo = await comerciosConLogo(db);
     const comercioDePagina = await comerciosDePaginas(db, fuenteId);
     const vistos = new Set<string>();
     const restaurar: string[] = [];
@@ -211,6 +216,21 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
         if (esErrorDeSaldo(e)) sinSaldo = true;
         console.error(`  fallo en ${crudo.external_id}: ${String(e).slice(0, 160)}`);
+      }
+    }
+
+    /**
+     * El logo que la fuente publicó, si el comercio todavía no tiene. Un logo
+     * que no baja (404, formato raro) no frena la página: se reintenta en la
+     * próxima corrida.
+     */
+    async function guardarLogoDe(comercioKey: string, crudo: Crudo) {
+      if (!crudo.logo || conLogo.has(comercioKey)) return;
+      conLogo.add(comercioKey);
+      try {
+        if (await guardarLogo(db, comercioKey, crudo.logo, crudo.url_fuente)) reporte.logos++;
+      } catch (e) {
+        console.error(`  logo de ${comercioKey}: ${String(e).slice(0, 120)}`);
       }
     }
 
@@ -301,6 +321,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
           restaurar.push(id);
         }
         const comercio = comercioDePagina.get(crudo.external_id);
+        if (comercio) await guardarLogoDe(reglas.comercios.get(comercio) ?? comercio, crudo);
         if (comercio && crudo.sucursales?.length) {
           reporte.sucursales += await guardarLocales(reglas.comercios.get(comercio) ?? comercio, crudo.sucursales);
         }
@@ -369,6 +390,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // shoppings, que listan locales sin describir ningún beneficio).
       if (extraido.comercio && extraido.beneficios.length > 0) {
         await asegurarComercio(db, extraido.comercio);
+        await guardarLogoDe(extraido.comercio.key, crudo);
 
         // Recién acá sabemos a qué comercio pertenecen los locales que la
         // fuente publicó junto al beneficio.
