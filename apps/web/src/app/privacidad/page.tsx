@@ -11,7 +11,7 @@ export default function Privacidad() {
   return (
     <PaginaTexto
       titulo="Privacidad"
-      bajada="Última actualización: 3 de setiembre de 2026."
+      bajada="Última actualización: 29 de setiembre de 2026."
     >
       <section>
         <h2>No te pedimos datos personales</h2>
@@ -36,11 +36,19 @@ export default function Privacidad() {
       <section>
         <h2>Métricas de uso</h2>
         <p className="mt-2">
-          Medimos de forma agregada qué se usa —cuántas visitas tiene una página, qué filtros se
-          aplican— para saber qué mejorar. No creamos perfiles de personas ni vendemos datos a
-          nadie. Si tu navegador pide no ser rastreado, lo respetamos. Cuando una búsqueda no
-          encuentra ningún comercio, guardamos el texto buscado —sin nada que te identifique—
-          para saber qué comercios faltan.
+          Para saber qué mejorar medimos cómo se usa el sitio: cuántas visitas tiene cada página,
+          de qué sitio o campaña llegan, en qué dispositivo y país, dónde se hace clic, qué
+          filtros se aplican y qué tarjetas se agregan. También grabamos algunas visitas para ver
+          dónde la gente se traba; en esas grabaciones lo que escribís (por ejemplo, en el
+          buscador) aparece tapado.
+        </p>
+        <p className="mt-2">
+          Todo es anónimo: no usamos cookies para medir, no creamos perfiles de personas y no
+          podemos saber que dos visitas en días distintos son tuyas. Para eso usamos PostHog, con
+          los datos guardados en la Unión Europea. No vendemos datos a nadie. Si tu navegador pide
+          no ser rastreado, no medimos nada de tu visita. Cuando una búsqueda no encuentra ningún
+          comercio, guardamos el texto buscado —sin nada que te identifique— para saber qué
+          comercios faltan.
         </p>
       </section>
       <section>

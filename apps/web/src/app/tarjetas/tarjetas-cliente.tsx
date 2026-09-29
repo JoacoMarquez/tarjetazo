@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { FUENTES } from "@tarjetazo/core";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { capturar } from "@/lib/analitica";
 import { TarjetaCatalogoCard } from "@/components/tarjeta/tarjeta-catalogo";
 import {
   COSTOS,
@@ -79,6 +80,7 @@ export function TarjetasCliente({ tarjetas }: { tarjetas: TarjetaCatalogo[] }) {
   const filtros = useMemo(() => leerFiltrosCatalogo(new URLSearchParams(params.toString())), [params]);
 
   function cambiar(parcial: Partial<FiltrosCatalogo>) {
+    capturar("catalogo_filtrado", { campos: Object.keys(parcial) });
     const q = escribirFiltrosCatalogo({ ...filtros, ...parcial }).toString();
     router.replace(q ? `/tarjetas?${q}` : "/tarjetas", { scroll: false });
   }
