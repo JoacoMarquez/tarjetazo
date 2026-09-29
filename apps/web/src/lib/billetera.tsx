@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { FAMILIA_POR_ID, expandirProductos } from "@tarjetazo/core";
+import { capturar } from "./analitica";
 import { urlImagen } from "./fichas";
 import { bancosDe, familiasEnBilletera } from "./marca";
 import { createSupabaseClient } from "./supabase";
@@ -141,6 +142,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
       setDestacada(null);
       const ids = FAMILIA_POR_ID[familiaId]?.productos.map((p) => p.id) ?? [familiaId];
       const tengoTodos = ids.every((id) => mis.includes(id));
+      capturar(tengoTodos ? "tarjeta_quitada" : "tarjeta_agregada", { familia: familiaId, desde: "billetera" });
       guardar(
         tengoTodos
           ? mis.filter((x) => !ids.includes(x))
@@ -151,6 +153,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
   );
 
   const abrir = useCallback((opciones?: { agregar?: boolean; banco?: string }) => {
+    capturar("billetera_abierta", { agregar: opciones?.agregar ?? false });
     setAgregando(opciones?.agregar ?? false);
     if (opciones?.banco) setBanco(opciones.banco);
     setEstado(1);
@@ -193,6 +196,7 @@ export function ProveedorBilletera({ children }: { children: ReactNode }) {
   const aceptarConfirmacion = useCallback(() => {
     const id = confirmando;
     if (!id) return;
+    capturar("tarjeta_agregada", { producto: id, desde: "confirmacion" });
     setViajando(true);
     setTimeout(() => {
       guardar(mis.includes(id) ? mis : [...mis, id]);

@@ -245,7 +245,14 @@ export default function Mapa({
           position={[p.lat, p.lng]}
           icon={icono(p, mias, seleccion === p.comercio_key)}
           eventHandlers={
-            propio ? { click: () => elegir.current?.(p) } : undefined
+            propio
+              ? {
+                  click: () => {
+                    capturar("mapa_comercio", { comercio: p.comercio_key });
+                    elegir.current?.(p);
+                  },
+                }
+              : { popupopen: () => capturar("mapa_comercio", { comercio: p.comercio_key }) }
           }
         >
           {!propio && (

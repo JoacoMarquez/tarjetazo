@@ -15,9 +15,15 @@ export function esRutaAdmin(valor: string): boolean {
 }
 
 /**
- * Métricas agregadas, sin perfiles de personas: no identificamos usuarios, no
- * grabamos sesiones y respetamos "Do Not Track". Si no hay clave configurada,
- * todo esto es un no-op.
+ * Métricas anónimas (#114): visitas, de dónde vienen, clicks, embudos, mapas de
+ * calor y grabación de sesiones con lo que se escribe enmascarado. Sin perfiles
+ * de personas ni cookies: el visitante único lo cuenta PostHog con un hash que
+ * rota cada día (`cookieless_mode`), así que no hace falta pedir consentimiento.
+ * Se respeta "Do Not Track". Si no hay clave configurada, todo esto es un no-op.
+ *
+ * Los pedidos salen por `/ingest` (un rewrite a PostHog en `next.config.ts`):
+ * los bloqueadores de anuncios cortan los dominios de PostHog y sin esto
+ * perderíamos buena parte del tráfico.
  */
 export function iniciarAnalitica() {
   if (iniciado || typeof window === "undefined") return;
@@ -30,12 +36,22 @@ export function iniciarAnalitica() {
   if (dnt === "1" || dnt === "yes") return;
 
   posthog.init(clave, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
+    api_host: "/ingest",
+    ui_host: "https://eu.posthog.com",
+    cookieless_mode: "always",
     person_profiles: "never",
-    capture_pageview: true,
+    // App Router: las navegaciones son del lado del cliente.
+    capture_pageview: "history_change",
     capture_pageleave: true,
-    disable_session_recording: true,
-    autocapture: false,
+    autocapture: true,
+    capture_dead_clicks: true,
+    enable_heatmaps: true,
+    capture_performance: { web_vitals: true },
+    session_recording: {
+      // Lo que el visitante escribe (el buscador) no se graba.
+      maskAllInputs: true,
+    },
+    respect_dnt: true,
     before_send: (captura) => {
       const url = captura?.properties.$current_url;
       return typeof url === "string" && esRutaAdmin(url) ? null : captura;
@@ -49,7 +65,12 @@ export type Evento =
   | "filtro_aplicado"
   | "busqueda"
   | "comercio_elegido"
-  | "click_saliente";
+  | "click_saliente"
+  | "billetera_abierta"
+  | "tarjeta_agregada"
+  | "tarjeta_quitada"
+  | "catalogo_filtrado"
+  | "mapa_comercio";
 
 export function capturar(evento: Evento, props?: Record<string, unknown>) {
   if (!iniciado) return;

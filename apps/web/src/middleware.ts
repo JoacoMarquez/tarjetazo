@@ -18,9 +18,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Todo menos los estáticos de Next, los assets y las rutas de API (que
-     * leen el catálogo público y no necesitan sesión).
+     * Todo menos los estáticos de Next, los assets, las rutas de API (que
+     * leen el catálogo público y no necesitan sesión) y el proxy de PostHog.
      */
-    "/((?!_next/static|_next/image|api/|favicon.ico|icon|opengraph-image|robots.txt|sitemap.xml|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|api/|ingest/|favicon.ico|icon|opengraph-image|robots.txt|sitemap.xml|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
