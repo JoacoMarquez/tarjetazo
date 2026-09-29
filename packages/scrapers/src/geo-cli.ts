@@ -1,5 +1,6 @@
 import { crearCliente } from "./db.js";
 import { geocodificarPendientes, importarDeOsm, importarLocalidades } from "./geo/job.js";
+import { completarInfoDeOsm } from "./geo/info.js";
 import { sugerirUbicacionesOsm } from "./geo/sugerir.js";
 
 const TAREAS = {
@@ -17,8 +18,16 @@ async function main() {
     console.log([`buscados:       ${r.buscados}`, `con resultado:  ${r.con_resultado}`, `sugerencias:    ${r.sugerencias}`].join("\n"));
     return;
   }
+  if (tarea === "info") {
+    // Teléfono, horario, sitio e Instagram de los locales vinculados a OSM (#118).
+    const r = await completarInfoDeOsm(crearCliente());
+    console.log(
+      [`locales:     ${r.locales}`, `teléfonos:   ${r.telefonos}`, `horarios:    ${r.horarios}`, `sitios:      ${r.sitios}`, `instagrams:  ${r.instagrams}`].join("\n"),
+    );
+    return;
+  }
   if (!tarea || !(tarea in TAREAS)) {
-    console.error(`Uso: geo <tarea>\nTareas: ${[...Object.keys(TAREAS), "sugerir [límite]"].join(", ")}`);
+    console.error(`Uso: geo <tarea>\nTareas: ${[...Object.keys(TAREAS), "sugerir [límite]", "info"].join(", ")}`);
     process.exit(1);
   }
   const r = await TAREAS[tarea as keyof typeof TAREAS](crearCliente());

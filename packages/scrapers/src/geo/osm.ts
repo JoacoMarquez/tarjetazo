@@ -26,7 +26,7 @@ export interface LocalOsm {
   estado: string | null;
 }
 
-interface Elemento {
+export interface Elemento {
   type: string;
   id: number;
   lat?: number;
@@ -53,7 +53,7 @@ function cadenaDe(tags: Record<string, string>): string | null {
   return null;
 }
 
-async function preguntar(query: string): Promise<Elemento[]> {
+export async function preguntar(query: string): Promise<Elemento[]> {
   let ultimoError = "";
   let vacios = 0;
   for (let intento = 0; intento < OVERPASS.length * 2; intento++) {

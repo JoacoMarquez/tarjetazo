@@ -74,6 +74,18 @@ export function camposDelListado(html: string): Map<string, { titulo: string; re
   return out;
 }
 
+/** El link "Visitar Página" de la ficha: el sitio del comercio. Exportada para los tests. */
+export function sitioDe(html: string): string | null {
+  const href = html.match(/<a\s+href="(https?:\/\/[^"]+)"[^>]*beneficios-modal-link[^>]*>\s*Visitar P/i)?.[1];
+  if (!href) return null;
+  try {
+    const u = new URL(href.replace(/&amp;/g, "&"));
+    return /santander\.com\.uy$/i.test(u.hostname) ? null : u.toString();
+  } catch {
+    return null;
+  }
+}
+
 /** El cuerpo de la ficha (condiciones), sin los bloques del pie que usan la misma clase. */
 export function condicionesDe(html: string): string {
   const m = html.match(/beneficios-modal-content[\s\S]*?field--name-body[^>]*>([\s\S]*?)<\/div>/);
@@ -132,7 +144,7 @@ export function localesDe(html: string): SucursalDeFuente[] {
     const clave = `${direccion}|${lat}|${lng}`;
     if (vistos.has(clave)) continue;
     vistos.add(clave);
-    out.push({ nombre: campo("title") || null, direccion, lat, lng });
+    out.push({ nombre: campo("title") || null, direccion, lat, lng, telefono: campo("field-phone-number") || null });
   }
   return out;
 }
@@ -160,11 +172,13 @@ export async function fetchSantander(): Promise<Crudo[]> {
     const url = `${BASE}${t.path}`;
     let detalle = "";
     let condiciones = "";
+    let sitio: string | null = null;
     let sucursales: SucursalDeFuente[] = [];
     try {
       const html = await bajarTexto(url);
       detalle = htmlATexto(contenidoPrincipal(html));
       condiciones = condicionesDe(html);
+      sitio = sitioDe(html);
       sucursales = localesDe(html);
     } catch {
       // Si la ficha no responde nos quedamos con lo que dice el listado, que ya
@@ -186,6 +200,7 @@ export async function fetchSantander(): Promise<Crudo[]> {
       contenido,
       fetched_at: new Date().toISOString(),
       sucursales,
+      ...(sitio ? { sitioWeb: sitio } : {}),
       ...(campos.get(t.path)?.logo ? { logo: campos.get(t.path)!.logo! } : {}),
       datos: {
         titulo: campos.get(t.path)?.titulo || t.comercio,

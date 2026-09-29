@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { ArrowRight, MapPin, Sparkles } from "lucide-react";
+import { ArrowRight, AtSign, Clock, Globe, MapPin, Phone, Sparkles } from "lucide-react";
 import { RUBRO_POR_KEY, alcanceTarjetas } from "@tarjetazo/core";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { BotonFavorito } from "@/components/boton-favorito";
 import { CopiarLink } from "@/components/copiar-link";
+import { LinkSaliente } from "@/components/link-saliente";
 import { LogoComercio } from "@/components/logo-comercio";
 import {
   aplicaHoy,
@@ -18,6 +19,7 @@ import {
   nombreFuente,
   type BeneficioFicha, comercioFusionadoEn } from "@/lib/comercio";
 import { NOMBRES_DIA, diaEnUruguay } from "@/lib/filtros";
+import { horarioLegible } from "@/lib/horario";
 import { topeCorto } from "@/lib/tope";
 
 // El cron corre una vez por día; una hora de caché por página es de sobra y
@@ -160,6 +162,25 @@ export default async function PaginaComercio({ params }: Props) {
                 {porFuente.size} {porFuente.size === 1 ? "fuente" : "fuentes"}
                 {sucursales.length > 0 && ` · ${sucursales.length} ${sucursales.length === 1 ? "local" : "locales"}`}
               </p>
+              {(comercio.sitio_web || comercio.instagram) && (
+                <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  {comercio.sitio_web && (
+                    <LinkSaliente href={comercio.sitio_web} fuente="comercio" desde="comercio" className="text-cielo inline-flex items-center gap-1 hover:underline">
+                      <Globe className="size-3.5" /> {new URL(comercio.sitio_web).hostname.replace(/^www\./, "")}
+                    </LinkSaliente>
+                  )}
+                  {comercio.instagram && (
+                    <LinkSaliente
+                      href={`https://www.instagram.com/${comercio.instagram}/`}
+                      fuente="comercio"
+                      desde="comercio"
+                      className="text-cielo inline-flex items-center gap-1 hover:underline"
+                    >
+                      <AtSign className="size-3.5" /> {comercio.instagram}
+                    </LinkSaliente>
+                  )}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -233,6 +254,17 @@ export default async function PaginaComercio({ params }: Props) {
                 <li key={s.id} className="border-linea bg-card rounded-lg border p-3 text-sm">
                   <p className="font-medium">{s.nombre ?? comercio.nombre}</p>
                   <p className="text-humo">{s.direccion}{s.localidad ? `, ${s.localidad}` : ""}</p>
+                  {s.telefono && (
+                    <a className="text-humo hover:text-cielo mt-1 inline-flex items-center gap-1 text-xs" href={`tel:${s.telefono.replace(/[^\d+]/g, "")}`}>
+                      <Phone className="size-3" /> {s.telefono}
+                    </a>
+                  )}
+                  {horarioLegible(s.horario) && (
+                    <p className="text-humo mt-1 flex items-start gap-1 text-xs">
+                      <Clock className="mt-0.5 size-3 shrink-0" />
+                      <span>{horarioLegible(s.horario)!.join(" · ")}</span>
+                    </p>
+                  )}
                   <a
                     className="text-cielo mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-4"
                     href={`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`}

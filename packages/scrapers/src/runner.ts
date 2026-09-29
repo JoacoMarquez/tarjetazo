@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { conComercioDeFuente } from "./comercio-de-fuente.js";
-import { comerciosConLogo, guardarLogo } from "./logos.js";
+import { comerciosConLogo, comerciosConSitio, guardarLogo, localesConTelefono } from "./logos.js";
 import { fechaFinDeTexto } from "./fechas.js";
 import { hash } from "./http.js";
 import { normalizar, usarReglasDb } from "./normalizador.js";
@@ -198,6 +198,8 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     // ninguna página por el modelo.
     const locales = await localesGuardados(db);
     const conLogo = await comerciosConLogo(db);
+    const conSitio = await comerciosConSitio(db);
+    const conTelefono = await localesConTelefono(db);
     const comercioDePagina = await comerciosDePaginas(db, fuenteId);
     const vistos = new Set<string>();
     const restaurar: string[] = [];
@@ -224,6 +226,13 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
      * que no baja (404, formato raro) no frena la página: se reintenta en la
      * próxima corrida.
      */
+    /** El sitio web que publica la fuente, si el comercio todavía no tiene (#118). */
+    async function guardarSitioDe(comercioKey: string, crudo: Crudo) {
+      if (!crudo.sitioWeb || conSitio.has(comercioKey)) return;
+      conSitio.add(comercioKey);
+      await db.from("comercio").update({ sitio_web: crudo.sitioWeb }).eq("key", comercioKey).is("sitio_web", null);
+    }
+
     async function guardarLogoDe(comercioKey: string, crudo: Crudo) {
       if (!crudo.logo || conLogo.has(comercioKey)) return;
       conLogo.add(comercioKey);
@@ -243,7 +252,15 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       const filas = [];
       for (const s of sucursales) {
         const clave = `${comercioKey}|${s.direccion}`;
-        if (locales.has(clave)) continue;
+        if (locales.has(clave)) {
+          // Un local que ya estaba y ahora la fuente publica su teléfono: se
+          // completa una vez, si no tiene (#118).
+          if (s.telefono && !conTelefono.has(clave)) {
+            conTelefono.add(clave);
+            await db.from("sucursal").update({ telefono: s.telefono }).eq("comercio_key", comercioKey).eq("direccion", s.direccion).is("telefono", null);
+          }
+          continue;
+        }
         const r = await reversaIde(s.lat, s.lng);
         const departamento = slugDepartamento(r?.departamento ?? null);
         locales.set(clave, departamento);
@@ -258,7 +275,9 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
           precision: "exacta" as const,
           fuente_direccion: fuenteId,
           geocoded_at: new Date().toISOString(),
+          telefono: s.telefono ?? null,
         });
+        if (s.telefono) conTelefono.add(clave);
       }
       return guardarSucursalesDeFuente(db, comercioKey, filas);
     }
@@ -321,7 +340,10 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
           restaurar.push(id);
         }
         const comercio = comercioDePagina.get(crudo.external_id);
-        if (comercio) await guardarLogoDe(reglas.comercios.get(comercio) ?? comercio, crudo);
+        if (comercio) {
+          await guardarLogoDe(reglas.comercios.get(comercio) ?? comercio, crudo);
+          await guardarSitioDe(reglas.comercios.get(comercio) ?? comercio, crudo);
+        }
         if (comercio && crudo.sucursales?.length) {
           reporte.sucursales += await guardarLocales(reglas.comercios.get(comercio) ?? comercio, crudo.sucursales);
         }
@@ -391,6 +413,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       if (extraido.comercio && extraido.beneficios.length > 0) {
         await asegurarComercio(db, extraido.comercio);
         await guardarLogoDe(extraido.comercio.key, crudo);
+        await guardarSitioDe(extraido.comercio.key, crudo);
 
         // Recién acá sabemos a qué comercio pertenecen los locales que la
         // fuente publicó junto al beneficio.

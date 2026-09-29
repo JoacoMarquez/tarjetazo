@@ -8,6 +8,8 @@ export interface Comercio {
   nombre: string;
   categoria: string;
   logo_url: string | null;
+  sitio_web: string | null;
+  instagram: string | null;
   best_pct: number | null;
   max_cuotas: number | null;
   n_beneficios: number;
@@ -52,6 +54,9 @@ export interface Sucursal {
   lat: number;
   lng: number;
   exactitud: string;
+  telefono: string | null;
+  /** Formato de OpenStreetMap; la página lo traduce con `horarioLegible`. */
+  horario: string | null;
 }
 
 const LABEL_CATEGORIA = new Map(CATEGORIAS.map((c) => [c.slug, c.label]));
