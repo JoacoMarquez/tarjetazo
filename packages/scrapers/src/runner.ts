@@ -35,7 +35,7 @@ import { geocodificar } from "./geo/index.js";
 import { limpiarDireccion, puntoConfiable } from "./geo/direccion.js";
 import { slugDepartamento } from "./geo/departamentos.js";
 import type { BeneficioNormalizado, UsoModelo } from "@tarjetazo/core";
-import type { Crudo, DireccionDeFuente, Extraido, SucursalDeFuente } from "./tipos.js";
+import { PaginaPendiente, type Crudo, type DireccionDeFuente, type Extraido, type SucursalDeFuente } from "./tipos.js";
 
 /**
  * El modelo no responde por falta de saldo ("Your credit balance is too low").
@@ -323,18 +323,28 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // tarjeta a la cola: resuelve todo con su plantilla y nunca informa
       // desconocidos. El de Scotiabank sí delega en `mapearProductos`, así que
       // las reglas valen también para él.
-      if (sinModelo) {
-        // Como --solo-fetch: el contenido nuevo queda guardado con
-        // `normalizada_en` en null, así la próxima corrida con modelo (o la
-        // normalización a mano) la toma. Los beneficios de antes siguen.
+      // Como --solo-fetch: el contenido nuevo queda guardado con
+      // `normalizada_en` en null, así la próxima corrida con modelo (o la
+      // normalización a mano) la toma. Los beneficios de antes siguen.
+      const dejarPendiente = async () => {
         await guardarPagina(db, filaDePagina(crudo, h, null));
         reporte.pendientes++;
         const prefijo = `${fuenteId}:${crudo.external_id}:`;
         for (const id of existentes) if (id.startsWith(prefijo)) vistos.add(id);
-        return;
-      }
+      };
+      if (sinModelo) return dejarPendiente();
       if (!propio && sinSaldo) throw new Error("sin saldo en la API de Anthropic (no se llamó al modelo)");
-      const extraido = conComercioDeFuente(propio ? propio(crudo) : await normalizar(crudo, claude), crudo);
+      let leido: Extraido;
+      try {
+        leido = propio ? propio(crudo) : await normalizar(crudo, claude);
+      } catch (e) {
+        // El parser propio no entendió la página con seguridad (BROU escribe
+        // cada ficha a mano): queda como las del modo sin modelo.
+        if (!(e instanceof PaginaPendiente)) throw e;
+        console.error(`  pendiente ${crudo.external_id}: ${e.message}`);
+        return dejarPendiente();
+      }
+      const extraido = conComercioDeFuente(leido, crudo);
       // Sin fecha de fin, la de las condiciones ("del 21 al 25 de setiembre de
       // 2026"): si no, una promo vencida se muestra como vigente sin fecha.
       extraido.beneficios = extraido.beneficios.map((b) =>

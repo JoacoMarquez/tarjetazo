@@ -28,6 +28,55 @@ const CATEGORIAS_BROU = [
 /** robots.txt de BROU prohíbe estas rutas. */
 const PROHIBIDAS = [/^\/demo\//, /^\/admin\//, /^\/ensenanza\/hugo-fattoruso_2x1$/];
 
+/**
+ * Lo que lee el parser (`brou-parser.ts`), en `Crudo.datos`: los campos de la
+ * ficha ya pasados a texto. El `contenido` sigue siendo la página entera
+ * recortada, así el hash no cambia. No se guarda.
+ */
+export interface DatosBrou {
+  nombre: string;
+  /** Los badges del encabezado: "25 % DTO", "15 % DTO". Vacío en los 2x1. */
+  valores: string[];
+  /** La frase de debajo del badge: "20% de descuento con todas las tarjetas del Banco República." */
+  resumen: string;
+  /** El campo "Vigencia:" del encabezado (dd/mm/aaaa), si está. */
+  vigencia: string | null;
+  /** El cuerpo: una línea por párrafo o ítem ("25% de descuento con tarjetas de crédito…"). */
+  descripcion: string[];
+  /** Las condiciones del acordeón, una línea por ítem. */
+  condiciones: string[];
+  /** La categoría de la miga de pan ("Moda", "Gastronomía"); "Beneficios" si se entró por otra ruta. */
+  categoria: string | null;
+}
+
+const lineas = (html: string) =>
+  htmlATexto(html)
+    .split("\n")
+    .map((l) => l.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+/** Los campos de la ficha (`#beneficio-detail`). `null` si la página no tiene esa forma. */
+export function datosDeFicha(html: string): DatosBrou | null {
+  const i = html.indexOf('id="beneficio-detail"');
+  if (i < 0) return null;
+  const fin = html.indexOf("cont-relacionados", i);
+  const ficha = html.slice(i, fin < 0 ? undefined : fin);
+  const nombre = htmlATexto(ficha.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? "").trim();
+  if (!nombre) return null;
+  const descuento = ficha.match(/<div class="descuento">([\s\S]*?)<\/div>/)?.[1] ?? "";
+  const valores = [...descuento.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].map((m) => htmlATexto(m[1]!).replace(/\s+/g, " ").trim());
+  const despues = ficha.slice(ficha.indexOf("</h1>"));
+  const resumen = htmlATexto(despues.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)?.[1] ?? "").replace(/\s+/g, " ").trim();
+  const vigencia = ficha.match(/<p>\s*Vigencia:\s*([\d/]+)\s*<\/p>/)?.[1] ?? null;
+  const cuerpo = ficha.match(/<div class="col-12 mb-5">([\s\S]*?)<!-- CONDICIONES -->/)?.[1] ?? "";
+  const acordeon = ficha.match(/<div class="accordion-body">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/)?.[1] ?? "";
+  const miga = [...(ficha.match(/<ol class="breadcrumb">([\s\S]*?)<\/ol>/)?.[1] ?? "").matchAll(/<li(?![^>]*active)[^>]*>([\s\S]*?)<\/li>/g)]
+    .map((m) => htmlATexto(m[1]!).trim())
+    .filter(Boolean);
+  const categoria = miga.length > 1 ? miga.at(-1)! : null;
+  return { nombre, valores, resumen, vigencia, descripcion: lineas(cuerpo), condiciones: lineas(acordeon), categoria };
+}
+
 const NO_SON_BENEFICIOS = new Set(["favicon", "fonts", "css", "js", "img", "images"]);
 
 function permitida(path: string): boolean {
@@ -102,6 +151,7 @@ export async function fetchBrou(): Promise<Crudo[]> {
       url_fuente: url,
       contenido: recortarBrou(htmlATexto(html)),
       fetched_at: new Date().toISOString(),
+      datos: datosDeFicha(html) ?? undefined,
     });
   }
   return crudos;

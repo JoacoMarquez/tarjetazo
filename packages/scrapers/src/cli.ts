@@ -2,6 +2,7 @@ import { normalizarBbva } from "./fuentes/bbva-parser.js";
 import { normalizarScotiabank } from "./fuentes/scotiabank-parser.js";
 import { normalizarItau } from "./fuentes/itau-parser.js";
 import { normalizarSantander } from "./fuentes/santander-parser.js";
+import { normalizarBrou } from "./fuentes/brou-parser.js";
 import { fetchMidinero, normalizarMidinero } from "./fuentes/midinero.js";
 import { fetchNativa, normalizarNativa } from "./fuentes/nativa.js";
 import { fetchClubElPais, normalizarClubElPais } from "./fuentes/club-el-pais.js";
@@ -32,6 +33,9 @@ const NORMALIZADORES: Record<string, (c: Crudo) => Extraido> = {
   itau: normalizarItau,
   // Listado y ficha traen sus campos estructurados (Crudo.datos): sin modelo.
   santander: normalizarSantander,
+  // La ficha trae sus campos estructurados (Crudo.datos): sin modelo. Lo que
+  // el parser no entiende con seguridad queda pendiente (PaginaPendiente).
+  brou: normalizarBrou,
   midinero: normalizarMidinero,
   nativa: normalizarNativa,
   "club-el-pais": normalizarClubElPais,
