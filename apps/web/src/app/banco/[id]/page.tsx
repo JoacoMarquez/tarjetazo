@@ -12,6 +12,7 @@ import { familiasDe, pieDeFamilia } from "@/lib/marca";
 import { listarBeneficios } from "@/lib/consultas";
 import { FILTROS_VACIOS, NOMBRES_DIA, diaEnUruguay } from "@/lib/filtros";
 import { labelCategoria } from "@/lib/comercio";
+import { JsonLd } from "@/components/json-ld";
 
 export const revalidate = 3600;
 export function generateStaticParams() {
@@ -68,7 +69,7 @@ export default async function PaginaBanco({ params }: Props) {
   return (
     <>
       <EncabezadoSitio />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd datos={jsonLd} />
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-8 md:pb-12">
         <p className="text-humo text-xs font-semibold uppercase tracking-widest">
           {f.tipo} · {NOMBRES_DIA[diaEnUruguay()]}

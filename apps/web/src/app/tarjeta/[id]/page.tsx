@@ -23,6 +23,7 @@ import { COLUMNAS_FICHA, costoAnual, monto, urlImagen, type Ficha } from "@/lib/
 import { FILTROS_VACIOS } from "@/lib/filtros";
 import { FUENTE_POR_ID, pieDeFamilia } from "@/lib/marca";
 import { createSupabaseClient } from "@/lib/supabase";
+import { JsonLd } from "@/components/json-ld";
 
 export const revalidate = 3600;
 export function generateStaticParams() {
@@ -163,7 +164,7 @@ export default async function PaginaTarjeta({ params }: Props) {
   return (
     <>
       <EncabezadoSitio />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd datos={jsonLd} />
       <main className="mx-auto max-w-4xl px-5 pt-8 pb-24 md:pb-12">
         <nav aria-label="Migas" className="text-humo text-xs">
           <Link href={`/banco/${fuente.id}`} className="hover:underline">{fuente.nombre}</Link>

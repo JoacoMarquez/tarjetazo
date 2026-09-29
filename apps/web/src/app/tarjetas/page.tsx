@@ -7,6 +7,7 @@ import { NavInferior, PieSitio } from "@/components/nav";
 import { TarjetaCatalogoCard } from "@/components/tarjeta/tarjeta-catalogo";
 import { leerCatalogo, ordenarCatalogo } from "@/lib/catalogo-publico";
 import { TarjetasCliente } from "./tarjetas-cliente";
+import { JsonLd } from "@/components/json-ld";
 
 // Los conteos salen de los beneficios, que cambian con el cron diario.
 export const revalidate = 3600;
@@ -42,7 +43,7 @@ export default async function PaginaTarjetas() {
   return (
     <>
       <EncabezadoSitio />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd datos={jsonLd} />
       <main className="mx-auto max-w-5xl px-5 pt-8 pb-24 md:pb-12">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

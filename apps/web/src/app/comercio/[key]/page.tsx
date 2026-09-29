@@ -21,6 +21,7 @@ import {
 import { NOMBRES_DIA, diaEnUruguay } from "@/lib/filtros";
 import { horarioLegible } from "@/lib/horario";
 import { topeCorto } from "@/lib/tope";
+import { JsonLd } from "@/components/json-ld";
 
 // El cron corre una vez por día; una hora de caché por página es de sobra y
 // mantiene a Supabase fuera del camino de cada visita.
@@ -141,7 +142,7 @@ export default async function PaginaComercio({ params }: Props) {
   return (
     <>
       <EncabezadoSitio />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd datos={jsonLd} />
 
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-8 md:pb-12">
         <nav aria-label="Migas" className="text-humo text-xs">
