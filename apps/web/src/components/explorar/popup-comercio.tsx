@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { Send, X } from "lucide-react";
+import { BotonFavorito } from "@/components/boton-favorito";
 import type { BeneficioListado } from "@/lib/consultas";
 import { colorFuente } from "@/lib/marca";
 import { cifraDe, conAlcance } from "./panel-lista";
@@ -87,6 +88,7 @@ export function PopupComercio({
             {primero.n_sucursales === 1 ? "local" : "locales"}
           </span>
         </span>
+        <BotonFavorito comercioKey={primero.comercio_key} nombre={comercio} compacto className="size-7" />
         <button
           type="button"
           aria-label="Cerrar"

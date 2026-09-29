@@ -34,7 +34,8 @@ export function cifraDe(b: BeneficioListado): string {
   return "—";
 }
 
-function diasDe(b: BeneficioListado): string {
+/** "Todos los días" / "Mar, Jue". */
+export function diasDe(b: BeneficioListado): string {
   if (b.dias_semana.length === 0 || b.dias_semana.length === 7)
     return "Todos los días";
   return b.dias_semana

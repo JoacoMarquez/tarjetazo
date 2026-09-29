@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
+import { Scale } from "lucide-react";
 import { EncabezadoSitio } from "@/components/encabezado";
 import { NavInferior, PieSitio } from "@/components/nav";
 import { TarjetaCatalogoCard } from "@/components/tarjeta/tarjeta-catalogo";
@@ -42,8 +44,19 @@ export default async function PaginaTarjetas() {
       <EncabezadoSitio />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="mx-auto max-w-5xl px-5 pt-8 pb-24 md:pb-12">
-        <p className="text-humo text-xs font-semibold tracking-widest uppercase">Catálogo</p>
-        <h1 className="mt-2 text-3xl md:text-4xl">Todas las tarjetas de Uruguay</h1>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-humo text-xs font-semibold tracking-widest uppercase">Catálogo</p>
+            <h1 className="mt-2 text-3xl md:text-4xl">Todas las tarjetas de Uruguay</h1>
+          </div>
+          {/* En el celular, Comparar no está en la barra de abajo: se llega desde acá. */}
+          <Link
+            href="/comparar"
+            className="border-linea bg-card hover:bg-secondary inline-flex h-10 items-center gap-1.5 rounded-md border px-4 text-sm font-medium"
+          >
+            <Scale className="size-4" /> Comparar tarjetas
+          </Link>
+        </div>
         <p className="text-humo mt-2 max-w-2xl">
           Para elegir cuál sacarte: qué cuesta, qué pide y cuántos descuentos tiene cada una hoy.
           Ordenadas por beneficios vigentes; los que valen para todas las tarjetas de un banco cuentan para cada una.

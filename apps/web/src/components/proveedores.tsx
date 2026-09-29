@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ProveedorBilletera } from "@/lib/billetera";
+import { ProveedorFavoritos } from "@/lib/favoritos";
 import { Billetera } from "./home/billetera";
 
 /**
@@ -12,8 +13,10 @@ import { Billetera } from "./home/billetera";
 export function Proveedores({ children }: { children: ReactNode }) {
   return (
     <ProveedorBilletera>
-      {children}
-      <Billetera />
+      <ProveedorFavoritos>
+        {children}
+        <Billetera />
+      </ProveedorFavoritos>
     </ProveedorBilletera>
   );
 }

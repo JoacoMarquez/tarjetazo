@@ -135,7 +135,9 @@ function BuscadorHeader() {
 const NAV = [
   { label: "Inicio", href: "/" },
   { label: "Explorar", href: "/app" },
+  { label: "Tarjetas", href: "/tarjetas" },
   { label: "Comparar", href: "/comparar" },
+  { label: "Favoritos", href: "/favoritos" },
 ] as const;
 
 /**

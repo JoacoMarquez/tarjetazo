@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CalendarDays, MapPin, Sparkles, Ticket } from "lucide-react";
 import { CATEGORIAS } from "@tarjetazo/core";
+import { BotonFavorito } from "@/components/boton-favorito";
 import { NOMBRES_DIA } from "@/lib/filtros";
 import type { BeneficioListado } from "@/lib/consultas";
 import { topeCorto } from "@/lib/tope";
@@ -72,8 +73,9 @@ export function CardBeneficio({
             {LABEL_CATEGORIA.get(b.categoria) ?? b.categoria} · {b.fuente_nombre}
           </p>
         </div>
-        <div className="shrink-0 text-right">
+        <div className="flex shrink-0 items-start gap-2">
           <Cifra b={b} />
+          <BotonFavorito comercioKey={b.comercio_key} nombre={b.comercio} compacto className="size-8" />
         </div>
       </div>
 

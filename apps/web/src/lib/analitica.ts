@@ -70,7 +70,9 @@ export type Evento =
   | "tarjeta_agregada"
   | "tarjeta_quitada"
   | "catalogo_filtrado"
-  | "mapa_comercio";
+  | "mapa_comercio"
+  | "favorito_agregado"
+  | "favorito_quitado";
 
 export function capturar(evento: Evento, props?: Record<string, unknown>) {
   if (!iniciado) return;
