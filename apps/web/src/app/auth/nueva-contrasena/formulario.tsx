@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 
 const MINIMO = 8;
 
+/** Supabase pide reautenticar si la sesión tiene más de 24 h (cambio seguro de contraseña). */
+const codigoDe = (err: unknown) => (err as { code?: string } | null)?.code;
+
 export function FormularioNuevaContrasena({ email, destino }: { email: string; destino: string }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -18,6 +21,9 @@ export function FormularioNuevaContrasena({ email, destino }: { email: string; d
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [lista, setLista] = useState(false);
+  // Con una sesión vieja, Supabase manda un código por mail y lo pide para cambiarla.
+  const [pideCodigo, setPideCodigo] = useState(false);
+  const [codigo, setCodigo] = useState("");
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -27,10 +33,26 @@ export function FormularioNuevaContrasena({ email, destino }: { email: string; d
     setErrores(errs);
     if (Object.keys(errs).length > 0) return;
 
+    if (pideCodigo && !codigo.trim()) {
+      setError("Escribí el código que te mandamos por mail.");
+      return;
+    }
+
     setError(null);
     setCargando(true);
     try {
-      const { error } = await createSupabaseBrowser().auth.updateUser({ password });
+      const supabase = createSupabaseBrowser();
+      const { error } = await supabase.auth.updateUser(pideCodigo ? { password, nonce: codigo.trim() } : { password });
+      if (codigoDe(error) === "reauthentication_needed") {
+        const { error: errorCodigo } = await supabase.auth.reauthenticate();
+        if (errorCodigo) throw errorCodigo;
+        setPideCodigo(true);
+        return;
+      }
+      if (codigoDe(error) === "reauthentication_not_valid") {
+        setError("El código no es válido o venció. Revisá el mail más reciente.");
+        return;
+      }
       if (error) throw error;
       setLista(true);
       setTimeout(() => {
@@ -85,6 +107,21 @@ export function FormularioNuevaContrasena({ email, destino }: { email: string; d
             className={cn(CLASE_INPUT, errores.repetida ? "border-coral" : "border-linea focus:border-tinta")}
           />
         </CampoForm>
+        {pideCodigo ? (
+          <CampoForm etiqueta="Código">
+            <p className="text-humo -mt-1 mb-2 text-[13px] leading-relaxed">
+              Por seguridad, te mandamos un código a <strong className="text-tinta">{email}</strong>. Escribilo acá
+              para confirmar el cambio.
+            </p>
+            <input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={codigo}
+              onChange={(ev) => setCodigo(ev.target.value)}
+              className={cn(CLASE_INPUT, "border-linea focus:border-tinta")}
+            />
+          </CampoForm>
+        ) : null}
         {error ? (
           <p role="alert" className="bg-coral-s text-coral-ink mt-2 rounded-[10px] px-3.5 py-2.5 text-[13px]">
             {error}
