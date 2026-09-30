@@ -112,3 +112,16 @@ export async function leerConTope(res: Response, maxBytes: number): Promise<Uint
   }
   return out;
 }
+
+/**
+ * JSON de un proveedor, con tope de tamaño. Si no parsea, el error no incluye
+ * el contenido: el mensaje termina en logs de CI.
+ */
+export async function leerJson<T>(res: Response, maxBytes: number): Promise<T> {
+  const bytes = await leerConTope(res, maxBytes);
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes)) as T;
+  } catch {
+    throw new Error("la respuesta no es JSON válido");
+  }
+}

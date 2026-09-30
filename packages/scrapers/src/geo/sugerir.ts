@@ -1,7 +1,12 @@
+import { leerJson } from "@tarjetazo/core/red";
+import { fetchPublicoNode } from "@tarjetazo/core/red-node";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { slugDepartamento } from "./departamentos.js";
 import { reversaIde } from "./ide.js";
 import { dentroDeUruguay } from "./tipos.js";
+
+/** Una respuesta de geocodificación; más que esto no es una respuesta válida. */
+const MAX_RESPUESTA = 5 * 1024 * 1024;
 
 /**
  * Sugerencias de ubicación desde OpenStreetMap para los comercios que no tienen
@@ -85,11 +90,11 @@ async function buscar(q: string): Promise<ResultadoOsm[]> {
   url.searchParams.set("addressdetails", "1");
   url.searchParams.set("namedetails", "1");
   try {
-    const res = await fetch(url, {
+    const res = await fetchPublicoNode(url, {
       headers: { "user-agent": UA, accept: "application/json" },
       signal: AbortSignal.timeout(20_000),
-    });
-    return res.ok ? ((await res.json()) as ResultadoOsm[]) : [];
+    }, 2);
+    return res.ok ? await leerJson<ResultadoOsm[]>(res, MAX_RESPUESTA) : [];
   } catch {
     return [];
   }

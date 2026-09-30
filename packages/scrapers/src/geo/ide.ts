@@ -1,5 +1,10 @@
+import { leerJson } from "@tarjetazo/core/red";
+import { fetchPublicoNode } from "@tarjetazo/core/red-node";
 import type { Punto, PrecisionGeo } from "./tipos.js";
 import { dentroDeUruguay } from "./tipos.js";
+
+/** Una respuesta de geocodificación; más que esto no es una respuesta válida. */
+const MAX_RESPUESTA = 5 * 1024 * 1024;
 
 const BASE = "https://direcciones.ide.uy/api/v1/geocode";
 
@@ -34,12 +39,12 @@ async function pedir<T>(ruta: string, params: Record<string, string>): Promise<T
   const url = new URL(`${BASE}/${ruta}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   try {
-    const res = await fetch(url, {
+    const res = await fetchPublicoNode(url, {
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(20_000),
-    });
+    }, 2);
     if (!res.ok) return null;
-    return (await res.json()) as T;
+    return await leerJson<T>(res, MAX_RESPUESTA);
   } catch {
     return null;
   }
@@ -107,7 +112,7 @@ export async function localidadesDe(
 ): Promise<{ id: number; nombre: string; codigoPostal: number | null }[]> {
   const url = new URL("https://direcciones.ide.uy/api/v0/geocode/localidades");
   url.searchParams.set("departamento", departamento);
-  const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  const res = await fetchPublicoNode(url, { signal: AbortSignal.timeout(20_000) }, 2);
   if (!res.ok) return [];
-  return (await res.json()) as { id: number; nombre: string; codigoPostal: number | null }[];
+  return await leerJson<{ id: number; nombre: string; codigoPostal: number | null }[]>(res, MAX_RESPUESTA);
 }

@@ -1,3 +1,5 @@
+import { leerJson } from "@tarjetazo/core/red";
+import { fetchPublicoNode } from "@tarjetazo/core/red-node";
 import { CADENAS, type Cadena } from "./cadenas.js";
 
 /**
@@ -9,6 +11,8 @@ const OVERPASS = [
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.osm.ch/api/interpreter",
 ];
+/** Todo Uruguay entra holgado; más que esto no es una respuesta de Overpass. */
+const MAX_RESPUESTA = 50 * 1024 * 1024;
 const UA = "Tarjetazo/0.1 (+https://tarjetazo.uy; contacto@tarjetazo.uy)";
 
 /** id de la relación de Uruguay en OSM; como área, se le suma 3600000000. */
@@ -59,20 +63,22 @@ export async function preguntar(query: string): Promise<Elemento[]> {
   for (let intento = 0; intento < OVERPASS.length * 2; intento++) {
     const url = OVERPASS[intento % OVERPASS.length]!;
     try {
-      const res = await fetch(url, {
+      // Los mirrors son de terceros: sus redirecciones pasan por el mismo
+      // chequeo que cualquier URL de afuera (nada de red interna).
+      const res = await fetchPublicoNode(url, {
         method: "POST",
         headers: { "user-agent": UA, "content-type": "text/plain" },
         body: query,
         signal: AbortSignal.timeout(180_000),
-      });
+      }, 2);
       if (!res.ok) {
         ultimoError = `${new URL(url).host} devolvió ${res.status}`;
         await new Promise((r) => setTimeout(r, 5000 * (intento + 1)));
         continue;
       }
-      const datos = (await res.json()) as { elements?: Elemento[]; remark?: string };
+      const datos = await leerJson<{ elements?: Elemento[]; remark?: string }>(res, MAX_RESPUESTA);
       if (datos.remark) {
-        ultimoError = `${new URL(url).host}: ${datos.remark}`;
+        ultimoError = `${new URL(url).host}: ${String(datos.remark).slice(0, 200)}`;
         continue;
       }
       // Un mirror puede responder 200 con cero elementos aunque el dato exista

@@ -1,5 +1,10 @@
+import { leerJson } from "@tarjetazo/core/red";
+import { fetchPublicoNode } from "@tarjetazo/core/red-node";
 import type { Punto } from "./tipos.js";
 import { BBOX_UY, dentroDeUruguay } from "./tipos.js";
+
+/** Una respuesta de geocodificación; más que esto no es una respuesta válida. */
+const MAX_RESPUESTA = 5 * 1024 * 1024;
 
 /** La política de uso de Nominatim pide un máximo de 1 req/s y un UA propio. */
 const UA = "Tarjetazo/0.1 (+https://tarjetazo.uy; contacto@tarjetazo.uy)";
@@ -34,12 +39,12 @@ export async function geocodificarNominatim(texto: string): Promise<Punto | null
   url.searchParams.set("bounded", "1");
 
   try {
-    const res = await fetch(url, {
+    const res = await fetchPublicoNode(url, {
       headers: { "user-agent": UA, accept: "application/json" },
       signal: AbortSignal.timeout(20_000),
-    });
+    }, 2);
     if (!res.ok) return null;
-    const [r] = (await res.json()) as Resultado[];
+    const [r] = await leerJson<Resultado[]>(res, MAX_RESPUESTA);
     if (!r) return null;
     const lat = Number(r.lat);
     const lng = Number(r.lon);

@@ -6,7 +6,7 @@ import http from "node:http";
 import type { LookupFunction } from "node:net";
 import { afterEach, describe, it } from "node:test";
 import { gzipSync } from "node:zlib";
-import { DestinoNoPermitido, esIpPrivada, fetchPublico, leerConTope, revisarDestino } from "@tarjetazo/core/red";
+import { DestinoNoPermitido, esIpPrivada, fetchPublico, leerConTope, leerJson, revisarDestino } from "@tarjetazo/core/red";
 import { crearLookupPublico, crearTransportePublico } from "@tarjetazo/core/red-node";
 
 const publico = async () => ["203.0.113.10"];
@@ -139,5 +139,13 @@ describe("conexión atada a la IP chequeada", () => {
     } finally {
       await srv.cerrar();
     }
+  });
+});
+
+describe("JSON de proveedores", () => {
+  it("parsea con tope y el error no trae el contenido", async () => {
+    assert.deepEqual(await leerJson(new Response('{"a":1}'), 1024), { a: 1 });
+    await assert.rejects(leerJson(new Response("SECRETO-INTERNO no es json"), 1024), (e: Error) => !e.message.includes("SECRETO"));
+    await assert.rejects(leerJson(new Response("x".repeat(2048)), 1024), /pesa más/);
   });
 });
