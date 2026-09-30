@@ -4,7 +4,8 @@
  * los secretos del job y el backoffice en Vercel. Nada de ir a la red interna,
  * al loopback ni a la metadata de la nube, tampoco después de una redirección.
  * No importa nada de Node (core también va al navegador): el DNS lo resuelve
- * quien llama, con `node:dns`.
+ * quien llama, con `node:dns`, y la conexión atada a la IP chequeada está en
+ * `red-node.ts`.
  */
 
 const esIpv4 = (s: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(s);
@@ -21,7 +22,9 @@ function ipv4Privada(ip: string): boolean {
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
     (a === 192 && b === 0 && c === 0) ||
-    (a === 198 && (b === 18 || b === 19))
+    (a === 198 && (b === 18 || b === 19)) ||
+    // Servicio interno de las VMs de Azure (los runners de GitHub Actions).
+    ip === "168.63.129.16"
   );
 }
 
@@ -34,6 +37,8 @@ export function esIpPrivada(ip: string): boolean {
   const v4 = v6.match(/(\d+\.\d+\.\d+\.\d+)$/)?.[1];
   if (v4) return ipv4Privada(v4);
   if (/^::ffff:|^64:ff9b:/.test(v6)) return true;
+  // IPv4 compatible en hexadecimal (::7f00:1 es 127.0.0.1): prefijo ::/96, en desuso.
+  if (/^::[0-9a-f]{1,4}(:[0-9a-f]{1,4})?$/.test(v6)) return true;
   return /^f[cd]/.test(v6) || /^fe[89ab]/.test(v6) || /^ff/.test(v6);
 }
 
@@ -56,13 +61,18 @@ export async function revisarDestino(url: URL, resolver: Resolver): Promise<void
 export async function fetchPublico(
   url: string | URL,
   init: RequestInit = {},
-  opciones: { resolver: Resolver; maxSaltos?: number },
+  opciones: {
+    resolver: Resolver;
+    maxSaltos?: number;
+    /** Cómo se hace cada pedido; en Node, el de `red-node.ts`, que conecta solo a IPs públicas. */
+    transporte?: (url: URL, init: RequestInit) => Promise<Response>;
+  },
 ): Promise<Response> {
   let actual = new URL(url);
   let pedido: RequestInit = { ...init, redirect: "manual" };
   for (let salto = 0; ; salto++) {
     await revisarDestino(actual, opciones.resolver);
-    const res = await fetch(actual, pedido);
+    const res = await (opciones.transporte ?? fetch)(actual, pedido);
     const destino = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
     if (!destino) return res;
     if (salto >= (opciones.maxSaltos ?? 5)) throw new Error(`demasiadas redirecciones desde ${url}`);
