@@ -5,7 +5,9 @@ import { FILTROS_VACIOS, leerFiltros } from "@/lib/filtros";
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const q = (params.get("q") ?? "").trim();
-  if (q.length < 2) return NextResponse.json({ resultados: [] });
+  // Nombres de comercio: más de 100 caracteres no es una búsqueda (la RPC
+  // tampoco los acepta, y no vale la pena anotarlos como búsqueda vacía).
+  if (q.length < 2 || q.length > 100) return NextResponse.json({ resultados: [] });
   try {
     const filtros = leerFiltros(params);
     const resultados = await buscarComercios(q, filtros);
