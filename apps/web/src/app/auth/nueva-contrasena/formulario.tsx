@@ -108,11 +108,13 @@ export function FormularioNuevaContrasena({ email, destino }: { email: string; d
           />
         </CampoForm>
         {pideCodigo ? (
+          <p className="text-humo mt-1 text-[13px] leading-relaxed">
+            Por seguridad, te mandamos un código a <strong className="text-tinta">{email}</strong>. Escribilo acá para
+            confirmar el cambio.
+          </p>
+        ) : null}
+        {pideCodigo ? (
           <CampoForm etiqueta="Código">
-            <p className="text-humo -mt-1 mb-2 text-[13px] leading-relaxed">
-              Por seguridad, te mandamos un código a <strong className="text-tinta">{email}</strong>. Escribilo acá
-              para confirmar el cambio.
-            </p>
             <input
               inputMode="numeric"
               autoComplete="one-time-code"
