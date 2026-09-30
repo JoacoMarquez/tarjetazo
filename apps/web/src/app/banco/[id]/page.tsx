@@ -15,6 +15,8 @@ import { labelCategoria } from "@/lib/comercio";
 import { JsonLd } from "@/components/json-ld";
 
 export const revalidate = 3600;
+// Las fuentes son una lista fija: otro id es 404 sin renderizar.
+export const dynamicParams = false;
 export function generateStaticParams() {
   return FUENTES.map((f) => ({ id: f.id }));
 }

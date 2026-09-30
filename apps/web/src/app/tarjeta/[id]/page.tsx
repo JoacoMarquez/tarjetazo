@@ -26,8 +26,16 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { JsonLd } from "@/components/json-ld";
 
 export const revalidate = 3600;
+// Los ids son todos conocidos: uno que no está en la lista es 404 sin
+// renderizar. Van también los que redirigen (plásticos sueltos, dados de baja).
+export const dynamicParams = false;
 export function generateStaticParams() {
-  return FAMILIAS_TARJETA.map((f) => ({ id: f.id }));
+  const ids = new Set([
+    ...FAMILIAS_TARJETA.map((f) => f.id),
+    ...PRODUCTOS.map((p) => p.id),
+    ...Object.keys(EQUIVALENCIAS_PRODUCTO),
+  ]);
+  return [...ids].map((id) => ({ id }));
 }
 
 type Props = { params: Promise<{ id: string }> };
