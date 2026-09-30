@@ -1,6 +1,8 @@
 import "server-only";
 
 import { Departamento } from "@tarjetazo/core";
+import { leerJson } from "@tarjetazo/core/red";
+import { fetchPublicoNode } from "@tarjetazo/core/red-node";
 
 /**
  * Geocodificar una dirección cargada a mano con el servicio oficial (IDE
@@ -32,8 +34,9 @@ async function pedir(ruta: string, params: Record<string, string>): Promise<Cand
   const url = new URL(`${BASE}/${ruta}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   try {
-    const res = await fetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15_000), cache: "no-store" });
-    return res.ok ? ((await res.json()) as Candidato[]) : null;
+    // Servicio de terceros: sus redirecciones no pueden llevar a la red interna.
+    const res = await fetchPublicoNode(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15_000) }, 2);
+    return res.ok ? await leerJson<Candidato[]>(res, 5 * 1024 * 1024) : null;
   } catch {
     return null;
   }

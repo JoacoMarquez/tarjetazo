@@ -1,6 +1,11 @@
+import { leerJson } from "@tarjetazo/core/red";
+import { fetchPublicoNode } from "@tarjetazo/core/red-node";
 import { htmlATexto } from "../texto.js";
 import { slugificar } from "../slug.js";
 import type { Crudo } from "../tipos.js";
+
+/** Una página de Contentstack (100 beneficios); más que esto no es una respuesta válida. */
+const MAX_RESPUESTA = 10 * 1024 * 1024;
 
 /**
  * OCA sirve sus beneficios desde Contentstack; la página los pide con un token
@@ -133,12 +138,12 @@ export async function fetchOca(): Promise<Crudo[]> {
     url.searchParams.set("skip", String(salto));
     url.searchParams.set("include_count", "true");
 
-    const res = await fetch(url, {
+    const res = await fetchPublicoNode(url, {
       headers: { api_key: API_KEY, access_token: TOKEN, accept: "application/json" },
       signal: AbortSignal.timeout(30_000),
-    });
+    }, 2);
     if (!res.ok) throw new Error(`Contentstack devolvió ${res.status}`);
-    const datos = (await res.json()) as { entries?: Beneficio[]; count?: number };
+    const datos = await leerJson<{ entries?: Beneficio[]; count?: number }>(res, MAX_RESPUESTA);
     const pagina = datos.entries ?? [];
     beneficios.push(...pagina);
     if (pagina.length < 100 || beneficios.length >= (datos.count ?? 0)) break;
@@ -150,12 +155,12 @@ export async function fetchOca(): Promise<Crudo[]> {
     const url = new URL(CATEGORIAS);
     url.searchParams.set("environment", "produccion");
     url.searchParams.set("limit", "100");
-    const res = await fetch(url, {
+    const res = await fetchPublicoNode(url, {
       headers: { api_key: API_KEY, access_token: TOKEN, accept: "application/json" },
       signal: AbortSignal.timeout(30_000),
-    });
+    }, 2);
     if (res.ok) {
-      const d = (await res.json()) as { entries?: { uid: string; title?: string }[] };
+      const d = await leerJson<{ entries?: { uid: string; title?: string }[] }>(res, MAX_RESPUESTA);
       for (const c of d.entries ?? []) if (c.title) categorias.set(c.uid, c.title);
     }
   } catch {
