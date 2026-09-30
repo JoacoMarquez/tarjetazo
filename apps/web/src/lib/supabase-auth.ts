@@ -2,6 +2,7 @@ import { createBrowserClient, createServerClient } from "@supabase/ssr";
 import { origenSupabase } from "@tarjetazo/core";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { esLimiteDePedidos } from "./sesion";
 
 /**
  * Cliente de sesión, aparte del de `supabase.ts`. Aquel lee el catálogo público
@@ -49,6 +50,8 @@ export function createSupabaseServidor(cookieStore: AlmacenCookies) {
   return createServerClient(cred.url, cred.anonKey, {
     cookies: {
       getAll: () => cookieStore.getAll(),
+      // Los headers de cache que manda @supabase/ssr no aplican acá: route
+      // handlers y páginas dinámicas ya salen sin cache compartido.
       setAll: (cookies) => {
         try {
           for (const { name, value, options } of cookies) {
@@ -63,6 +66,12 @@ export function createSupabaseServidor(cookieStore: AlmacenCookies) {
   });
 }
 
+/** Escrituras de sesión que pide `@supabase/ssr`: cookies y headers de cache. */
+type Escrituras = {
+  cookies: { name: string; value: string; options?: Record<string, unknown> }[];
+  headers: Record<string, string>;
+};
+
 /**
  * Refresca la sesión en cada request y reenvía las cookies actualizadas.
  * Importante: hay que devolver *esta* respuesta para no perder las cookies.
@@ -72,26 +81,40 @@ export async function refrescarSesion(request: NextRequest) {
   const cred = credencialesAuth();
   if (!cred) return { respuesta: NextResponse.next({ request }), usuario: null };
 
-  let respuesta = NextResponse.next({ request });
+  // Las escrituras se juntan y se aplican después de getUser, para poder
+  // descartarlas si el refresh falló por límite de pedidos.
+  let pendientes: Escrituras | null = null;
 
   const supabase = createServerClient(cred.url, cred.anonKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
-      setAll: (cookies) => {
-        for (const { name, value } of cookies) {
-          request.cookies.set(name, value);
-        }
-        respuesta = NextResponse.next({ request });
-        for (const { name, value, options } of cookies) {
-          respuesta.cookies.set(name, value, options);
-        }
+      setAll: (cookies, headers) => {
+        pendientes = { cookies, headers };
       },
     },
   });
 
   // No sacar: esta llamada es la que dispara el refresh del token.
-  const { data } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
 
+  const escrituras = pendientes as Escrituras | null;
+  if (!escrituras || esLimiteDePedidos(error)) {
+    return { respuesta: NextResponse.next({ request }), usuario: data.user };
+  }
+
+  for (const { name, value } of escrituras.cookies) {
+    request.cookies.set(name, value);
+  }
+  const respuesta = NextResponse.next({ request });
+  for (const { name, value, options } of escrituras.cookies) {
+    respuesta.cookies.set(name, value, options);
+  }
+  // `@supabase/ssr` manda `Cache-Control: private, no-store` junto con la
+  // cookie: sin esto, una página con revalidate saldría con `s-maxage` y el
+  // token de un usuario podría quedar en un cache compartido.
+  for (const [nombre, valor] of Object.entries(escrituras.headers)) {
+    respuesta.headers.set(nombre, valor);
+  }
   return { respuesta, usuario: data.user };
 }
 
