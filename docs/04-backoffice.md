@@ -12,7 +12,7 @@ Panel interno para un solo operador: ver si el pipeline anda, encontrar inconsis
 
 ## Dónde vive y acceso
 - Ruta `/admin` en `apps/web` (reusa shadcn, tipos de `core`, login Supabase existente). Usable desde el celular.
-- Allowlist `ADMIN_EMAILS` (env var) verificada en middleware **y** en cada server action. Al resto: **404**, no 403.
+- Allowlist `ADMIN_USER_IDS` (ids de usuario de Supabase; si no está, `ADMIN_EMAILS` con email confirmado) verificada en middleware **y** en cada server action. Al resto: **404**, no 403.
 - Escrituras con service role solo del lado del servidor. Sin RLS por rol.
 - `corrida` pierde la policy de lectura pública; revisar que `beneficio_revision` tampoco la tenga (el `raw` y los errores son material interno, como ya lo es `pagina_cruda`).
 
