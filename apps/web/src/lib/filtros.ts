@@ -1,4 +1,4 @@
-import { CATEGORIAS, Departamento, TipoBeneficio, expandirProductos } from "@tarjetazo/core";
+import { CATEGORIAS, Departamento, FUENTES, TipoBeneficio, expandirProductos } from "@tarjetazo/core";
 
 export type Orden = "relevancia" | "porcentaje" | "cuotas";
 /** "hoy" y "manana" se resuelven en el cliente contra la fecha de Uruguay. */
@@ -34,13 +34,14 @@ export const FILTROS_VACIOS: Filtros = {
 const ORDENES: Orden[] = ["relevancia", "porcentaje", "cuotas"];
 const DIAS: Exclude<Dia, null>[] = ["hoy", "manana", "0", "1", "2", "3", "4", "5", "6"];
 
+const BANCOS = new Set(FUENTES.map((f) => f.id));
 const CATS = new Set(CATEGORIAS.map((c) => c.slug));
 const DEPTOS = new Set<string>(Departamento.options);
 const TIPOS = new Set<string>(TipoBeneficio.options);
 
 function lista(v: string | null, valido?: Set<string>): string[] {
   if (!v) return [];
-  const partes = v.split(",").map((x) => x.trim()).filter(Boolean);
+  const partes = [...new Set(v.split(",").map((x) => x.trim()).filter(Boolean))];
   return valido ? partes.filter((x) => valido.has(x)) : partes;
 }
 
@@ -48,7 +49,7 @@ export function leerFiltros(params: URLSearchParams): Filtros {
   const dia = params.get("dia");
   const orden = params.get("orden");
   return {
-    bancos: lista(params.get("bancos")),
+    bancos: lista(params.get("bancos"), BANCOS),
     // Un link viejo puede traer ids que cambiaron de significado (#40).
     productos: expandirProductos(lista(params.get("productos"))),
     categorias: lista(params.get("cat"), CATS),
