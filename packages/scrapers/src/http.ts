@@ -1,8 +1,7 @@
-import { lookup } from "node:dns/promises";
-import { DestinoNoPermitido, fetchPublico, leerConTope, revisarDestino, type Resolver } from "@tarjetazo/core/red";
+import { DestinoNoPermitido, leerConTope } from "@tarjetazo/core/red";
+import { fetchPublicoNode, pedirPublico } from "@tarjetazo/core/red-node";
 
-/** Las URLs salen de páginas de terceros: nada de ir a la red interna del runner. */
-export const resolverDns: Resolver = async (host) => (await lookup(host, { all: true })).map((r) => r.address);
+// Las URLs salen de páginas de terceros: nada de ir a la red interna del runner.
 
 /** Una página de más de esto no es un beneficio: se corta antes de cargarla entera. */
 const MAX_TEXTO = 15 * 1024 * 1024;
@@ -48,7 +47,7 @@ export async function bajarTexto(
     await esperarTurno();
     try {
       // Con `formulario` es un POST (el admin-ajax.php de WordPress, ANDA).
-      const res = await fetchPublico(url, {
+      const res = await fetchPublicoNode(url, {
         ...(opciones.formulario ? { method: "POST", body: new URLSearchParams(opciones.formulario) } : {}),
         headers: opciones.comoNavegador
           ? {
@@ -62,7 +61,7 @@ export async function bajarTexto(
             }
           : { "user-agent": UA, accept: "text/html,application/xhtml+xml", ...opciones.headers },
         signal: AbortSignal.timeout(30_000),
-      }, { resolver: resolverDns });
+      });
       if (res.status === 404 || res.status === 410) throw new PaginaInexistente(url, res.status);
       if (!res.ok) throw new Error(`HTTP ${res.status} en ${url}`);
       return new TextDecoder().decode(await leerConTope(res, MAX_TEXTO));
@@ -84,10 +83,8 @@ export async function bajarTexto(
 export async function resolverRedireccion(url: string): Promise<string | null> {
   await esperarTurno();
   try {
-    await revisarDestino(new URL(url), resolverDns);
-    const res = await fetch(url, {
+    const res = await pedirPublico(new URL(url), {
       method: "HEAD",
-      redirect: "manual",
       headers: { "user-agent": UA_NAVEGADOR },
       signal: AbortSignal.timeout(15_000),
     });
