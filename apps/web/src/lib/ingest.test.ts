@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cabecerasHaciaPostHog, destinoIngest } from "./ingest.ts";
+import { cabecerasDeVuelta, cabecerasHaciaPostHog, destinoIngest } from "./ingest.ts";
 
 describe("proxy de PostHog", () => {
   it("manda los eventos a la API y los scripts a assets", () => {
@@ -14,7 +14,25 @@ describe("proxy de PostHog", () => {
     assert.equal(destinoIngest(["array", "phc_x", "config.js"], "", undefined), null);
     assert.equal(destinoIngest(["..", "x"], "", "phc_x"), null);
     assert.equal(destinoIngest([], "", "phc_x"), null);
-    assert.equal(destinoIngest(["a%2F..%2F..%2Fx"], "", "phc_x")?.host, "eu.i.posthog.com");
+    assert.equal(destinoIngest(["a%2F..%2F..%2Fx"], "", "phc_x"), null);
+  });
+
+  it("solo las rutas que usa posthog-js", () => {
+    for (const r of [["e"], ["i", "v0", "e"], ["i", "v1", "logs"], ["s"], ["flags"], ["api", "surveys"], ["static", "recorder.js"], ["static", "1.425.0", "surveys.js"], ["array", "phc_x", "config"]]) {
+      assert.notEqual(destinoIngest(r, "", "phc_x"), null, r.join("/"));
+    }
+    for (const r of [["login"], ["api", "projects"], ["api", "surveys", "x"], ["static", "x.html"], ["static"], ["array", "phc_x", "config.js", "x"], ["admin"]]) {
+      assert.equal(destinoIngest(r, "", "phc_x"), null, r.join("/"));
+    }
+  });
+
+  it("lo que vuelve no se interpreta como página", () => {
+    const html = cabecerasDeVuelta(new Headers({ "content-type": "text/html; charset=utf-8", "set-cookie": "a=1" }));
+    assert.equal(html.get("content-type"), "text/plain; charset=utf-8");
+    assert.equal(html.get("x-content-type-options"), "nosniff");
+    assert.equal(html.get("content-security-policy"), "sandbox");
+    assert.equal(html.get("set-cookie"), null);
+    assert.equal(cabecerasDeVuelta(new Headers({ "content-type": "application/javascript" })).get("content-type"), "application/javascript");
   });
 
   it("no pasa cookies ni autorización", () => {
