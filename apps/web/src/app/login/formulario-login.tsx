@@ -7,6 +7,7 @@ import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createSupabaseBrowser } from "@/lib/supabase-auth";
+import { SITE_KEY_TURNSTILE, Turnstile } from "@/components/turnstile";
 
 type Modo = "login" | "registro";
 type Campo = "nombre" | "email" | "password";
@@ -30,6 +31,8 @@ export function mensajeDeError(e: unknown): string {
     return "La contraseña tiene que tener al menos 8 caracteres.";
   if (b.includes("auth session missing"))
     return "El link venció o ya se usó. Pedí uno nuevo desde «¿La olvidaste?».";
+  if (b.includes("captcha"))
+    return "No pudimos verificar que no seas un robot. Completá la verificación y volvé a intentar.";
   if (b.includes("email rate limit") || b.includes("too many requests"))
     return "Probamos muchas veces seguidas. Esperá un minuto y volvé a intentar.";
   return texto;
@@ -136,6 +139,11 @@ export function FormularioLogin({
   const [errores, setErrores] = useState<Errores>({});
   const [error, setError] = useState<string | null>(errorInicial ?? null);
   const [cargando, setCargando] = useState(false);
+  // Captcha (solo si hay site key): un token por intento.
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [reinicioCaptcha, setReinicioCaptcha] = useState(0);
+  const faltaCaptcha = Boolean(SITE_KEY_TURNSTILE) && !captcha;
+  const conCaptcha = captcha ? { captchaToken: captcha } : {};
   const [aviso, setAviso] = useState<{
     tipo: "reset" | "confirmar";
     email: string;
@@ -192,6 +200,10 @@ export function FormularioLogin({
     const errs = validar();
     setErrores(errs);
     if (Object.keys(errs).length > 0) return;
+    if (faltaCaptcha) {
+      setError("Completá la verificación de acá abajo.");
+      return;
+    }
 
     setError(null);
     setCargando(true);
@@ -201,6 +213,7 @@ export function FormularioLogin({
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
+          options: conCaptcha,
         });
         if (error) throw error;
         irAlDestino();
@@ -211,6 +224,7 @@ export function FormularioLogin({
         email: email.trim(),
         password,
         options: {
+          ...conCaptcha,
           data: { nombre: nombre.trim() },
           emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(destino)}`,
         },
@@ -223,6 +237,7 @@ export function FormularioLogin({
       setError(mensajeDeError(err));
     } finally {
       setCargando(false);
+      setReinicioCaptcha((n) => n + 1);
     }
   }
 
@@ -234,6 +249,10 @@ export function FormularioLogin({
       });
       return;
     }
+    if (faltaCaptcha) {
+      setError("Completá la verificación de acá abajo.");
+      return;
+    }
     setError(null);
     setErrores({});
     setCargando(true);
@@ -242,6 +261,7 @@ export function FormularioLogin({
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
         {
+          ...conCaptcha,
           // El link inicia sesión y lleva a elegir la contraseña nueva (#38);
           // después sigue al destino original.
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
@@ -255,6 +275,7 @@ export function FormularioLogin({
       setError(mensajeDeError(err));
     } finally {
       setCargando(false);
+      setReinicioCaptcha((n) => n + 1);
     }
   }
 
@@ -412,6 +433,8 @@ export function FormularioLogin({
                 />
               </CampoForm>
             </div>
+
+            <Turnstile onToken={setCaptcha} reinicio={reinicioCaptcha} />
 
             {error && (
               <p
