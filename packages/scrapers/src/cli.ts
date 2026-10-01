@@ -108,7 +108,7 @@ async function main() {
         // Sin inicio conocido, las últimas 12 horas.
         desde: process.env.RESUMEN_DESDE || new Date(Date.now() - 12 * 3600e3).toISOString(),
         fuentes: pedidas === "todas" ? cron : pedidas.split(/[\s,]+/).filter(Boolean),
-        urlAdmin: process.env.ADMIN_URL ?? "https://tarjetazo-one.vercel.app/admin",
+        urlAdmin: process.env.ADMIN_URL ?? "https://tarjetazo.uy/admin",
         urlLog: process.env.RESUMEN_URL_LOG || undefined,
         estadoWorkflow: process.env.RESUMEN_ESTADO || undefined,
         manual: process.env.RESUMEN_MANUAL === "1",
