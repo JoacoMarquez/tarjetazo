@@ -1,6 +1,7 @@
 "use client";
 
 import posthog from "posthog-js";
+import { propiedadesSinTokens } from "./url-limpia";
 
 let iniciado = false;
 
@@ -54,7 +55,10 @@ export function iniciarAnalitica() {
     respect_dnt: true,
     before_send: (captura) => {
       const url = captura?.properties.$current_url;
-      return typeof url === "string" && esRutaAdmin(url) ? null : captura;
+      if (typeof url === "string" && esRutaAdmin(url)) return null;
+      // Un link de login o recuperación trae ?code= o #access_token=: no se manda.
+      if (captura?.properties) propiedadesSinTokens(captura.properties);
+      return captura;
     },
   });
   iniciado = true;
