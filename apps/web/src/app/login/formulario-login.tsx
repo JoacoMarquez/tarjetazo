@@ -29,7 +29,7 @@ export function mensajeDeError(e: unknown): string {
     return "La contraseña nueva tiene que ser distinta de la anterior.";
   if (b.includes("password should be at least"))
     return "La contraseña tiene que tener al menos 8 caracteres.";
-  if (b.includes("auth session missing"))
+  if (b.includes("auth session missing") || b.includes("link_invalido") || b.includes("code verifier") || b.includes("otp_expired"))
     return "El link venció o ya se usó. Pedí uno nuevo desde «¿La olvidaste?».";
   if (b.includes("captcha"))
     return "No pudimos verificar que no seas un robot. Completá la verificación y volvé a intentar.";
@@ -137,7 +137,7 @@ export function FormularioLogin({
   const [password, setPassword] = useState("");
 
   const [errores, setErrores] = useState<Errores>({});
-  const [error, setError] = useState<string | null>(errorInicial ?? null);
+  const [error, setError] = useState<string | null>(errorInicial ? mensajeDeError(errorInicial) : null);
   const [cargando, setCargando] = useState(false);
   // Captcha (solo si hay site key): un token por intento.
   const [captcha, setCaptcha] = useState<string | null>(null);
