@@ -26,7 +26,8 @@ function rutaDePostHog(ruta: string[], clave: string | undefined): boolean {
 
 /** Adónde va `/ingest/<ruta>`, o null si la ruta no es de PostHog. */
 export function destinoIngest(ruta: string[], search: string, clave: string | undefined, barraFinal = false): URL | null {
-  if (ruta.length === 0 || ruta.some((p) => p === "" || p === "." || p === "..")) return null;
+  // Cada segmento llega decodificado: `..%2Farray` sería un solo segmento con barras.
+  if (ruta.length === 0 || ruta.some((p) => p === "" || p === "." || p === ".." || /[/\\]/.test(p))) return null;
   if (!rutaDePostHog(ruta, clave)) return null;
   const [primero] = ruta;
   const host = primero === "static" || primero === "array" ? ASSETS : API;
@@ -35,6 +36,9 @@ export function destinoIngest(ruta: string[], search: string, clave: string | un
   url.search = search;
   return url;
 }
+
+/** Un lote de eventos de posthog-js pesa unos KB; más que esto no es un pedido normal. */
+export const MAX_CUERPO_INGEST = 1024 * 1024;
 
 /** Lo que se le pasa a PostHog del pedido del navegador: sin cookies ni auth. */
 const HACIA_POSTHOG = ["content-type", "content-encoding", "user-agent", "accept", "accept-language", "x-forwarded-for"];

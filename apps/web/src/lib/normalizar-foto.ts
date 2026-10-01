@@ -27,7 +27,12 @@ export type FotoNormalizada =
  * que se puede sacar una tarjeta derecha.
  */
 export async function normalizarFoto(entrada: Uint8Array, recorte?: Recorte): Promise<FotoNormalizada> {
-  let img = sharp(entrada).rotate(); // respeta la orientación EXIF
+  // La foto la eligió el scraper en la página de un banco: 4 MB de PNG pueden
+  // ser ~1 GB descomprimidos. Una foto de tarjeta no pasa de unos pocos MP.
+  const LIMITE = 40_000_000;
+  const { width = 0, height = 0 } = await sharp(entrada, { limitInputPixels: false }).metadata();
+  if (width * height > LIMITE) return { ok: false, motivo: `la imagen es demasiado grande (${width}×${height})` };
+  let img = sharp(entrada, { limitInputPixels: LIMITE }).rotate(); // respeta la orientación EXIF
   if (recorte) img = sharp(await img.extract(recorte).toBuffer());
   const { data, info } = await img.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const caja = recorte ? { left: 0, top: 0, width: info.width, height: info.height } : cajaDeLaTarjeta(data, info.width, info.height);

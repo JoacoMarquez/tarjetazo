@@ -15,6 +15,9 @@ describe("proxy de PostHog", () => {
     assert.equal(destinoIngest(["..", "x"], "", "phc_x"), null);
     assert.equal(destinoIngest([], "", "phc_x"), null);
     assert.equal(destinoIngest(["a%2F..%2F..%2Fx"], "", "phc_x"), null);
+    // Next entrega los segmentos decodificados: una barra adentro no puede saltar a otro proyecto.
+    assert.equal(destinoIngest(["static", "../array/phc_otro/config.js"], "", "phc_x"), null);
+    assert.equal(destinoIngest(["static", "..\\array\\x.js"], "", "phc_x"), null);
   });
 
   it("solo las rutas que usa posthog-js", () => {
