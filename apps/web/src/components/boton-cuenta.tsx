@@ -30,6 +30,7 @@ export function BotonCuenta() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
+  const [errorSalir, setErrorSalir] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,15 +74,20 @@ export function BotonCuenta() {
 
   async function salir() {
     setSaliendo(true);
-    try {
-      // Revoca la sesión en Supabase y borra las cookies; el evento SIGNED_OUT
-      // vuelve el botón a "Ingresar".
-      await createSupabaseBrowser().auth.signOut({ scope: "local" });
-    } finally {
-      setSaliendo(false);
-      setAbierto(false);
-      router.refresh();
+    setErrorSalir(false);
+    // Revoca la sesión en Supabase y borra las cookies; el evento SIGNED_OUT
+    // vuelve el botón a "Ingresar". signOut devuelve el error, no lo lanza.
+    const { error } = await createSupabaseBrowser()
+      .auth.signOut({ scope: "local" })
+      .catch((e: unknown) => ({ error: e }));
+    setSaliendo(false);
+    if (error) {
+      // La sesión sigue abierta: el menú queda abierto con el aviso.
+      setErrorSalir(true);
+      return;
     }
+    setAbierto(false);
+    router.refresh();
   }
 
   return (
@@ -91,7 +97,10 @@ export function BotonCuenta() {
         aria-label={`Tu cuenta: ${nombre}`}
         aria-haspopup="menu"
         aria-expanded={abierto}
-        onClick={() => setAbierto((a) => !a)}
+        onClick={() => {
+          setAbierto((a) => !a);
+          setErrorSalir(false);
+        }}
         className="font-display inline-flex size-10 cursor-pointer items-center justify-center rounded-full text-base font-bold"
         style={{ backgroundImage: GRADIENTE, color: "#14202c" }}
       >
@@ -127,6 +136,11 @@ export function BotonCuenta() {
             <LogOut className="text-humo size-4" strokeWidth={2} />
             {saliendo ? "Saliendo…" : "Cerrar sesión"}
           </button>
+          {errorSalir ? (
+            <p role="alert" className="bg-coral-s text-coral-ink px-4 py-2.5 text-xs">
+              No pudimos cerrar la sesión. Revisá la conexión y probá de nuevo.
+            </p>
+          ) : null}
         </div>
       )}
     </div>
