@@ -109,7 +109,7 @@ export function Billetera() {
               transition: "opacity .3s .4s",
             }}
           >
-            Tocá una tarjeta para sacarla · clic afuera para cerrar
+            Tocá una tarjeta para sacarla · tocá afuera para cerrar
           </p>
         )}
 
