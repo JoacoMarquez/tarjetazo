@@ -20,7 +20,7 @@ import {
 import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
 import type { Bbox, PuntoMapa } from "@/lib/consultas";
-import { colorFuente } from "@/lib/marca";
+import { colorFuente, meSirve } from "@/lib/marca";
 import { capturar } from "@/lib/analitica";
 
 /** Montevideo centro: el punto de partida razonable para Uruguay. */
@@ -45,7 +45,7 @@ function icono(p: PuntoMapa, mias?: string[], seleccionado = false): L.DivIcon {
     p.best_pct != null ? `${Math.round(p.best_pct)}%` : p.max_cuotas ? `${p.max_cuotas} cuotas` : null;
   const c = colorFuente(p.mejor_fuente_id);
   const laTengo =
-    !mias || p.mejor_productos.length === 0 || p.mejor_productos.some((id) => mias.includes(id));
+    !mias || meSirve(p.mejor_fuente_id, p.mejor_productos, mias);
   const fondo = laTengo ? c.color : "#9aa5b1";
   const escala = seleccionado ? "transform:scale(1.2);" : "";
   const anillo = seleccionado ? `box-shadow:0 0 0 3px #fff,0 0 0 6px ${c.color},0 4px 10px rgba(20,32,44,.3);` : "box-shadow:0 3px 8px rgba(20,32,44,.3);";
