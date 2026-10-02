@@ -70,12 +70,20 @@ async function cambiarBeneficio(form: FormData, cambios: Record<string, unknown>
   const destino = urlInspector(fuenteId, externalId);
   // El id tiene que ser de esta página: no se aceptan ids sueltos del formulario.
   if (!id.startsWith(`${fuenteId}:${externalId}:`)) redirect(destino);
-  const { error } = await createSupabaseAdmin()
+  const { data, error } = await createSupabaseAdmin()
     .from("beneficio")
     .update({ ...cambios, updated_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .select("comercio_key")
+    .maybeSingle<{ comercio_key: string }>();
   revalidatePath(destino);
   revalidatePath("/admin/salud");
+  // Las páginas públicas cachean una hora: sin esto, ocultar tarda en verse.
+  if (data) {
+    revalidatePath(`/comercio/${data.comercio_key}`);
+    revalidatePath(`/comercio/${data.comercio_key}/${fuenteId}`);
+    revalidatePath(`/banco/${fuenteId}`);
+  }
   redirect(`${destino}?${error ? "error" : "ok"}=${encodeURIComponent(error ? `No se pudo: ${error.message}` : mensaje)}`);
 }
 

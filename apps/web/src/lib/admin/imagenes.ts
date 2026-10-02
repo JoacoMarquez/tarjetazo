@@ -16,7 +16,7 @@ const EXTENSION: Record<string, string> = { "image/png": "png", "image/jpeg": "j
  * El tipo real de una imagen por sus primeros bytes. Itaú sirve las fotos de
  * sus tarjetas como `binary/octet-stream`: el header no alcanza.
  */
-function tipoPorContenido(b: Uint8Array): string | null {
+export function tipoPorContenido(b: Uint8Array): string | null {
   if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
   const ascii = (i: number, n: number) => String.fromCharCode(...b.subarray(i, i + n));

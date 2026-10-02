@@ -76,6 +76,10 @@ export async function aceptarInfo(form: FormData) {
     .eq("estado", "pendiente")
     .maybeSingle<{ comercio_key: string; sucursal_id: string | null; campo: string; valor: string }>();
   if (!s) volver(key, "La sugerencia ya no está pendiente.", true);
+  // Hoy solo escribe geo/info.ts, que ya lo filtra; se repite acá porque esto
+  // publica el valor en el sitio.
+  if (s.campo === "sitio_web" && !/^https?:\/\/[^\s"'<>]+$/i.test(s.valor))
+    volver(s.comercio_key, "El sitio sugerido no es una URL http(s) válida.", true);
 
   const { error } =
     s.campo === "sitio_web" || s.campo === "instagram"
