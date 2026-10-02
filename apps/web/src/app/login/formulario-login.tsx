@@ -38,6 +38,15 @@ export function mensajeDeError(e: unknown): string {
   return texto;
 }
 
+/**
+ * Para el `?error=` de la URL: lo puede escribir cualquiera en un link, así
+ * que solo se muestran los mensajes conocidos, nunca el texto que trae.
+ */
+export function mensajeDeErrorDeUrl(codigo: string): string {
+  const conocido = mensajeDeError(codigo);
+  return conocido === codigo ? "No pudimos completar el ingreso. Probá de nuevo." : conocido;
+}
+
 function LogoGoogle() {
   return (
     <svg
@@ -137,7 +146,7 @@ export function FormularioLogin({
   const [password, setPassword] = useState("");
 
   const [errores, setErrores] = useState<Errores>({});
-  const [error, setError] = useState<string | null>(errorInicial ? mensajeDeError(errorInicial) : null);
+  const [error, setError] = useState<string | null>(errorInicial ? mensajeDeErrorDeUrl(errorInicial) : null);
   const [cargando, setCargando] = useState(false);
   // Captcha (solo si hay site key): un token por intento.
   const [captcha, setCaptcha] = useState<string | null>(null);

@@ -13,7 +13,7 @@ import {
   type Ficha,
   type Sugerencia,
 } from "@/lib/fichas";
-import { MAX_BYTES, bajarImagen, borrarImagen, leerImagen, subirImagen } from "@/lib/admin/imagenes";
+import { MAX_BYTES, bajarImagen, borrarImagen, leerImagen, subirImagen, tipoPorContenido } from "@/lib/admin/imagenes";
 import { normalizarFoto } from "@/lib/normalizar-foto";
 
 type Db = ReturnType<typeof createSupabaseAdmin>;
@@ -120,7 +120,9 @@ export async function aceptarSugerencias(form: FormData) {
       ok.push(s.id);
     }
     if (ok.length === 0) continue;
-    patch.url_oficial = suyas.at(-1)!.url;
+    // La URL la propuso el scraper: mismo control que la carga a mano.
+    const url = suyas.at(-1)!.url;
+    if (/^https?:\/\//i.test(url)) patch.url_oficial = url;
     const { error: e } = await db.from("producto_ficha").upsert(
       { familia_id: familiaId, fuente_id: suyas[0]!.fuente_id, ...patch, actualizado_en: new Date().toISOString() },
       { onConflict: "familia_id" },
@@ -189,6 +191,9 @@ export async function guardarFicha(_: EstadoFicha, form: FormData): Promise<Esta
     if (!f) continue;
     if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) errores[nombre] = "Tiene que ser PNG, JPG o WebP.";
     else if (f.size > MAX_BYTES) errores[nombre] = "Pesa más de 4 MB.";
+    // El tipo lo declara el navegador: se confirma con los primeros bytes.
+    else if (tipoPorContenido(new Uint8Array(await f.slice(0, 12).arrayBuffer())) !== f.type)
+      errores[nombre] = "El archivo no es la imagen que dice ser.";
   }
   const urlOficial = String(form.get("url_oficial") ?? "").trim() || null;
   if (urlOficial && !/^https?:\/\//i.test(urlOficial)) errores.url_oficial = "Tiene que empezar con https://";

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { NavAdmin } from "@/components/admin/nav-admin";
 import { Logo } from "@/components/nav";
+import { cerrarSesion } from "@/app/auth/acciones";
 import { exigirAdmin } from "@/lib/admin";
 
 export const metadata: Metadata = {
@@ -29,9 +30,16 @@ export default async function LayoutAdmin({
               admin
             </span>
           </div>
-          <Link href="/" className="text-pizarra text-xs hover:underline md:hidden">
-            Ver sitio
-          </Link>
+          <div className="flex items-center gap-3 text-xs md:hidden">
+            <Link href="/" className="text-pizarra hover:underline">
+              Ver sitio
+            </Link>
+            <form action={cerrarSesion}>
+              <button type="submit" className="text-pizarra cursor-pointer hover:underline">
+                Salir
+              </button>
+            </form>
+          </div>
         </div>
         <NavAdmin />
         <div className="text-humo-oscuro mt-auto hidden text-xs md:block">
@@ -41,6 +49,11 @@ export default async function LayoutAdmin({
           <Link href="/" className="text-pizarra hover:underline">
             Ver sitio
           </Link>
+          <form action={cerrarSesion}>
+            <button type="submit" className="text-pizarra cursor-pointer hover:underline">
+              Cerrar sesión
+            </button>
+          </form>
         </div>
       </aside>
       <main className="min-w-0 px-4 py-6 md:px-8 md:py-8">{children}</main>
