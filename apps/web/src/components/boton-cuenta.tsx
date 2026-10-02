@@ -61,7 +61,7 @@ export function BotonCuenta() {
       <Link
         href={`/login?next=${encodeURIComponent(ruta)}`}
         aria-label="Ingresar o crear cuenta"
-        className="hidden size-10 items-center justify-center rounded-full text-white sm:inline-flex"
+        className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-white"
         style={{ background: PIZARRA }}
       >
         <User className="size-[18px]" strokeWidth={2} />
@@ -85,7 +85,7 @@ export function BotonCuenta() {
   }
 
   return (
-    <div ref={caja} className="relative hidden sm:block">
+    <div ref={caja} className="relative shrink-0">
       <button
         type="button"
         aria-label={`Tu cuenta: ${nombre}`}

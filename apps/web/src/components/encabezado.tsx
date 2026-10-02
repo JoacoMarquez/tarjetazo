@@ -17,7 +17,7 @@ export function Wordmark({ tamano = 22 }: { tamano?: number }) {
   return (
     <Link
       href="/"
-      className="font-display inline-flex items-center font-extrabold text-white"
+      className="font-display inline-flex shrink-0 items-center font-extrabold text-white"
       style={{ fontSize: tamano, lineHeight: 1, letterSpacing: "-0.03em" }}
     >
       Tarjeta
@@ -50,13 +50,13 @@ export function BotonBilletera() {
       type="button"
       data-abanico
       onClick={() => abrir()}
-      className="inline-flex h-10 cursor-pointer items-center gap-2.5 rounded-pill pl-2.5 pr-1.5 text-sm font-medium text-white"
+      className="inline-flex h-10 min-w-0 cursor-pointer items-center gap-2.5 rounded-pill pl-2.5 pr-1.5 text-sm font-medium text-white"
       style={{ background: PIZARRA }}
     >
       <PilaTarjetas bancos={misBancos} fondo={PIZARRA} />
-      <span className="max-w-40 truncate">{etiqueta}</span>
+      <span className="min-w-0 max-w-40 truncate">{etiqueta}</span>
       <span
-        className="pila-mas inline-flex size-7 items-center justify-center rounded-full text-base font-bold"
+        className="pila-mas inline-flex size-7 shrink-0 items-center justify-center rounded-full text-base font-bold"
         style={{ backgroundImage: GRADIENTE, color: "#14202c", lineHeight: 1 }}
         aria-hidden
       >
@@ -150,7 +150,7 @@ export function EncabezadoSitio() {
   const ruta = usePathname();
   return (
     <header className="sticky top-0 z-30" style={{ background: "#14202c" }}>
-      <div className="mx-auto flex max-w-[1120px] items-center gap-8 px-5 py-3">
+      <div className="mx-auto flex max-w-[1120px] items-center gap-4 px-4 py-3 sm:px-5 md:gap-8">
         <Wordmark />
         <nav className="hidden items-center gap-6 text-[15px] md:flex">
           {NAV.map((i) => {
@@ -176,7 +176,7 @@ export function EncabezadoSitio() {
             );
           })}
         </nav>
-        <div className="ml-auto flex items-center justify-end gap-2.5">
+        <div className="ml-auto flex min-w-0 items-center justify-end gap-2 sm:gap-2.5">
           <BotonBilletera />
           <BuscadorHeader />
           <BotonCuenta />
