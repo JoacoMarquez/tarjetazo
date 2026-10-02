@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Inter, Outfit } from "next/font/google";
-import { Analitica, AnaliticaVercel } from "@/components/analitica";
+import { Analitica } from "@/components/analitica";
 import { Proveedores } from "@/components/proveedores";
 import "./globals.css";
 
@@ -39,7 +39,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Proveedores>{children}</Proveedores>
         <Analitica />
-        <AnaliticaVercel />
       </body>
     </html>
   );
