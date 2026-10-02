@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Search, User } from "lucide-react";
+import { Search } from "lucide-react";
 import { useBilletera } from "@/lib/billetera";
+import { BotonCuenta } from "./boton-cuenta";
 import { GRADIENTE, PRODUCTO_POR_ID } from "@/lib/marca";
 import { ListaResultados, useBusqueda } from "./home/busqueda";
 import { PilaTarjetas } from "./home/pila-tarjetas";
@@ -178,15 +179,7 @@ export function EncabezadoSitio() {
         <div className="ml-auto flex items-center justify-end gap-2.5">
           <BotonBilletera />
           <BuscadorHeader />
-          {/* TODO: con sesión activa este botón debería llevar al perfil. */}
-          <Link
-            href="/login"
-            aria-label="Ingresar o crear cuenta"
-            className="hidden size-10 items-center justify-center rounded-full text-white sm:inline-flex"
-            style={{ background: PIZARRA }}
-          >
-            <User className="size-[18px]" strokeWidth={2} />
-          </Link>
+          <BotonCuenta />
         </div>
       </div>
     </header>
