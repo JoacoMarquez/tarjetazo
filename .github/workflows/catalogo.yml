@@ -30,6 +30,9 @@ concurrency:
 jobs:
   revisar:
     runs-on: ubuntu-latest
+    # Los secretos viven en el environment `produccion`, que solo acepta main:
+    # un workflow_dispatch sobre otra rama no los recibe.
+    environment: produccion
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
