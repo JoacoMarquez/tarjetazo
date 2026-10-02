@@ -115,7 +115,8 @@ export function TabValeLaPena({
         subtitulo="Movelo para ver cuánto sumaría la candidata."
       />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3.5">
+      {/* En el celular no entra al lado del gasto: scrollea adentro, como la vista Tarjetas. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-3.5 overflow-x-auto">
         <div
           className="overflow-hidden rounded-[18px] bg-white"
           style={{ border: "2px solid #e4e0d6" }}
@@ -322,7 +323,7 @@ export function TabValeLaPena({
                   : "Tus tarjetas ya cubren igual o mejor todas las categorías con el gasto que marcaste."}
               </p>
             </div>
-            <div className="flex shrink-0 gap-6">
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
               <div>
                 <p className="m-0 text-[11px] tracking-[.08em] uppercase opacity-75">
                   Hoy ahorrás

@@ -44,9 +44,19 @@ export function PopupComercio({
   if (!primero) return null;
 
   const debajo = punto.y < area.alto * 0.45;
-  const sinClamp = punto.x - ANCHO / 2;
-  const izquierda = Math.max(minX, Math.min(sinClamp, area.ancho - ANCHO - 16));
-  const flechaX = Math.max(16, Math.min(punto.x - izquierda, ANCHO - 16)) - 9;
+  // En el celular el mapa es bajo y la ficha se subía encima del encabezado:
+  // la lista de beneficios (lo único que scrollea) se achica al lugar que hay.
+  // ~140 px son la cabecera y el pie de la ficha.
+  const lugar = (debajo ? area.alto - punto.y : punto.y) - 34 - 12;
+  const altoLista = Math.max(96, Math.min(224, lugar - 140));
+  // En el celular el área libre a la derecha del riel es más angosta que la
+  // ficha: se achica hasta el ancho de la pantalla y, si igual no entra, tapa
+  // el riel antes que salirse por la derecha.
+  const ancho = Math.min(ANCHO, area.ancho - 32);
+  const tope = area.ancho - ancho - 16;
+  const sinClamp = punto.x - ancho / 2;
+  const izquierda = Math.max(16, Math.min(Math.max(minX, sinClamp), tope));
+  const flechaX = Math.max(16, Math.min(punto.x - izquierda, ancho - 16)) - 9;
 
   const ordenados = [...beneficios].sort(
     (a, b) => Number(esParaVos(b)) - Number(esParaVos(a)),
@@ -57,7 +67,7 @@ export function PopupComercio({
     <div
       className="absolute z-30 rounded-[18px] bg-white p-4"
       style={{
-        width: ANCHO,
+        width: ancho,
         left: izquierda,
         top: debajo ? punto.y + 34 : undefined,
         bottom: debajo ? undefined : area.alto - punto.y + 34,
@@ -106,7 +116,7 @@ export function PopupComercio({
         </button>
       </div>
 
-      <div className="mt-3 flex max-h-56 flex-col gap-1.5 overflow-y-auto">
+      <div className="mt-3 flex flex-col gap-1.5 overflow-y-auto" style={{ maxHeight: altoLista }}>
         {ordenados.map((b) => {
           const tuya = esParaVos(b);
           const c = colorFuente(b.fuente_id);

@@ -165,6 +165,19 @@
   }
 }
 
+/*
+ * Safari de iOS hace zoom al enfocar un campo con letra de menos de 16 px y
+ * no vuelve solo. Va fuera de @layer a propósito: lo que no está en una capa
+ * le gana a las utilidades de Tailwind (text-[13px] y compañía).
+ */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @utility num {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;

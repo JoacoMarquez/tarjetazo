@@ -28,7 +28,7 @@ export function Hoy({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
 
       <div
         className="mt-5 grid gap-3"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))" }}
       >
         {rubros.map(({ rubro, beneficio }) => {
           const { producto, laTengo } = tarjetaSugerida(beneficio, mis);

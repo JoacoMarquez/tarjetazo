@@ -103,7 +103,8 @@ export function NavInferior() {
 
 export function PieSitio() {
   return (
-    <footer className="border-linea text-humo mt-16 border-t px-5 py-8 text-xs">
+    // En el celular la barra de navegación fija tapa el final: se le deja lugar.
+    <footer className="border-linea text-humo mt-16 border-t px-5 pt-8 pb-[calc(6rem+env(safe-area-inset-bottom))] text-xs md:pb-8">
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
         <p>
           Los beneficios pertenecen a sus fuentes. Cada ficha enlaza a la

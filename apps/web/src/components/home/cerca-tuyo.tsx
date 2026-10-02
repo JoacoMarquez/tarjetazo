@@ -111,7 +111,7 @@ export function CercaTuyo() {
 
       <div
         className="mt-5 grid gap-3"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(300px, 100%), 1fr))" }}
       >
         <div className="border-linea relative min-h-[300px] overflow-hidden rounded-2xl border">
           <Mapa

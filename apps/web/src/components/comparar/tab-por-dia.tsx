@@ -263,7 +263,8 @@ export function TabPorDia({
       </div>
 
       <div
-        className="min-w-0 flex-1 overflow-hidden rounded-[18px] bg-white"
+        // overflow-x-auto y no hidden: en el celular la grilla no entra y quedaba cortada.
+        className="min-w-0 flex-1 overflow-x-auto rounded-[18px] bg-white"
         style={{ border: "2px solid #e4e0d6" }}
       >
         <div className="h-1.5" style={{ background: color }} />

@@ -75,7 +75,7 @@ export function ComoFunciona({ rubros }: { rubros: MejorDelRubro[] }) {
   return (
     <section
       className="mt-18 grid items-center gap-8 rounded-[20px] bg-papel p-8"
-      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(280px, 100%), 1fr))" }}
     >
       <div>
         <h2 className="font-display m-0 text-[26px] font-bold tracking-tight">Cómo funciona</h2>
