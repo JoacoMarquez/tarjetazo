@@ -1,11 +1,10 @@
 import "server-only";
 
-import { createClient } from "@supabase/supabase-js";
-import { origenSupabase } from "@tarjetazo/core";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { esAdmin } from "./admin-emails";
 import { createSupabaseServidor } from "./supabase-auth";
+import { createSupabaseServicio } from "./supabase-servicio";
 
 /**
  * Guarda del backoffice. El middleware ya corta `/admin`, pero las server
@@ -27,12 +26,5 @@ export async function exigirAdmin() {
  * después de `exigirAdmin()`.
  */
 export function createSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !clave) {
-    throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (ver .env.example)");
-  }
-  return createClient(origenSupabase(url), clave, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return createSupabaseServicio();
 }
