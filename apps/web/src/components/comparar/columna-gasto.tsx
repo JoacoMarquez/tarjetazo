@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { RUBROS_COMPARAR, fmt } from "@/lib/comparar-tarjetas";
+import { cn } from "@/lib/utils";
 
 /**
  * La columna de gasto mensual: mueve los montos y toda la comparación se
@@ -14,6 +15,7 @@ export function ColumnaGasto({
   plegada = false,
   onPlegar,
   subtitulo,
+  className,
 }: {
   gasto: Record<string, number>;
   onGasto: (rubro: string, v: number) => void;
@@ -21,12 +23,13 @@ export function ColumnaGasto({
   plegada?: boolean;
   onPlegar?: (v: boolean) => void;
   subtitulo: string;
+  className?: string;
 }) {
   const total = RUBROS_COMPARAR.reduce((s, r) => s + (gasto[r.slug] ?? 0), 0);
 
   return (
     <div
-      className="bg-tinta relative shrink-0 overflow-hidden rounded-[18px] text-white"
+      className={cn("bg-tinta relative shrink-0 overflow-hidden rounded-[18px] text-white", className)}
       style={{
         width: plegada ? 150 : 210,
         boxShadow: "0 20px 50px rgba(20,32,44,.25)",

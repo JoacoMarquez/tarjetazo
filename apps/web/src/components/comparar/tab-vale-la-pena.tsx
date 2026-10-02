@@ -107,39 +107,41 @@ export function TabValeLaPena({
   }, [q, mis, matriz, dias, gasto]);
 
   return (
-    <div className="flex gap-3.5">
+    // En el celular no entra al lado del gasto: el gasto va arriba, a todo el
+    // ancho, y la comparación abajo (cada fila ya dice su categoría).
+    <div className="flex flex-col gap-3.5 sm:flex-row">
       <ColumnaGasto
         gasto={gasto}
         onGasto={onGasto}
         onReset={onReset}
         subtitulo="Movelo para ver cuánto sumaría la candidata."
+        className="max-sm:w-full!"
       />
 
-      {/* En el celular no entra al lado del gasto: scrollea adentro, como la vista Tarjetas. */}
-      <div className="flex min-w-0 flex-1 flex-col gap-3.5 overflow-x-auto">
+      <div className="flex min-w-0 flex-1 flex-col gap-3.5">
         <div
           className="overflow-hidden rounded-[18px] bg-white"
           style={{ border: "2px solid #e4e0d6" }}
         >
           <div className="bg-papel h-1.5" />
 
-          <div
-            className="grid h-[146px] items-center gap-3 px-4"
-            style={{ gridTemplateColumns: "1fr 150px 1fr" }}
-          >
-            <div className="flex items-center gap-2.5">
-              <MiniTarjeta
-                fuenteId={
-                  mis[0]
-                    ? (PRODUCTO_POR_ID[mis[0]]?.fuente_id ?? "brou")
-                    : "brou"
-                }
-                tuya
-                ancho={40}
-                alto={27}
-              />
+          <div className="grid grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] items-center gap-2 px-3 py-4 sm:h-[146px] sm:grid-cols-[1fr_150px_1fr] sm:gap-3 sm:px-4 sm:py-0">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {/* En el celular las mini tarjetas no dejan lugar a los nombres. */}
+              <span className="hidden shrink-0 sm:block">
+                <MiniTarjeta
+                  fuenteId={
+                    mis[0]
+                      ? (PRODUCTO_POR_ID[mis[0]]?.fuente_id ?? "brou")
+                      : "brou"
+                  }
+                  tuya
+                  ancho={40}
+                  alto={27}
+                />
+              </span>
               <div className="min-w-0">
-                <p className="font-display m-0 text-[17px] font-bold">
+                <p className="font-display m-0 truncate text-[15px] font-bold sm:text-[17px]">
                   Tus tarjetas
                 </p>
                 <p className="text-humo m-0 text-[13px]">
@@ -153,23 +155,25 @@ export function TabValeLaPena({
               vs
             </p>
 
-            <div className="relative flex items-center justify-end gap-2.5">
+            <div className="relative flex min-w-0 items-center justify-end gap-2.5">
               {pc && (
-                <MiniTarjeta
-                  fuenteId={pc.fuente_id}
-                  tuya={false}
-                  ancho={40}
-                  alto={27}
-                />
+                <span className="hidden shrink-0 sm:block">
+                  <MiniTarjeta
+                    fuenteId={pc.fuente_id}
+                    tuya={false}
+                    ancho={40}
+                    alto={27}
+                  />
+                </span>
               )}
               <div className="min-w-0">
                 <button
                   type="button"
                   onClick={() => setAbierto((v) => !v)}
                   aria-expanded={abierto}
-                  className="flex h-[34px] items-center gap-1.5"
+                  className="flex h-[34px] max-w-full items-center gap-1.5"
                 >
-                  <span className="font-display truncate text-[17px] font-bold">
+                  <span className="font-display truncate text-[15px] font-bold sm:text-[17px]">
                     {pc ? nombreCorto(pc) : "Elegí una tarjeta"}
                   </span>
                   <ChevronDown className="size-4 shrink-0" />
@@ -179,7 +183,7 @@ export function TabValeLaPena({
 
               {abierto && (
                 <div
-                  className="bg-tinta absolute top-full right-0 z-30 mt-1 flex max-h-80 w-[340px] flex-col rounded-[14px] p-2 text-white"
+                  className="bg-tinta absolute top-full right-0 z-30 mt-1 flex max-h-80 w-[min(340px,calc(100vw-48px))] flex-col rounded-[14px] p-2 text-white"
                   style={{ boxShadow: "0 20px 50px rgba(20,32,44,.35)" }}
                 >
                   <input
@@ -238,8 +242,7 @@ export function TabValeLaPena({
             return (
               <div
                 key={f.rubro.slug}
-                className="border-linea grid h-[59px] items-center gap-3 border-t px-4"
-                style={{ gridTemplateColumns: "1fr 150px 1fr" }}
+                className="border-linea grid h-[59px] grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-2 border-t px-3 sm:grid-cols-[1fr_150px_1fr] sm:gap-3 sm:px-4"
               >
                 {/* tuya: barra hacia la izquierda */}
                 <div className="flex items-center justify-end gap-2">
@@ -257,7 +260,7 @@ export function TabValeLaPena({
                     className="h-[18px] shrink-0"
                     style={{
                       width: `${(aTuya / maxBarra) * 100}%`,
-                      maxWidth: 110,
+                      maxWidth: "min(110px, 40%)",
                       borderRadius: "5px 0 0 5px",
                       background: pierde ? "#d3d8de" : "#14202c",
                       transition: "width .35s cubic-bezier(.2,.8,.2,1)",
@@ -265,8 +268,8 @@ export function TabValeLaPena({
                   />
                 </div>
 
-                <div className="text-center">
-                  <span className="block text-[13px] font-semibold">
+                <div className="min-w-0 text-center">
+                  <span className="block truncate text-[12px] font-semibold sm:text-[13px]">
                     {f.rubro.label}
                   </span>
                   <span className="text-humo num block text-[11px]">
@@ -280,7 +283,7 @@ export function TabValeLaPena({
                     className="h-[18px] shrink-0"
                     style={{
                       width: `${(f.ahorroCand / maxBarra) * 100}%`,
-                      maxWidth: 110,
+                      maxWidth: "min(110px, 40%)",
                       borderRadius: "0 5px 5px 0",
                       background: !cc
                         ? "#eeebe3"
@@ -313,7 +316,7 @@ export function TabValeLaPena({
             className="flex flex-wrap items-center gap-4 rounded-[18px] px-5 py-4 text-white"
             style={{ background: conviene ? "#0a7267" : "#9c2f1e" }}
           >
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 max-sm:basis-full">
               <p className="font-display m-0 text-[24px] font-extrabold">
                 {conviene ? "Sí, te conviene" : "No hace falta"}
               </p>
@@ -343,7 +346,7 @@ export function TabValeLaPena({
               <button
                 type="button"
                 onClick={() => onTarjetero(pc.id)}
-                className="text-tinta h-10 shrink-0 rounded-[10px] bg-white px-4 text-[14px] font-bold"
+                className="text-tinta h-10 shrink-0 rounded-[10px] bg-white px-4 text-[14px] font-bold max-sm:w-full"
               >
                 Sumar a mi billetera
               </button>
