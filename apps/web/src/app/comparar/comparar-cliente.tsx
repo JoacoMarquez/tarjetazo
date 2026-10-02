@@ -111,7 +111,8 @@ export function CompararCliente({ matriz }: { matriz: Matriz }) {
   return (
     <>
       <EncabezadoSitio />
-      <main className="mx-auto max-w-[1440px] px-5 pt-6 pb-20">
+      {/* En el celular, la entrada de cada pestaña (desliza desde el costado) hacía scroll horizontal un instante. */}
+      <main className="mx-auto max-w-[1440px] px-5 pt-6 pb-20 max-sm:overflow-x-clip">
         <h1 className="font-display m-0 text-[28px] font-bold">Comparar</h1>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -137,7 +138,13 @@ export function CompararCliente({ matriz }: { matriz: Matriz }) {
             ))}
           </div>
 
-          <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2.5">
+          <div
+            className={cn(
+              "flex max-w-full min-w-0 flex-wrap items-center gap-2.5",
+              // Sin controles (Por día) no ocupa una línea vacía en el celular.
+              !conDias && "max-sm:hidden",
+            )}
+          >
             {/* Los controles contextuales entran y salen con el ancho. */}
             <div
               className="overflow-hidden"
