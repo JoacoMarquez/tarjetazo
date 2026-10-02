@@ -59,6 +59,16 @@ export const COLORES_GRADIENTE = ["#0f6fd6", "#0fae9c", "#f7b500"];
 export const FUENTE_POR_ID = Object.fromEntries(FUENTES.map((f) => [f.id, f]));
 export const PRODUCTO_POR_ID = Object.fromEntries(PRODUCTOS.map((p) => [p.id, p]));
 
+/**
+ * Si alguna de mis tarjetas sirve para un beneficio. Sin productos explícitos
+ * vale para todas las tarjetas de SU fuente, no para cualquiera.
+ */
+export function meSirve(fuenteId: string, productos: string[], mis: string[]): boolean {
+  return productos.length === 0
+    ? mis.some((id) => PRODUCTO_POR_ID[id]?.fuente_id === fuenteId)
+    : productos.some((id) => mis.includes(id));
+}
+
 const REDES: Record<Red, string> = {
   visa: "Visa",
   mastercard: "Mastercard",

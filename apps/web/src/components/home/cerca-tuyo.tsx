@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Bbox, PuntoMapa } from "@/lib/consultas";
 import { useBilletera } from "@/lib/billetera";
 import { alcanceCorto, cifraBeneficio } from "@/lib/formato";
-import { colorFuente } from "@/lib/marca";
+import { colorFuente, meSirve } from "@/lib/marca";
 
 // Leaflet toca `window` al importarse: el mapa sólo puede cargarse en el cliente.
 const Mapa = dynamic(() => import("@/components/mapa"), {
@@ -120,7 +120,7 @@ export function CercaTuyo() {
             cargando={cargando}
             onMover={consultar}
             irA={centro}
-            mias={mis}
+            mias={mis.length ? mis : undefined}
             zoomConRueda={false}
           />
           <Link
@@ -136,7 +136,7 @@ export function CercaTuyo() {
           {cercanos.map(({ p, km }) => {
             const c = colorFuente(p.mejor_fuente_id);
             const laTengo =
-              p.mejor_productos.length === 0 || p.mejor_productos.some((id) => mis.includes(id));
+              mis.length === 0 || meSirve(p.mejor_fuente_id, p.mejor_productos, mis);
             return (
               <Link
                 key={p.sucursal_id}
