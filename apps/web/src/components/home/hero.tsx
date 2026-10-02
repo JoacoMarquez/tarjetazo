@@ -46,12 +46,14 @@ export function Hero() {
               onKeyDown={(e) => e.key === "Enter" && buscar()}
               placeholder="¿Dónde vas a pagar?"
               aria-label="¿Dónde vas a pagar?"
-              className="h-full min-w-0 flex-1 border-0 bg-transparent text-lg outline-none"
+              // En el celular el campo va solo en la primera línea y el selector y
+              // "Buscar" bajan a la segunda: lado a lado el campo quedaba en ~60 px.
+              className="h-11 min-w-0 flex-1 basis-[calc(100%-34px)] border-0 bg-transparent text-lg outline-none sm:h-full sm:basis-0"
             />
             <button
               type="button"
               onClick={() => abrir()}
-              className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-[10px] bg-papel px-3 text-sm font-medium text-tinta"
+              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[10px] bg-papel px-3 text-sm font-medium text-tinta sm:flex-none sm:shrink-0"
             >
               <PilaTarjetas bancos={misBancos} fondo="#f2efe7" ancho={24} alto={16} />
               {etiquetaSelector}
@@ -70,7 +72,7 @@ export function Hero() {
 
           <ListaResultados
             resultados={resultados}
-            className="absolute inset-x-0 top-[72px] z-20"
+            className="absolute inset-x-0 top-full z-20 mt-2"
           />
         </div>
 

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useBilletera } from "@/lib/billetera";
 import { BotonCuenta } from "./boton-cuenta";
 import { GRADIENTE, PRODUCTO_POR_ID } from "@/lib/marca";
+import { cn } from "@/lib/utils";
 import { ListaResultados, useBusqueda } from "./home/busqueda";
 import { PilaTarjetas } from "./home/pila-tarjetas";
 
@@ -50,11 +51,13 @@ export function BotonBilletera() {
       type="button"
       data-abanico
       onClick={() => abrir()}
+      aria-label={etiqueta}
       className="inline-flex h-10 min-w-0 cursor-pointer items-center gap-2.5 rounded-pill pl-2.5 pr-1.5 text-sm font-medium text-white"
       style={{ background: PIZARRA }}
     >
       <PilaTarjetas bancos={misBancos} fondo={PIZARRA} />
-      <span className="min-w-0 max-w-40 truncate">{etiqueta}</span>
+      {/* En el celular no entra junto a la lupa y la cuenta, y la barra de abajo ya dice "Mis tarjetas". */}
+      <span className="hidden min-w-0 max-w-40 truncate sm:inline">{etiqueta}</span>
       <span
         className="pila-mas inline-flex size-7 shrink-0 items-center justify-center rounded-full text-base font-bold"
         style={{ backgroundImage: GRADIENTE, color: "#14202c", lineHeight: 1 }}
@@ -69,7 +72,8 @@ export function BotonBilletera() {
 /**
  * La lupa del header. Cerrada es un círculo; al tocarla se estira hacia la
  * izquierda y deja escribir ahí mismo, con el mismo dropdown que el hero.
- * Escape o un clic afuera la vuelven a cerrar.
+ * Escape o un clic afuera la vuelven a cerrar. En el celular no hay lugar al
+ * lado: abierta ocupa todo el ancho del header, por encima del resto.
  */
 function BuscadorHeader() {
   const [abierto, setAbierto] = useState(false);
@@ -93,14 +97,19 @@ function BuscadorHeader() {
   }, [abierto]);
 
   return (
-    <div ref={caja} className="relative hidden sm:block">
+    <div
+      ref={caja}
+      className={cn(
+        "relative",
+        abierto && "max-sm:fixed max-sm:inset-x-3 max-sm:top-3 max-sm:z-50",
+      )}
+    >
       <div
-        className="flex h-10 items-center overflow-hidden rounded-pill text-white"
-        style={{
-          background: PIZARRA,
-          width: abierto ? 260 : 40,
-          transition: "width .3s cubic-bezier(.2,.8,.2,1)",
-        }}
+        className={cn(
+          "flex h-10 items-center overflow-hidden rounded-pill text-white transition-[width] duration-300",
+          abierto ? "w-full sm:w-[260px]" : "w-10",
+        )}
+        style={{ background: PIZARRA, transitionTimingFunction: "cubic-bezier(.2,.8,.2,1)" }}
       >
         <button
           type="button"
@@ -122,11 +131,21 @@ function BuscadorHeader() {
           className="h-full min-w-0 flex-1 border-0 bg-transparent pr-4 text-sm text-white outline-none placeholder:text-[#b9c3cf]"
           style={{ opacity: abierto ? 1 : 0, transition: "opacity .2s" }}
         />
+        {abierto && (
+          <button
+            type="button"
+            aria-label="Cerrar el buscador"
+            onClick={() => setAbierto(false)}
+            className="inline-flex size-10 shrink-0 items-center justify-center sm:hidden"
+          >
+            <X className="size-[18px]" strokeWidth={2} />
+          </button>
+        )}
       </div>
       {abierto && (
         <ListaResultados
           resultados={resultados}
-          className="absolute right-0 top-12 z-40 w-[340px]"
+          className="absolute right-0 top-12 z-40 w-[340px] max-sm:w-full"
         />
       )}
     </div>

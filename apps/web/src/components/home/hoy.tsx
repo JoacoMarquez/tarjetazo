@@ -78,7 +78,7 @@ export function Hoy({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
                   <button
                     type="button"
                     onClick={() => abrir({ agregar: true, banco: producto.fuente_id })}
-                    className="cursor-pointer whitespace-nowrap font-medium text-cielo hover:text-cielo-ink"
+                    className="-mx-2 -my-2 cursor-pointer whitespace-nowrap px-2 py-2 font-medium text-cielo hover:text-cielo-ink"
                   >
                     Agregar
                   </button>

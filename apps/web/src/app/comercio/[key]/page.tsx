@@ -256,7 +256,7 @@ export default async function PaginaComercio({ params }: Props) {
                   <p className="font-medium">{s.nombre ?? comercio.nombre}</p>
                   <p className="text-humo">{s.direccion}{s.localidad ? `, ${s.localidad}` : ""}</p>
                   {s.telefono && (
-                    <a className="text-humo hover:text-cielo mt-1 inline-flex items-center gap-1 text-xs" href={`tel:${s.telefono.replace(/[^\d+]/g, "")}`}>
+                    <a className="text-humo hover:text-cielo inline-flex items-center gap-1 py-1.5 text-xs" href={`tel:${s.telefono.replace(/[^\d+]/g, "")}`}>
                       <Phone className="size-3" /> {s.telefono}
                     </a>
                   )}
@@ -267,7 +267,7 @@ export default async function PaginaComercio({ params }: Props) {
                     </p>
                   )}
                   <a
-                    className="text-cielo mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-4"
+                    className="text-cielo inline-flex items-center gap-1 py-1.5 text-xs underline underline-offset-4"
                     href={`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`}
                     target="_blank"
                     rel="noreferrer noopener"

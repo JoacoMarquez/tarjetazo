@@ -321,10 +321,12 @@ function Pantalla() {
             )
           }
           // En el celular la hoja de la lista ocupa abajo a la derecha (y su botón
-          // de abrir quedaba tapado): el botón sube a la esquina de arriba.
+          // de abrir quedaba tapado): el botón sube a la esquina de arriba. Con el
+          // riel abierto, que tapa el mapa, se esconde para no pisar "Buscar en esta zona".
           className={cn(
             "border-linea absolute z-20 inline-flex size-11 items-center justify-center rounded-xl border bg-white",
             compacto ? "top-4 right-3" : "right-5 bottom-5",
+            compacto && riel && "hidden",
           )}
         >
           <Crosshair className="size-5" />
