@@ -22,6 +22,7 @@ import { useBilletera } from "@/lib/billetera";
 import { escribirFiltros, leerFiltros, type Filtros } from "@/lib/filtros";
 import { capturar } from "@/lib/analitica";
 import type { BeneficioListado, Bbox, PuntoMapa } from "@/lib/consultas";
+import { cn } from "@/lib/utils";
 
 // Leaflet toca `window` al importarse, así que solo puede cargarse en el cliente.
 const Mapa = dynamic(() => import("@/components/mapa"), {
@@ -319,7 +320,12 @@ function Pantalla() {
               setIrA([pos.coords.latitude, pos.coords.longitude]),
             )
           }
-          className="border-linea absolute right-5 bottom-5 z-20 inline-flex size-11 items-center justify-center rounded-xl border bg-white"
+          // En el celular la hoja de la lista ocupa abajo a la derecha (y su botón
+          // de abrir quedaba tapado): el botón sube a la esquina de arriba.
+          className={cn(
+            "border-linea absolute z-20 inline-flex size-11 items-center justify-center rounded-xl border bg-white",
+            compacto ? "top-4 right-3" : "right-5 bottom-5",
+          )}
         >
           <Crosshair className="size-5" />
         </button>

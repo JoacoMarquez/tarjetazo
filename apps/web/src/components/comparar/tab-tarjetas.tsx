@@ -309,7 +309,7 @@ export function TabTarjetas({
 
       <div
         className="grid gap-3.5"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(460px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(460px, 100%), 1fr))" }}
       >
         {mejor && <CardMasRinde columnas={columnas} mejor={mejor} mis={mis} />}
         {falta && pFalta && (

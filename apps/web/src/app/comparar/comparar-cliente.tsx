@@ -137,12 +137,13 @@ export function CompararCliente({ matriz }: { matriz: Matriz }) {
             ))}
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2.5">
             {/* Los controles contextuales entran y salen con el ancho. */}
             <div
               className="overflow-hidden"
               style={{
-                maxWidth: conDias ? 520 : 0,
+                // En el celular no entra entero: el selector scrollea adentro.
+                maxWidth: conDias ? "min(520px, 100%)" : 0,
                 opacity: conDias ? 1 : 0,
                 transform: conDias ? "none" : "translateX(12px)",
                 transition: "max-width .35s, opacity .35s, transform .35s",

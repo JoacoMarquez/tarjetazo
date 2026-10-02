@@ -28,7 +28,7 @@ export function SelectorDias({
   const presets = [...PRESETS, { label: "Hoy", dias: [hoy] }];
 
   return (
-    <div className="border-linea flex h-10 items-center gap-1 rounded-pill border bg-white px-1.5">
+    <div className="border-linea flex h-10 max-w-full items-center gap-1 overflow-x-auto rounded-pill border bg-white px-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {presets.map((p) => {
         const activo = mismos(dias, p.dias);
         return (
@@ -38,7 +38,7 @@ export function SelectorDias({
             aria-pressed={activo}
             onClick={() => onCambiar(p.dias)}
             className={cn(
-              "h-8 rounded-pill px-3 text-[13px] font-semibold transition-colors",
+              "h-8 shrink-0 rounded-pill px-3 text-[13px] font-semibold whitespace-nowrap transition-colors",
               activo ? "bg-tinta text-white" : "text-humo hover:bg-papel",
             )}
           >
@@ -46,7 +46,7 @@ export function SelectorDias({
           </button>
         );
       })}
-      <span className="bg-linea mx-1 h-5 w-px" aria-hidden />
+      <span className="bg-linea mx-1 h-5 w-px shrink-0" aria-hidden />
       {ORDEN.map((d) => {
         const activo = dias.includes(d);
         return (
@@ -59,7 +59,7 @@ export function SelectorDias({
               onCambiar(activo ? dias.filter((x) => x !== d) : [...dias, d])
             }
             className={cn(
-              "inline-flex size-[30px] items-center justify-center rounded-full text-xs font-semibold transition-colors",
+              "inline-flex size-[30px] shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
               activo
                 ? "bg-tinta text-white"
                 : "border-linea text-humo-oscuro border bg-white",
