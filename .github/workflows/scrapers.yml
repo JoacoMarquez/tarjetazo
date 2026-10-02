@@ -53,6 +53,9 @@ jobs:
   correr:
     needs: preparar
     runs-on: ubuntu-latest
+    # Los secretos viven en el environment `produccion`, que solo acepta main:
+    # un workflow_dispatch sobre otra rama no los recibe.
+    environment: produccion
     timeout-minutes: 40
     strategy:
       fail-fast: false
@@ -109,6 +112,9 @@ jobs:
     needs: [preparar, correr]
     if: always() && needs.preparar.result == 'success' && (github.event_name == 'schedule' || inputs.limite == '')
     runs-on: ubuntu-latest
+    # Los secretos viven en el environment `produccion`, que solo acepta main:
+    # un workflow_dispatch sobre otra rama no los recibe.
+    environment: produccion
     steps:
       - uses: actions/checkout@v5
         with:
