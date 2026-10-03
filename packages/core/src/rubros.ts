@@ -37,6 +37,13 @@ export const RUBROS_ENTEROS: readonly RubroEntero[] = [
   { id: "hoteles", nombre: "Todos los hoteles", plural: "hoteles", categoria: "viajes", patron: /hotel|posada|resort|hostel/i },
   { id: "pasajes", nombre: "Todas las empresas de transporte", plural: "empresas de transporte", categoria: "transporte", patron: /bus|turismo|cot\b|copsa|cutcsa|colonia express|buquebus|agencia central/i },
   { id: "telepeaje", nombre: "Telepeaje", plural: "telepeajes", categoria: "transporte", patron: /telepeaje/i },
+  // Rubros de las cuotas de Nativa (2026-10-03): "hasta 6 cuotas en todo el país" con un listado de adheridos.
+  { id: "zapaterias", nombre: "Todas las zapaterías", plural: "zapaterías", categoria: "indumentaria", patron: /zapat|calzad/i },
+  { id: "veterinarias", nombre: "Todas las veterinarias", plural: "veterinarias", categoria: "mascotas", patron: /veterinar/i },
+  // Sin "taller" suelto: Talleres Don Bosco es un instituto, no un taller mecánico.
+  { id: "talleres", nombre: "Todos los talleres mecánicos y repuestos", plural: "talleres mecánicos y casas de repuestos", categoria: "servicios", patron: /mec[aá]nic|repuesto|gomer[ií]a|neum[aá]tic/i },
+  { id: "mutualistas", nombre: "Todas las mutualistas y servicios médicos", plural: "mutualistas y servicios médicos", categoria: "salud-belleza", patron: /mutualista|emergencia m[eé]dica|servicio m[eé]dico/i },
+  { id: "ferreterias", nombre: "Todas las barracas, ferreterías y pinturerías", plural: "barracas, ferreterías y pinturerías", categoria: "hogar-deco", patron: /barraca|ferreter|pinturer/i },
 ];
 
 export const PREFIJO_RUBRO = "todo-";

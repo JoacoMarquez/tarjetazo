@@ -154,8 +154,13 @@ const PSEUDO_COMERCIOS: [RegExp, Destino][] = [
   // el rubro entero (todas las empresas de transporte) prometería las 12
   // cuotas también en los ómnibus, que tienen 6.
   [/^buenos aires$/, { nombre: "Buquebus", categoria: "viajes" }],
-  // Rubros sin comercio canónico (RUBROS_ENTEROS no los tiene).
-  [/^(zapaterias|veterinarias|talleres mecanicos|mutualistas\b.*|pinta, repara y renova tu casa)$/, null],
+  // "Hasta 6 cuotas en todo el país" con un listado de adheridos: rubros enteros.
+  [/^zapaterias$/, { rubro: "zapaterias" }],
+  [/^veterinarias$/, { rubro: "veterinarias" }],
+  [/^talleres mecanicos$/, { rubro: "talleres" }],
+  [/^mutualistas\b/, { rubro: "mutualistas" }],
+  // "Barracas, Ferreterías y Pinturerías".
+  [/^pinta, repara y renova tu casa$/, { rubro: "ferreterias" }],
   // Listados de marcas: "12 cuotas" (Zara, GAP, Farmashop…), "Aire
   // Acondicionado" (cinco comercios), "Promo 12-1" (el índice filtrado por
   // "última cuota gratis": cada comercio tiene su tarjeta).

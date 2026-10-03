@@ -28,6 +28,11 @@ const PALABRAS_RUBRO: [RegExp, string][] = [
   [/supermerc/, "supermercados"],
   [/combustible|estacion/, "combustible"],
   [/optic/, "opticas"],
+  [/zapat|calzad/, "zapaterias"],
+  [/veterinar/, "veterinarias"],
+  [/taller|repuesto/, "talleres"],
+  [/mutualista/, "mutualistas"],
+  [/ferreter|pinturer|barraca/, "ferreterias"],
 ];
 
 export function rubroDeTexto(texto: string) {
