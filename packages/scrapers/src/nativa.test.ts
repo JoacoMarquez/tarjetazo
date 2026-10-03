@@ -64,11 +64,27 @@ describe("Nativa", () => {
     assert.deepEqual(resumen(implante).tramos.map((t) => t.slice(1, 4)), [["50% de descuento", 50, null], ["6 cuotas sin recargo", null, 6]]);
   });
 
-  it("los rubros sin comercio canónico y los listados no se publican", () => {
+  it("los rubros con listado de adheridos van a su rubro entero", () => {
     const zapaterias = crudo("zapaterias", [
       "Zapaterías", "Promoción: 6 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo.", "Hasta en 6 cuotas sin recargo.", "Detalles:",
       "Promoción válida con tu tarjeta Nativa, 3, 6 y hasta 12 cuotas sin recargo en zapaterías.", "Comercios adheridos en todo el país:",
     ]);
+    const rubro = (titulo: string, id: string) =>
+      crudo(id, [titulo, "Promoción: 6 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo.", "Hasta en 6 cuotas sin recargo.", "Detalles:",
+        "Promoción válida con tu tarjeta Nativa, hasta en 6 cuotas sin recargo."]);
+    const casos: [ReturnType<typeof crudo>, string][] = [
+      [zapaterias, "todo-zapaterias"],
+      [rubro("Veterinarias", "veterinarias"), "todo-veterinarias"],
+      [rubro("Talleres Mecánicos", "talleres-mecanicos"), "todo-talleres"],
+      [rubro("Mutualistas y Servicios Médicos", "mutualistas"), "todo-mutualistas"],
+      [rubro("Pintá, repará y renová tu casa", "pinta-repara-y-renova-tu-casa"), "todo-ferreterias"],
+    ];
+    for (const [c, key] of casos) {
+      assert.deepEqual(resumen(c).tramos, [[key, "6 cuotas sin recargo", null, 6, null, null]], c.external_id);
+    }
+  });
+
+  it("los listados de marcas y los servicios de la tarjeta no se publican", () => {
     const marcas = crudo("12-cuotas", [
       "12 cuotas", "Promoción: 12 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo.", "Las mejores marcas en 12 cuotas sin recargo.", "Detalles:",
       "Comercios adheridos:", "VESTIMENTA", "Allie", "Zara", "OTROS", "Farmashop", "ZonaTecno",
@@ -81,7 +97,7 @@ describe("Nativa", () => {
       "Pago de Facturas de Servicios", "Promoción: 3 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo.",
       "Públicos y privados en redes de cobranza hasta en 3 cuotas sin recargo.", "Detalles:",
     ], "https://www.nativacabal.com.uy/pago-por-servicios/");
-    for (const c of [zapaterias, marcas, promo121, facturas]) {
+    for (const c of [marcas, promo121, facturas]) {
       assert.deepEqual(resumen(c), { comercio: null, es_beneficio: false, tramos: [] }, c.external_id);
     }
   });
