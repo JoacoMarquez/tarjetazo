@@ -117,11 +117,14 @@ export function productos(frase: string): { ids: string[]; desconocidos: string[
   return { ids: [...ids], desconocidos };
 }
 
-/** "Descuentos todos los días de la semana" | "Descuentos de Lunes a Viernes" | "Descuentos los Sábados". */
+/**
+ * "Descuentos todos los días de la semana" | "Descuentos de Lunes a Viernes" |
+ * "Descuentos los Sábados" | "Lunes a Viernes:" | "Sábados y Domingos:".
+ */
 function dias(encabezado: string): number[] {
   const e = sinAcentos(encabezado);
   if (/todos los dias/.test(e)) return [];
-  const rango = e.match(/de (lunes|martes|miercoles|jueves|viernes|sabado|domingo) a (lunes|martes|miercoles|jueves|viernes|sabado|domingo)/);
+  const rango = e.match(/(?:^|de )(lunes|martes|miercoles|jueves|viernes|sabado|domingo)s? a (lunes|martes|miercoles|jueves|viernes|sabado|domingo)/);
   if (rango) {
     const a = DIAS[rango[1]!]!, b = DIAS[rango[2]!]!;
     const out: number[] = [];
@@ -132,6 +135,104 @@ function dias(encabezado: string): number[] {
     .map((m) => DIAS[m[1]!.replace(/s$/, "")] ?? DIAS[m[1]!])
     .filter((d): d is number => d !== undefined);
   return [...new Set(sueltos)];
+}
+
+const DIA = "(?:lunes|martes|miercoles|jueves|viernes|sabados?|domingos?)";
+/** "miércoles", "lunes y jueves", "lunes a viernes", "sábados, domingos y feriados". */
+const LISTA_DE_DIAS = `${DIA}(?:\\s*(?:,|\\by\\b|\\ba\\b)\\s*${DIA})*`;
+/** Un encabezado que es solo días: "Lunes a Viernes:", "Sábados y Domingos:". */
+const ENCABEZADO_DE_DIAS = new RegExp(`^${LISTA_DE_DIAS}:$`);
+/** "Miércoles 25% en BAS", "Miércoles de Sodimac": la promo de un día. */
+const TITULO_CON_DIAS = new RegExp(`^(${LISTA_DE_DIAS})\\b`);
+/**
+ * La condición que restringe la promo a unos días: "Promoción válida los días
+ * miércoles…", "El descuento aplicará a las compras realizadas los días
+ * Miércoles". Dentro de una oración. Los horarios de atención ("reservas al
+ * 0800-8757 de lunes a viernes de 9 a 18 hs") no dicen "los días" y no
+ * cuentan; tampoco un adicional ("Los días martes se sumará un descuento
+ * especial…"), que no empieza con "válida" ni "aplica".
+ */
+const CONDICION_DE_DIAS = new RegExp(
+  `\\b(?:valida|valido|aplica\\w*|realizadas?)\\b[^.]*?\\blos dias (${LISTA_DE_DIAS})\\b`,
+);
+
+/**
+ * Los días a los que la ficha entera restringe la promo, por el título o por
+ * las condiciones; [] si no los restringe. Vale para los tramos que no tienen
+ * días propios (ni encabezado ni días delante). Exportada para los tests.
+ */
+export function diasDeLaPromo(contenido: string): number[] {
+  const t = sinAcentos(contenido);
+  const titulo = t.split("\n", 1)[0]!.trim();
+  const delTitulo = titulo.match(TITULO_CON_DIAS);
+  if (delTitulo) return dias(delTitulo[1]!);
+  for (const linea of t.split("\n")) {
+    const m = linea.match(CONDICION_DE_DIAS);
+    if (m) return dias(m[1]!);
+  }
+  return [];
+}
+
+/**
+ * Las fichas de las tarjetas de marca se titulan con la promo ("Si aún no
+ * tenés la tarjeta, solicitala y sumá 10% off…") y no con el comercio.
+ * Nombre y clave son los del comercio que ya está en la base.
+ */
+const MARCAS: [RegExp, { key: string; nombre: string }][] = [
+  [/abtour/, { key: "abtour", nombre: "Abtour" }],
+  [/consolid/, { key: "consolid", nombre: "Consolid" }],
+  [/sodimac/, { key: "sodimac", nombre: "Sodimac" }],
+];
+
+/** Dominios de comercio que no se escriben como se nombran. */
+const DOMINIOS: Record<string, { key: string; nombre: string }> = {
+  tata: { key: "tata", nombre: "Ta-Ta" },
+};
+
+/**
+ * El comercio de la ficha. Casi siempre es el título, pero:
+ * - Las de los clubes son "Peñarol - Descuento en compra y renovación de
+ *   butacas": una ficha por promo, el comercio es el club.
+ * - Las promos de un día o de sacar la tarjeta se titulan con la promo
+ *   ("Miércoles 25% en BAS", "Miércoles de 10%", "Si aún no tenés la
+ *   tarjeta…"): el comercio sale del título ("en BAS", "de Sodimac"), de la
+ *   tarjeta de marca (Abtour, Consolid) o de la web que nombra la ficha
+ *   ("tata.com.uy").
+ * En las de los clubes, lo que va después del guion queda como `detalle`
+ * ("compra y renovación de butacas") para el título del beneficio: si no, el
+ * club tendría tres "10% de descuento" sin decir en qué. Exportada para los
+ * tests.
+ */
+export function comercioDeLaFicha(contenido: string): { key: string; nombre: string; detalle?: string } {
+  const titulo = (contenido.split("\n", 1)[0] ?? "").trim();
+  const t = sinAcentos(titulo);
+  const club = t.match(/^(penarol|nacional)\s*[-–]\s*/);
+  if (club) {
+    const detalle = titulo.slice(club[0].length).replace(/^descuentos? en\s+/i, "").trim();
+    const deClub =
+      club[1] === "penarol"
+        ? { key: "club-atletico-penarol", nombre: "Club Atlético Peñarol" }
+        : { key: "club-nacional-de-football", nombre: "Club Nacional de Football" };
+    return detalle ? { ...deClub, detalle } : deClub;
+  }
+  // "100% Artesanal" es un nombre; "25% en BAS", "10% off en…", una promo.
+  const esPromo = TITULO_CON_DIAS.test(t) || /^si aun no tenes/.test(t) || /\d\s*%\s*(?:off\s+)?en\s/.test(t);
+  if (!esPromo) return { key: slugificar(titulo), nombre: titulo };
+  const nombrado =
+    titulo.match(/\d\s*%\s+en\s+([^%]+?)\.?$/i)?.[1] ??
+    (TITULO_CON_DIAS.test(t) ? titulo.match(/^\S+\s+de\s+(\D[^%]*?)\.?$/i)?.[1] : undefined);
+  if (nombrado) {
+    const marca = MARCAS.find(([re]) => re.test(sinAcentos(nombrado)))?.[1];
+    return marca ?? { key: slugificar(nombrado), nombre: nombrado };
+  }
+  const c = sinAcentos(contenido.replace(/\nLegales:[\s\S]*$/, ""));
+  const marca = MARCAS.find(([re]) => re.test(c))?.[1];
+  if (marca) return marca;
+  const dominio = c.match(/\b(?:www\.)?([a-z0-9-]+)\.com\.uy\b/)?.[1];
+  if (dominio && dominio !== "bbva") {
+    return DOMINIOS[dominio] ?? { key: slugificar(dominio), nombre: dominio[0]!.toUpperCase() + dominio.slice(1) };
+  }
+  return { key: slugificar(titulo), nombre: titulo };
 }
 
 function fecha(texto: string): string | null {
@@ -258,7 +359,9 @@ function nombreNiveles(ids: string[]): string {
 
 export function normalizarBbva(crudo: Crudo): Extraido {
   const lineas = crudo.contenido.split("\n").map((l) => l.trim()).filter(Boolean);
-  const nombre = lineas[0] ?? "";
+  const { detalle, ...comercio } = comercioDeLaFicha(lineas.join("\n"));
+  // "Peñarol - Entradas de Campeonato Uruguayo": el título del beneficio dice en qué.
+  const enQue = detalle ? ` en ${detalle[0]!.toLowerCase()}${detalle.slice(1)}` : "";
   const rubroBbva = crudo.contenido.match(/Rubro según BBVA: ([a-z-]+)\./)?.[1] ?? "otros";
   const categoria = RUBRO[rubroBbva] ?? "otros";
 
@@ -276,6 +379,9 @@ export function normalizarBbva(crudo: Crudo): Extraido {
   const tramos: BeneficioNormalizado[] = [];
   const desconocidos: string[] = [];
   let diasActuales: number[] = [];
+  // Los días que el título o las condiciones imponen a toda la ficha
+  // ("Promoción válida los días miércoles"): para los tramos sin días propios.
+  const diasDeLaFicha = diasDeLaPromo(lineas.join("\n"));
   let calificador = "";
   // Los legales repiten los porcentajes en prosa ("20% en el total de la
   // compra…"): la forma sin "Off" solo se acepta antes de ellos.
@@ -285,7 +391,7 @@ export function normalizarBbva(crudo: Crudo): Extraido {
   const creditoDeLaPagina = new Set<string>();
   for (const [k, l] of lineas.entries()) {
     const enLegales = inicioLegales >= 0 && k >= inicioLegales;
-    if (/^Descuentos?\b/i.test(l) && /:$/.test(l)) { diasActuales = dias(l); continue; }
+    if ((/^Descuentos?\b/i.test(l) && /:$/.test(l)) || ENCABEZADO_DE_DIAS.test(sinAcentos(l))) { diasActuales = dias(l); continue; }
     if (/^(Productos|Solo|Sólo|Únicamente|Excepto)\b/i.test(l) && !/% ?Off/i.test(l)) { calificador = l.replace(/:$/, ""); continue; }
     // "Hasta 12 cuotas sin interés con Tarjetas…", o "Hasta 12 cuotas sin
     // recargo en pesos y 18 … en dólares" (se toma la primera: la de pesos).
@@ -295,8 +401,8 @@ export function normalizarBbva(crudo: Crudo): Extraido {
       const tarjetas = cuotas[2]!.match(/con (.+?)\.?$/)?.[1];
       const ids = tarjetas ? productos(tarjetas).ids : (creditoDeLaPagina.size > 0 ? [...creditoDeLaPagina] : [...CREDITO]);
       tramos.push({
-        comercio_key: slugificar(nombre), titulo: `${cuotas[1]} cuotas sin interés`, descuento_raw: l,
-        porcentaje: null, cuotas: Number(cuotas[1]), tipo: "cuotas", dias_semana: diasActuales,
+        comercio_key: comercio.key, titulo: `${cuotas[1]} cuotas sin interés${enQue}`, descuento_raw: l,
+        porcentaje: null, cuotas: Number(cuotas[1]), tipo: "cuotas", dias_semana: diasActuales.length ? diasActuales : diasDeLaFicha,
         vigencia_desde: null, vigencia_hasta, departamentos: departamentos.length === 1 ? (departamentos as BeneficioNormalizado["departamentos"]) : [],
         productos_elegibles: ids, tope_monto: null, tope_periodo: null, tope_moneda: "UYU", canal: "presencial", mecanica: [],
         acumulable: null, compra_minima: null, requiere_activacion: false, legales_raw, como_usarlo: [], url_fuente: crudo.url_fuente,
@@ -345,15 +451,15 @@ export function normalizarBbva(crudo: Crudo): Extraido {
       grupos.set(k, g);
     }
     for (const { tope: t, ids: idsDelGrupo } of grupos.values()) tramos.push({
-      comercio_key: slugificar(nombre),
+      comercio_key: comercio.key,
       // Partido por tope, cada tramo dice de qué nivel es: si no, en la web se
       // ven tres "10% de descuento" iguales que solo cambian el tope.
-      titulo: `${hasta ? "Hasta " : ""}${porcentaje}% de descuento${grupos.size > 1 ? ` con ${nombreNiveles(idsDelGrupo)}` : ""}${calificador ? ` (${calificador.toLowerCase()})` : ""}`,
+      titulo: `${hasta ? "Hasta " : ""}${porcentaje}% de descuento${enQue}${grupos.size > 1 ? ` con ${nombreNiveles(idsDelGrupo)}` : ""}${calificador ? ` (${calificador.toLowerCase()})` : ""}`,
       descuento_raw: calificador ? `${calificador}: ${l}` : l,
       porcentaje,
       cuotas: null,
       tipo: "porcentaje",
-      dias_semana: diasDelTramo.length ? diasDelTramo : diasActuales,
+      dias_semana: diasDelTramo.length ? diasDelTramo : diasActuales.length ? diasActuales : diasDeLaFicha,
       vigencia_desde: null,
       vigencia_hasta,
       departamentos: departamentos.length === 1 ? (departamentos as BeneficioNormalizado["departamentos"]) : [],
@@ -374,7 +480,7 @@ export function normalizarBbva(crudo: Crudo): Extraido {
 
   return {
     crudo,
-    comercio: tramos.length > 0 ? { key: slugificar(nombre), nombre, categoria } : null,
+    comercio: tramos.length > 0 ? { ...comercio, categoria } : null,
     beneficios: tramos,
     productos_desconocidos: [...new Set(desconocidos)],
   };
