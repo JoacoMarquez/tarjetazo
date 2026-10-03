@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PRODUCTOS } from "@tarjetazo/core";
-import { normalizarBbva, productos, topes, topesDeClub } from "./fuentes/bbva-parser.js";
+import { comercioDeLaFicha, diasDeLaPromo, normalizarBbva, productos, topes, topesDeClub } from "./fuentes/bbva-parser.js";
 
 const ids = (frase: string) => productos(frase).ids.sort();
 const ACTIVOS = new Set(PRODUCTOS.filter((p) => p.activo !== false).map((p) => p.id));
@@ -85,8 +85,13 @@ describe("parser de BBVA: ficha de Nacional", () => {
       contenido, fetched_at: "2026-09-26T00:00:00Z",
     });
     assert.deepEqual(r.beneficios.map((b) => b.titulo), [
-      "10% de descuento con Internacional", "10% de descuento con Oro", "10% de descuento con Platinum",
+      "10% de descuento en cuota de socio y compra/renovación de butacas con Internacional",
+      "10% de descuento en cuota de socio y compra/renovación de butacas con Oro",
+      "10% de descuento en cuota de socio y compra/renovación de butacas con Platinum",
     ]);
+    // El comercio es el club, no la promo.
+    assert.deepEqual(r.comercio && [r.comercio.key, r.comercio.nombre], ["club-nacional-de-football", "Club Nacional de Football"]);
+    assert.ok(r.beneficios.every((b) => b.comercio_key === "club-nacional-de-football"));
     assert.deepEqual(
       r.beneficios.map((b) => [b.porcentaje, b.tope_monto, b.tope_periodo, [...b.productos_elegibles]]),
       [
@@ -230,5 +235,133 @@ describe("parser de BBVA: topes en dólares", () => {
       topes("el tope de devolución será de 4000 pesos uruguayos por cierre de estado de cuenta.").get("general"),
       { monto: 4000, moneda: "UYU", periodo: "mes" },
     );
+  });
+});
+
+const ficha = (external_id: string, lineas: string[]) =>
+  normalizarBbva({ fuente_id: "bbva", external_id, url_fuente: "https://x", contenido: lineas.join("\n"), fetched_at: "" });
+
+describe("parser de BBVA: promos de un día", () => {
+  // Recortes de las fichas reales (pagina_cruda, 2026-10-03).
+  it("'Miércoles 25% en BAS': el comercio es BAS y vale los miércoles", () => {
+    const r = ficha("moda-miercoles-25", [
+      "Miércoles 25% en BAS",
+      "Envíos a todo el país",
+      "Vigencia: 31 de diciembre de 2026",
+      "25% Off con Tarjetas de Crédito BBVA Comunidad Plus Internacional, Oro e Infinite",
+      "El descuento aplica a las compras con Tarjetas de Crédito Comunidad Plus BBVA.",
+      "",
+      "Legales:",
+      "Promoción válida los días miércoles hasta el 31 de diciembre de 2026 para clientes de Tarjeta de Crédito Comunidad Plus BBVA emitidas por BBVA Uruguay S.A..",
+      "",
+      "Rubro según BBVA: moda.",
+    ]);
+    assert.deepEqual(r.comercio && [r.comercio.key, r.comercio.nombre], ["bas", "BAS"]);
+    assert.deepEqual(r.beneficios.map((b) => [b.comercio_key, b.porcentaje, b.dias_semana]), [["bas", 25, [3]]]);
+  });
+
+  it("'Miércoles de 10%': el comercio sale de la web (Ta-Ta)", () => {
+    const r = ficha("hogar-y-decoracion-miercoles-10", [
+      "Miércoles de 10%",
+      "Envíos a todo el país",
+      "Vigencia: 31 de diciembre de 2026",
+      "10% Off con Tarjetas de Crédito BBVA Comunidad Plus Internacional, Oro e Infinite.",
+      "Beneficio aplica en tata.com.uy únicamente en pagos online. No aplica sobre productos identificados como SHOP en tata.com.uy",
+      "",
+      "Legales:",
+      "Promoción válida los días miércoles hasta el 31 de diciembre de 2026 para clientes de Tarjeta de Crédito Comunidad Plus BBVA emitidas por BBVA Uruguay S.A..",
+      "",
+      "Rubro según BBVA: hogar-y-decoracion.",
+    ]);
+    assert.equal(r.comercio?.key, "tata");
+    assert.deepEqual(r.beneficios.map((b) => [b.comercio_key, b.dias_semana]), [["tata", [3]]]);
+  });
+
+  it("'Miércoles de Sodimac': Sodimac, los miércoles", () => {
+    const r = ficha("hogar-y-decoracion-sodimac-miercoles-de-descuentos", [
+      "Miércoles de Sodimac",
+      "Vigencia: 30 de abril 2027",
+      "Descuentos:",
+      "10% Off con Tarjetas de Crédito BBVA Sodimac",
+      "El descuento aplica a las compras con Tarjetas de Crédito BBVA Sodimac los días Miércoles en www.sodimac.com.uy y las cuatro tiendas Sodimac (Giannattasio, Sayago, Malvin y Maldonado).",
+      "",
+      "Legales:",
+      "TARJETAS DE CRÉDITO BBVA SODIMAC",
+      "El descuento aplicará a las compras realizadas los días Miércoles. El mismo será de un 10%, con un tope de devolución de 1000 pesos uruguayos por cierre de estado de cuenta, en el cual se verá reflejado en un plazo máximo de 30 días.",
+      "",
+      "Rubro según BBVA: hogar-y-decoracion.",
+    ]);
+    assert.equal(r.comercio?.key, "sodimac");
+    assert.deepEqual(r.beneficios.map((b) => [b.comercio_key, b.dias_semana, b.tope_monto]), [["sodimac", [3], 1000]]);
+  });
+
+  it("encabezados que son solo días (Atlántico Trampoline Park)", () => {
+    const r = ficha("experiencias-atlantico-trampoline-park", [
+      "Atlántico Trampoline Park",
+      "Descuento:",
+      "Lunes a Viernes:",
+      "30% Off con Tarjetas de Débito",
+      "Sábados y Domingos:",
+      "15% Off con Tarjetas de Débito",
+      "",
+      "Legales:",
+      "Promoción válida del 01 de abril de 2026 al 30 de abril de 2027, para tarjetas de crédito y débito emitidas por BBVA Uruguay S.A.",
+      "",
+      "Rubro según BBVA: experiencias.",
+    ]);
+    assert.deepEqual(r.beneficios.map((b) => [b.porcentaje, b.dias_semana]), [[30, [1, 2, 3, 4, 5]], [15, [6, 0]]]);
+  });
+
+  it("horarios de atención y adicionales de un día no restringen la ficha", () => {
+    // viajes-aquarella-hotel y cuidado-personal-farmacia-paris-notti.
+    assert.deepEqual(diasDeLaPromo([
+      "Aquarella Hotel",
+      "15% Off en Tarifa publicada en temporada Baja. Para acceder al descuento, la reserva en el hotel deberá ser realizada telefónicamente al 0800-8757 de lunes a viernes de 9:00 a 18:00 hs, previo al alojamiento.",
+    ].join("\n")), []);
+    assert.deepEqual(diasDeLaPromo([
+      "Farmacia París y Notti",
+      "Descuentos todos los días de la semana:",
+      "Descuento especial los días Martes",
+      "El descuento será de un 20%, se aplicará un 10% en el punto de venta, sin tope de devolución. El 10% restante se verá reflejado en el estado de cuenta, el tope de devolución será de 2000 pesos uruguayos por cierre de estado de cuenta. El descuento realizado en el estado de cuenta se verá reflejado en un plazo máximo de 30 días.Los días martes se sumará un descuento especial que aplicará a las Tarjetas de Crédito del Centro de Farmacias del Uruguay.",
+    ].join("\n")), []);
+    // Una calle con nombre de día tampoco (gastronomia-grido).
+    assert.deepEqual(diasDeLaPromo("Grido\nAv. José Belloni 4643 Esq. Domingo Arena."), []);
+  });
+});
+
+describe("parser de BBVA: el comercio de la ficha", () => {
+  it("promos para sacar la tarjeta: la marca (Abtour, Consolid)", () => {
+    assert.deepEqual(comercioDeLaFicha([
+      "Si aún no tenés la tarjeta, solicitala y sumá un 5% OFF en tu compra.",
+      "Agencia de viajes en Montevideo",
+      "5% Off en primera compra con la Tarjeta de Crédito Abtour.*",
+      "Consultá todos los paquetes disponibles en www.abtour.com.uy o con un agente de viajes en Abtour Viajes.",
+    ].join("\n")), { key: "abtour", nombre: "Abtour" });
+    assert.deepEqual(comercioDeLaFicha([
+      "Si aún no tenes la tarjeta, solicitala y sumá 10% off en tu compra",
+      "Agencia de viajes",
+      "10% Off en primera compra con la tarjeta de crédito BBVA Consolid Travel.*",
+    ].join("\n")), { key: "consolid", nombre: "Consolid" });
+  });
+
+  it("clubes: el club, y la promo como detalle", () => {
+    assert.deepEqual(comercioDeLaFicha("Peñarol - Descuento en compra y renovación de butacas"), {
+      key: "club-atletico-penarol", nombre: "Club Atlético Peñarol", detalle: "compra y renovación de butacas",
+    });
+    assert.deepEqual(comercioDeLaFicha("Peñarol - Entradas de Campeonato Uruguayo"), {
+      key: "club-atletico-penarol", nombre: "Club Atlético Peñarol", detalle: "Entradas de Campeonato Uruguayo",
+    });
+    assert.equal(comercioDeLaFicha("Nacional - Descuento en abonos de básquetbol").key, "club-nacional-de-football");
+    // La tienda del club es otro comercio.
+    assert.equal(comercioDeLaFicha("Tienda Oficial Club Nacional de Football").key, "tienda-oficial-club-nacional-de-football");
+  });
+
+  it("los nombres de siempre no cambian", () => {
+    for (const [titulo, key] of [
+      ["100% Artesanal", "100-artesanal"],
+      ["Ta-ta", "ta-ta"],
+      ["Alianza Cultural Uruguay - Estados Unidos", "alianza-cultural-uruguay-estados-unidos"],
+      ["Sodimac Oportunidades Exclusivas", "sodimac-oportunidades-exclusivas"],
+    ]) assert.equal(comercioDeLaFicha(`${titulo}\nwww.otro.com.uy`).key, key, titulo);
   });
 });

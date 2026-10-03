@@ -42,6 +42,29 @@ describe("Pronto+", () => {
     assert.equal(crudoDePagina("https://www.pronto.com.uy/restaurantes/", pagina("", "9 puntos de IVA")), null);
   });
 
+  it("\"Hasta X%\" queda en el título si hay tramos menores, y vale el número de las condiciones si es uno solo", () => {
+    const beneficio = (slug: string, nombre: string, texto: string) =>
+      normalizarPronto({ fuente_id: "pronto", external_id: slug, url_fuente: `https://www.pronto.com.uy/${slug}/`, contenido: `${nombre}\nDetalle:\n${texto}`, fetched_at: "2026-10-01T00:00:00.000Z" }).beneficios[0];
+    const ude = beneficio(
+      "ude",
+      "UDE",
+      "Hasta 50% de descuento en UDE\nCondiciones:\nAplica en punto de venta del los centros educativos de Centro, Pocitos, Punta del Este, Colonia y Ciencias Agrarias.\n50% en Carreras y Cursos Técnicos.\n40% en Carreras Universitarias, Posgrados y Maestrías.\n- 30% en Carreras y Cursos Técnicos.\n- 25% en Carreras Universitarias, Posgrados y Maestrías.",
+    );
+    assert.equal(ude?.titulo, "Hasta 50% de descuento");
+    assert.equal(ude?.descuento_raw, "Hasta 50%");
+    const gelato = beneficio(
+      "mondo-gelato",
+      "Mondo Gelato",
+      "Hasta 50% de descuento en Mondo Gelato\nCondiciones\n25% de descuento\n.\nTope del descuento: $400\nEl descuento se realiza en el estado de cuenta.\nVálido de viernes a domingo hasta 31 de julio de 2026.",
+    );
+    assert.equal(gelato?.titulo, "25% de descuento");
+    assert.equal(gelato?.porcentaje, 25);
+    assert.deepEqual(gelato?.dias_semana, [0, 5, 6]);
+    // Sin números en las condiciones, el "hasta" se queda.
+    const optivision = beneficio("optivision", "OPTIVISION", "Hasta 20% de descuento en optivision\nCondiciones del descuento:\nAplica en el punto de venta.");
+    assert.equal(optivision?.titulo, "Hasta 20% de descuento");
+  });
+
   it("saca las direcciones del texto para ubicar el local", () => {
     assert.deepEqual(direccionesDe("Se aplica en el local de Montevideo, Av. Italia 5625 Bis. Válido"), [
       { direccion: "Av Italia 5625 Bis, Montevideo", departamento: "montevideo" },

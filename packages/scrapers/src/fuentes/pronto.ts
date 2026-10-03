@@ -236,11 +236,19 @@ export function normalizarPronto(crudo: Crudo): Extraido {
   const canal: BeneficioNormalizado["canal"] = soloWeb ? "online" : web && presencial ? "ambos" : web && !presencial ? "online" : "presencial";
   const estadoDeCuenta = /estado de cuenta/.test(t) && !/punto de venta/.test(t);
   const deptos = departamentos(t);
-  const porcentaje = pct ? Number(pct[2]) : null;
+  // "Hasta 50% de descuento" y las condiciones dicen un solo número ("25% de
+  // descuento"): vale el de las condiciones, fijo. Con varios ("50% en
+  // carreras técnicas, 40% en universitarias") queda el máximo con "Hasta".
+  const enCondiciones = /condiciones/.test(t)
+    ? [...new Set([...t.slice(t.search(/condiciones/)).matchAll(/(hasta\s+(?:un\s+)?)?(\d{1,2})\s*%/g)].filter((m) => !m[1]).map((m) => Number(m[2])))]
+    : [];
+  const unoSolo = pct?.[1] && enCondiciones.length === 1 && enCondiciones[0]! <= Number(pct[2]) ? enCondiciones[0]! : null;
+  const hasta = Boolean(pct?.[1]) && unoSolo === null;
+  const porcentaje = unoSolo ?? (pct ? Number(pct[2]) : null);
   const beneficio = {
     comercio_key: comercio.key,
-    titulo: pct ? `${pct[1] ? "Hasta " : ""}${porcentaje}% de descuento` : "2x1 con Visa Pronto+",
-    descuento_raw: pct ? `${pct[1] ? "Hasta " : ""}${porcentaje}%` : "2x1",
+    titulo: pct ? `${hasta ? "Hasta " : ""}${porcentaje}% de descuento` : "2x1 con Visa Pronto+",
+    descuento_raw: pct ? `${hasta ? "Hasta " : ""}${porcentaje}%` : "2x1",
     porcentaje,
     cuotas: null,
     tipo: dosPorUno && !pct ? "2x1" : estadoDeCuenta ? "reintegro" : "porcentaje",
