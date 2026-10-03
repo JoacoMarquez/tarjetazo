@@ -9,6 +9,7 @@ import { LogoComercio } from "@/components/logo-comercio";
 import type { BeneficioListado } from "@/lib/consultas";
 import { colorFuente } from "@/lib/marca";
 import { cifraDe, conAlcance } from "./panel-lista";
+import { Hasta } from "@/components/hasta";
 
 const ANCHO = 320;
 const LABEL_CATEGORIA = new Map(CATEGORIAS.map((c) => [c.slug, c.label]));
@@ -142,6 +143,7 @@ export function PopupComercio({
                 className="num shrink-0 text-xl font-bold"
                 style={{ color: tuya ? c.ink : "#6b7683" }}
               >
+                <Hasta b={b} />
                 {cifraDe(b)}
               </span>
               <span className="text-humo min-w-0 flex-1 truncate text-[13px]" title={conAlcance(b)}>

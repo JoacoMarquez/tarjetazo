@@ -12,6 +12,7 @@ import { useBilletera } from "@/lib/billetera";
 import type { BeneficioListado } from "@/lib/consultas";
 import { useFavoritos } from "@/lib/favoritos";
 import { colorFuente } from "@/lib/marca";
+import { Hasta } from "@/components/hasta";
 
 const LABEL_CATEGORIA = new Map(CATEGORIAS.map((c) => [c.slug, c.label]));
 /** Cuántos beneficios se ven por comercio; el resto, en su página. */
@@ -111,6 +112,7 @@ export function FavoritosCliente() {
                   return (
                     <li key={b.id} className="flex items-center gap-3 py-2.5">
                       <span className="num w-14 shrink-0 text-xl font-bold" style={{ color: tuya ? color.ink : undefined }}>
+                        <Hasta b={b} apilado />
                         {cifraDe(b)}
                       </span>
                       <span className="min-w-0 flex-1">

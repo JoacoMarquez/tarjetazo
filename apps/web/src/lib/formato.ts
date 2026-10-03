@@ -12,6 +12,14 @@ export function alcanceCorto(fuenteId: string, productos: readonly string[] | nu
   return alcance && !alcance.startsWith("algunas") ? alcance : null;
 }
 
+/**
+ * "Hasta 50%": el porcentaje guardado es el máximo, no lo que se descuenta
+ * siempre. Se muestra con un "hasta" para no prometer la cifra como fija.
+ */
+export function esHasta(b: { porcentaje?: number | null; titulo?: string | null; descuento_raw?: string | null }): boolean {
+  return b.porcentaje != null && /^\s*hasta\b/i.test(b.descuento_raw || b.titulo || "");
+}
+
 /** La cifra grande de una card: "15%", "2x1" o "12 cuotas". */
 export function cifraBeneficio(b: Pick<BeneficioListado, "porcentaje" | "cuotas" | "tipo">): string {
   if (b.tipo === "2x1") return "2x1";
