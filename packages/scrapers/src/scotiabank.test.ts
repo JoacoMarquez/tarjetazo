@@ -82,7 +82,7 @@ describe("parser de Scotiabank: items reales", () => {
     assert.equal(b.tope_monto, null);
   });
 
-  it("fecha comodín (3022) → sin fecha de fin; 'Tope de $X por compra' se lee como tope del descuento", () => {
+  it("fecha comodín (3022) → sin fecha de fin; 'Tope de $X por compra' es tope de compra (devolución = % × X)", () => {
     const e = normalizarScotiabank(crudo("3-musas-2024-02-01", {
       titulo: "3 Musas",
       categoria: "librerias",
@@ -99,8 +99,11 @@ describe("parser de Scotiabank: items reales", () => {
     for (const b of e.beneficios) {
       assert.equal(b.vigencia_desde, "2024-02-01");
       assert.equal(b.vigencia_hasta, null);
-      assert.deepEqual([b.tope_monto, b.tope_moneda, b.tope_periodo], [20000, "UYU", "compra"]);
     }
+    assert.deepEqual(e.beneficios.map((b) => [b.porcentaje, b.tope_monto, b.tope_moneda, b.tope_periodo]), [
+      [25, 5000, "UYU", "compra"],
+      [15, 3000, "UYU", "compra"],
+    ]);
     assert.equal(e.comercio?.categoria, "libreria-juguetes");
   });
 
@@ -269,6 +272,61 @@ describe("parser de Scotiabank: items reales", () => {
     assert.equal(e.productos_desconocidos.length, 2);
   });
 
+  it("'Tope de $25.000 por compra' con venta por la web: tope de compra (Centro Color)", () => {
+    const e = normalizarScotiabank(crudo("centro-color-2025-10-01", {
+      titulo: "Centro Color",
+      categoria: "shoppings",
+      descuentos: [{ pct: "15% de ahorro", texto: "con tarjetas de Crédito y Débito." }],
+      dias: "Todos los días",
+      departamento: "",
+      desde: "2025-10-01",
+      hasta: "3026-10-31",
+      legal: "Todos los días 15% de ahorro con tarjetas de Crédito y Débito. Tope de $25.000 (pesos uruguayos veinticinco mil) por compra. El descuento aplica para ventas efectuadas por la web propia o por pedidos telefónicos directos a la empresa.",
+    }));
+    assert.equal(e.beneficios.length, 1);
+    const b = e.beneficios[0]!;
+    assert.deepEqual([b.porcentaje, b.tope_monto, b.tope_moneda, b.tope_periodo], [15, 3750, "UYU", "compra"]);
+  });
+
+  it("'Tope de devolución: USD 500' va al tramo de porcentaje en dólares; las cuotas no tienen tope (Maximstore)", () => {
+    const e = normalizarScotiabank(crudo("maximstore-2024-11-15", {
+      titulo: "Maximstore",
+      categoria: "tecnologia",
+      descuentos: [
+        { pct: "15% de ahorro", texto: "con tarjetas de crédito." },
+        { pct: "12 y 18 cuotas", texto: "sin recargo." },
+      ],
+      dias: "Todos los días",
+      departamento: "",
+      desde: "2024-11-15",
+      hasta: "3022-01-01",
+      legal: "Todos los días 15% de descuento con Tarjetas de Crédito Scotiabank. Tope de devolución: USD 500. El descuento se realiza en el momento de la compra en el establecimiento. Promoción válida para tarjetas emitidas por Scotiabank Uruguay S.A.",
+    }));
+    const [pct, cuotas] = e.beneficios;
+    assert.equal(pct!.tipo, "porcentaje");
+    assert.deepEqual([pct!.tope_monto, pct!.tope_moneda, pct!.tope_periodo], [500, "USD", "compra"]);
+    assert.equal(cuotas!.tipo, "cuotas");
+    assert.equal(cuotas!.tope_monto, null);
+  });
+
+  it("'Cines 50%' solo vale en cines: no va al alias `cines` (todo-cines-teatros) sino a un comercio propio", () => {
+    const e = normalizarScotiabank(crudo("cines-50-2026-06-18", {
+      titulo: "Cines 50%",
+      categoria: "cines",
+      descuentos: [{ pct: "50% de ahorro", texto: "en cines de todo el país con tarjetas débito Premium y débito Infinite." }],
+      dias: "Todos los días",
+      departamento: "",
+      desde: "2026-06-18",
+      hasta: "2026-12-31",
+      legal: "Todos los días 50% de descuento con Tarjetas de Débito Premium y Tarjetas de Débito Infinite emitidas por Scotiabank Uruguay S.A. El beneficio aplica todos los días en todos los cines del país*. Tope máximo de descuento por cuenta y por mes de $1.500 (mil quinientos pesos uruguayos). El descuento se realiza en la cuenta del cliente en hasta 30 días hábiles de realizada la compra. Promoción válida desde 1/06/2026 a 31/12/2026”.\n*El Descuento únicamente aplicará a las compras realizadas en establecimientos que tengan como giro exclusivo el de Cine.",
+    }));
+    assert.deepEqual(e.comercio, { key: "salas-de-cine", nombre: "Salas de cine", categoria: "entretenimiento" });
+    assert.equal(e.beneficios.length, 1);
+    const b = e.beneficios[0]!;
+    assert.equal(b.comercio_key, "salas-de-cine");
+    assert.deepEqual([b.porcentaje, b.tope_monto, b.tope_periodo], [50, 1500, "mes"]);
+  });
+
   it("sin los datos del catálogo tira (la página queda fallida y sus beneficios siguen)", () => {
     const c: Crudo = { fuente_id: "scotiabank", external_id: "x", url_fuente: INDICE, contenido: "X", fetched_at: "2026-09-28T12:00:00.000Z" };
     assert.throws(() => normalizarScotiabank(c), /no trae los datos del catálogo/);
@@ -325,5 +383,17 @@ describe("parser de Scotiabank: piezas", () => {
     assert.deepEqual(despues.map((t) => [t.monto, t.sobre, t.periodo]), [[3000, "devolucion", "compra"]]);
     const avista = topesDelLegal("El descuento se realiza en el momento de la compra y el tope de devolución por compra para el 15% es de $1.800 pesos uruguayos y para el 25% de $5.000 pesos uruguayos.");
     assert.deepEqual(avista.map((t) => [t.pct, t.monto]), [[15, 1800], [25, 5000]]);
+    // "Tope de $X por compra", sin decir de qué: de compra (Pura Vida, Wantan).
+    const porCompra = topesDelLegal("El descuento se realiza en el establecimiento al momento de la compra. Tope de $20.000 (pesos uruguayos veinte mil) por compra. No aplica el descuento a ventas realizadas a través de plataformas como ser “Pedidos Ya”.");
+    assert.deepEqual(porCompra.map((t) => [t.monto, t.sobre, t.periodo]), [[20000, "compra", "compra"]]);
+    const pegado = topesDelLegal("Tope de $15.000 (pesos uruguayos quince mil) por compra.No aplica el descuento a ventas realizadas a través de plataformas.");
+    assert.deepEqual(pegado.map((t) => [t.monto, t.sobre]), [[15000, "compra"]]);
+    // Si dice que es de descuento, lo es.
+    const deDescuento = topesDelLegal("Tope de $3.000 de descuento por compra. El descuento se realiza en el momento.");
+    assert.deepEqual(deDescuento.map((t) => [t.monto, t.sobre, t.periodo]), [[3000, "devolucion", "compra"]]);
+    const maximo = topesDelLegal("Tope máximo de descuento $1500 (pesos uruguayos mil quinientos) por compra.");
+    assert.deepEqual(maximo.map((t) => [t.monto, t.sobre]), [[1500, "devolucion"]]);
+    const usd = topesDelLegal("Tope de devolución: USD 500. El descuento se realiza en el momento de la compra en el establecimiento.");
+    assert.deepEqual(usd.map((t) => [t.monto, t.moneda, t.sobre]), [[500, "USD", "devolucion"]]);
   });
 });

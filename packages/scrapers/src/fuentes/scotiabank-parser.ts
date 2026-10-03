@@ -18,9 +18,26 @@ import {
 // Las piezas genéricas viven en legales.ts; se reexportan para los tests.
 export { departamentosDe, diasDe, vigenciaDelLegal };
 
-/** Los topes de los legales, con las tarjetas de "para tarjetas X $2500" pasadas a ids de Scotiabank. */
+/**
+ * "Tope de $10.000 (pesos uruguayos diez mil) por compra": sin decir de qué es
+ * el tope. En Scotiabank es de compra: usa exactamente los montos (10.000 a
+ * 25.000) de los "Tope de compra $X" explícitos, mientras que sus topes de
+ * descuento explícitos van de $1.000 a $5.000 (catálogo de 2026-10).
+ */
+const TOPE_POR_COMPRA = /\btope\s+de\s+(u\$d|u\$s|us\$|usd|\$)\s*(\d{1,3}(?:\.\d{3})+|\d+)\s*(?:\([^)]*\)\s*)?por\s+compra\b/g;
+
+/**
+ * Los topes de los legales, con las tarjetas de "para tarjetas X $2500"
+ * pasadas a ids de Scotiabank y los "Tope de $X por compra" leídos como tope
+ * de compra (ver TOPE_POR_COMPRA; la lectura común los toma como de descuento).
+ */
 export function topesDelLegal(legal: string): TopeLeido[] {
-  return topesDeLegales(legal, (frase) => tarjetasDe(frase).ids);
+  const deCompra = new Set(
+    [...sinAcentos(legal).matchAll(TOPE_POR_COMPRA)].map((m) => `${Number(m[2]!.replace(/\./g, ""))}|${m[1] === "$" ? "UYU" : "USD"}`),
+  );
+  return topesDeLegales(legal, (frase) => tarjetasDe(frase).ids).map((t) =>
+    t.sobre === "devolucion" && t.periodo === "compra" && deCompra.has(`${t.monto}|${t.moneda}`) ? { ...t, sobre: "compra" as const } : t,
+  );
 }
 
 /**
@@ -84,6 +101,17 @@ function esDatos(d: unknown): d is DatosScotiabank {
  * comercio sale de acá y cambiarla movería los beneficios a otro comercio.
  * Exportada para los tests.
  */
+/**
+ * Fichas de un rubro, no de un comercio, cuya key cae en un alias de rubro
+ * entero que les queda grande. "Cines 50%" da `cines`, alias de
+ * `todo-cines-teatros`, pero los legales dicen que vale solo en
+ * "establecimientos que tengan como giro exclusivo el de Cine": los teatros
+ * no entran. No hay rubro entero de cines solos: va a un comercio propio.
+ */
+const COMERCIO_DE_RUBRO: Record<string, { key: string; nombre: string }> = {
+  cines: { key: "salas-de-cine", nombre: "Salas de cine" },
+};
+
 export function comercioDelTitulo(titulo: string): { nombre: string; departamento: string | null } {
   let nombre = titulo.split(/\s+\|\s+/)[0]!.replace(/\s+\d{1,2}\s*%$/, "").trim();
   let departamento: string | null = null;
@@ -276,8 +304,11 @@ export function normalizarScotiabank(crudo: Crudo): Extraido {
     throw new Error(`scotiabank: ${crudo.external_id} no trae los datos del catálogo`);
   }
   const d = crudo.datos;
-  const { nombre, departamento: deptoDelTitulo } = comercioDelTitulo(limpio(d.titulo));
-  const key = slugificar(nombre);
+  const delTitulo = comercioDelTitulo(limpio(d.titulo));
+  const deptoDelTitulo = delTitulo.departamento;
+  const deRubro = COMERCIO_DE_RUBRO[slugificar(delTitulo.nombre)];
+  const nombre = deRubro?.nombre ?? delTitulo.nombre;
+  const key = deRubro?.key ?? slugificar(nombre);
   const legal = d.legal.trim();
   const legales_raw = legal || null;
 
