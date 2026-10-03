@@ -10,6 +10,7 @@ import { alcanceCorto } from "@/lib/formato";
 import { colorFuente } from "@/lib/marca";
 import { topeCorto } from "@/lib/tope";
 import { cn } from "@/lib/utils";
+import { Hasta } from "@/components/hasta";
 
 const SUAVE = "cubic-bezier(.2,.8,.2,1)";
 
@@ -235,6 +236,7 @@ export function PanelLista({
                       className="num block text-[32px] leading-none font-bold"
                       style={{ color: tuya ? c.ink : "#6b7683" }}
                     >
+                      <Hasta b={b} apilado />
                       {cifraDe(b)}
                     </span>
                     {b.tope_monto != null && (

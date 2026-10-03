@@ -2,6 +2,7 @@ import { CATEGORIAS, FUENTES, PRODUCTOS, keyDeRubro, rubrosDeComercio, type Rubr
 import { createSupabaseClient } from "./supabase";
 import { diaEnUruguay } from "./filtros";
 import type { MonedaTope } from "./tope";
+import { esHasta } from "./formato";
 
 export interface Comercio {
   key: string;
@@ -169,10 +170,12 @@ export async function clavesDeComercios(): Promise<{ key: string; updated_at: st
 }
 
 /** Un porcentaje o "N cuotas" o "2x1", para títulos y JSON-LD. */
-export function cifra(b: Pick<BeneficioFicha, "tipo" | "porcentaje" | "cuotas">): string {
+export function cifra(
+  b: Pick<BeneficioFicha, "tipo" | "porcentaje" | "cuotas"> & Partial<Pick<BeneficioFicha, "titulo" | "descuento_raw">>,
+): string {
   if (b.tipo === "2x1") return "2x1";
   if (b.tipo === "cuotas" && b.cuotas) return `${b.cuotas} cuotas`;
-  if (b.porcentaje != null) return `${Math.round(b.porcentaje)}%`;
+  if (b.porcentaje != null) return `${esHasta(b) ? "hasta " : ""}${Math.round(b.porcentaje)}%`;
   return b.tipo;
 }
 

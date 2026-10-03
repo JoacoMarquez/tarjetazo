@@ -5,6 +5,7 @@ import type { MejorDelRubro } from "@/lib/stats";
 import { useBilletera } from "@/lib/billetera";
 import { alcanceCorto, cifraBeneficio, tarjetaSugerida } from "@/lib/formato";
 import { colorFuente } from "@/lib/marca";
+import { Hasta } from "@/components/hasta";
 
 /**
  * "Hoy sábado, pagá así": el mejor beneficio del día en cada rubro. Las cards
@@ -52,6 +53,7 @@ export function Hoy({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
                 className="num self-start whitespace-nowrap text-[40px] font-bold leading-none"
                 style={{ gridRow: "1 / 3", gridColumn: 2, color: laTengo ? c.ink : "#6b7683" }}
               >
+                <Hasta b={beneficio} apilado />
                 {cifraBeneficio(beneficio)}
               </span>
               <div className="flex min-w-0 items-center gap-2.5">
