@@ -2,6 +2,7 @@ import type { BeneficioNormalizado } from "@tarjetazo/core";
 import { bajarTexto } from "../http.js";
 import { slugificar } from "../slug.js";
 import type { Crudo, Extraido, SucursalDeFuente } from "../tipos.js";
+import { clausulas, diasDe, diasEnTitulo } from "./legales.js";
 
 /**
  * Club ASI (#10). El club de descuentos de ASI (financiera, tarjeta ASI
@@ -118,6 +119,33 @@ function dias(t: string): number[] {
   return [...new Set([...sueltos[1]!.matchAll(/(lunes|martes|miercoles|jueves|viernes|sabado|domingo)/g)].map((m) => DIAS[m[1]!]!))].sort();
 }
 
+export interface TramoAsi {
+  porcentaje: number;
+  /** Vacío = todos los días. */
+  dias: number[];
+}
+
+/**
+ * Porcentajes que el texto ata a unos días, en la misma oración: "10% de
+ * descuento en alojamiento los viernes, sábados y domingos, y 5% de descuento
+ * de lunes a jueves", "15% OFF los días martes y 10% OFF todos los días". Los
+ * días tienen que venir después del porcentaje y antes del punto: así un
+ * horario de atención en otra línea ("Lunes a viernes: 9:00 a 19:00") no
+ * cuenta. Exportada para los tests.
+ */
+export function tramosPorDia(t: string): TramoAsi[] {
+  const out = new Map<string, TramoAsi>();
+  for (const oracion of t.split(/[.!?\n]+/)) {
+    for (const c of clausulas(oracion)) {
+      if (c.tipo !== "porcentaje" || c.hasta || c.porcentaje === null) continue;
+      if (!/todos los dias|\b(lunes|martes|miercoles|jueves|viernes|sabados?|domingos?)\b/.test(c.texto)) continue;
+      const dias = diasDe(c.texto).sort();
+      out.set(`${c.porcentaje}|${dias.join(",")}`, { porcentaje: c.porcentaje, dias });
+    }
+  }
+  return [...out.values()];
+}
+
 export function normalizarAsi(crudo: Crudo): Extraido {
   const lineas = crudo.contenido.split("\n");
   const titulo = lineas[0]?.trim() ?? "";
@@ -152,35 +180,52 @@ export function normalizarAsi(crudo: Crudo): Extraido {
   const canal: BeneficioNormalizado["canal"] = !tieneLocales || soloWeb || plataforma ? "online" : web ? "ambos" : "presencial";
 
   const listaDeptos = deptos && deptos !== "sin dato" ? deptos.split(", ") : [];
-  const beneficio = {
-    comercio_key: comercio.key,
-    titulo: pct ? `${pct[1]}% de descuento` : "2x1 con el Club ASI",
-    descuento_raw: promo,
-    porcentaje: pct ? Number(pct[1]) : null,
-    cuotas: null,
-    tipo: pct ? "porcentaje" : "2x1",
-    dias_semana: dias(t),
-    vigencia_desde: null,
-    vigencia_hasta: vence,
-    // Los 19 = todo el país.
-    departamentos: listaDeptos.length >= 19 ? [] : listaDeptos,
-    productos_elegibles: [PRODUCTO],
-    tope_monto: null,
-    tope_periodo: null,
-    tope_moneda: "UYU",
-    canal,
-    mecanica: [],
-    acumulable: /no (es )?acumulable/.test(t) ? false : null,
-    compra_minima: null,
-    requiere_activacion: true,
-    legales_raw: detalle || null,
-    como_usarlo: [
-      "Entrá al Club ASI con tu cédula y pedí el código del descuento.",
-      ...(codigo && !/^\s*$/.test(codigo) ? [`Código: ${codigo}`] : []),
-      ...(uso === "monthly" ? ["Se puede usar una vez por mes."] : uso === "daily" ? ["Se puede usar una vez por día."] : []),
-    ],
-    url_fuente: crudo.url_fuente,
-  } as BeneficioNormalizado;
 
-  return { crudo, comercio, beneficios: [beneficio], productos_desconocidos: [], es_beneficio: true };
+  // "10% viernes a domingo y 5% de lunes a jueves": un beneficio por tramo,
+  // primero el del porcentaje que publica el club. Solo si el texto nombra
+  // ese porcentaje: si no, no se sabe a qué días va.
+  const pctClub = pct ? Number(pct[1]) : null;
+  const deDias = pctClub === null ? [] : tramosPorDia(t);
+  const delClub = deDias.filter((x) => x.porcentaje === pctClub);
+  const tramos: (TramoAsi & { conDias: boolean })[] =
+    delClub.length === 1 && deDias.length > 1
+      ? [...delClub, ...deDias.filter((x) => x.porcentaje !== pctClub)].map((x) => ({ ...x, conDias: true }))
+      : delClub.length === 1 && delClub[0]!.dias.length > 0 && dias(t).length === 0
+        ? [{ ...delClub[0]!, conDias: true }]
+        : [{ porcentaje: pctClub ?? 0, dias: dias(t), conDias: false }];
+
+  const beneficios = tramos.map((tr) => {
+    const enDias = tr.conDias ? diasEnTitulo([...tr.dias].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7))) : "";
+    return {
+      comercio_key: comercio.key,
+      titulo: pct ? `${tr.porcentaje}% de descuento${enDias}` : "2x1 con el Club ASI",
+      descuento_raw: tr.conDias ? `${tr.porcentaje}%${enDias}` : promo,
+      porcentaje: pct ? tr.porcentaje : null,
+      cuotas: null,
+      tipo: pct ? "porcentaje" : "2x1",
+      dias_semana: tr.dias,
+      vigencia_desde: null,
+      vigencia_hasta: vence,
+      // Los 19 = todo el país.
+      departamentos: listaDeptos.length >= 19 ? [] : listaDeptos,
+      productos_elegibles: [PRODUCTO],
+      tope_monto: null,
+      tope_periodo: null,
+      tope_moneda: "UYU",
+      canal,
+      mecanica: [],
+      acumulable: /no (es )?acumulable/.test(t) ? false : null,
+      compra_minima: null,
+      requiere_activacion: true,
+      legales_raw: detalle || null,
+      como_usarlo: [
+        "Entrá al Club ASI con tu cédula y pedí el código del descuento.",
+        ...(codigo && !/^\s*$/.test(codigo) ? [`Código: ${codigo}`] : []),
+        ...(uso === "monthly" ? ["Se puede usar una vez por mes."] : uso === "daily" ? ["Se puede usar una vez por día."] : []),
+      ],
+      url_fuente: crudo.url_fuente,
+    } as BeneficioNormalizado;
+  });
+
+  return { crudo, comercio, beneficios, productos_desconocidos: [], es_beneficio: true };
 }
