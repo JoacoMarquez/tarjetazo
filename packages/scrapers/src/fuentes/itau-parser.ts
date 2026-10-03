@@ -7,6 +7,7 @@ import type { DatosItauFeed } from "./itau.js";
 import type { DatosItauLanding } from "./itau-landings.js";
 import {
   MARCA,
+  MESES,
   clausulas,
   diasDe,
   diasEnTitulo,
@@ -126,6 +127,98 @@ function canalDe(texto: string): BeneficioNormalizado["canal"] {
   return /locale?s?\b|establecimiento|tienda fisica|sucursal/.test(t) ? "ambos" : "online";
 }
 
+// ---------------------------------------------------------------- fechas del tramo
+
+type Vigencia = { desde: string | null; hasta: string | null };
+
+const MES = "(enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)";
+const ANIO = "(?:\\s+(?:del?\\s+)?(\\d{4}))?";
+/** "del 9 al 18 de octubre", "del 28 de setiembre al 3 de octubre", "del 1 al 31 octubre", con o sin año. */
+const RANGO = new RegExp(
+  `\\b(?:del|desde)\\s+(?:el\\s+)?(\\d{1,2})(?:\\s+de\\s+${MES}${ANIO})?\\s+(?:al|hasta(?:\\s+el)?)\\s+(?:el\\s+)?(\\d{1,2})\\s+(?:de\\s+)?${MES}${ANIO}`,
+);
+/** "Hasta el 10 de octubre tenés 20% menos…": solo el fin. */
+const HASTA = new RegExp(`\\bhasta\\s+el\\s+(\\d{1,2})\\s+de\\s+${MES}${ANIO}`);
+
+const DIA_MS = 86_400_000;
+const fecha = (anio: number, mes: number, dia: number): string | null => {
+  const f = new Date(Date.UTC(anio, mes - 1, dia));
+  return f.getUTCMonth() === mes - 1 && f.getUTCDate() === dia ? f.toISOString().slice(0, 10) : null;
+};
+const ms = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
+
+/**
+ * Las fechas que escribe el propio tramo ("25% menos en Mosca del 9 al 18 de
+ * octubre…", "Hasta el 10 de octubre tenés 20% menos…"), que mandan sobre las
+ * de la página. Sin año, se toma el que deja el rango más cerca de la vigencia
+ * de la página (o de la fecha de la bajada, si la página no da ninguna); si
+ * el fin cae en un mes anterior al inicio, es del año siguiente. Solo el fin:
+ * el inicio sigue siendo el de la página. Sin fechas en el texto, null.
+ * Exportada para los tests.
+ */
+export function vigenciaDelTramo(texto: string, pagina: Vigencia, bajada: string): Vigencia | null {
+  const t = sinAcentos(texto).replace(/°|º/g, "").replace(/\s+/g, " ");
+  const ref0 = pagina.desde ?? pagina.hasta ?? bajada.slice(0, 10);
+  const ref1 = pagina.hasta ?? pagina.desde ?? bajada.slice(0, 10);
+  const lejania = (a: string, b: string) => Math.max(0, ms(ref0) - ms(b), ms(a) - ms(ref1)) / DIA_MS;
+  const anioRef = Number(ref0.slice(0, 4));
+
+  // Cada candidato es una vigencia para un año supuesto; gana la más cercana a la de la página.
+  const elegir = (armar: (anio: number) => Vigencia | null, anioEscrito: number | null): Vigencia | null => {
+    const anios = anioEscrito ? [anioEscrito] : [anioRef, anioRef - 1, anioRef + 1];
+    let mejor: { v: Vigencia; d: number } | null = null;
+    for (const a of anios) {
+      const v = armar(a);
+      if (!v?.hasta) continue;
+      const d = lejania(v.desde ?? v.hasta, v.hasta);
+      if (!mejor || d < mejor.d) mejor = { v, d };
+    }
+    return mejor?.v ?? null;
+  };
+
+  const r = t.match(RANGO);
+  if (r) {
+    const [, d1, m1, a1, d2, m2, a2] = r;
+    const mesFin = MESES[m2!]!;
+    const mesIni = m1 ? MESES[m1]! : mesFin;
+    const anioFin = a2 ? Number(a2) : null;
+    return elegir((a) => {
+      const fin = anioFin ?? (mesFin < mesIni ? a + 1 : a);
+      const ini = a1 ? Number(a1) : mesFin < mesIni ? fin - 1 : fin;
+      const desde = fecha(ini, mesIni, Number(d1));
+      const hasta = fecha(fin, mesFin, Number(d2));
+      return desde && hasta && desde <= hasta ? { desde, hasta } : null;
+    }, anioFin);
+  }
+  const h = t.match(HASTA);
+  if (h) {
+    const [, d, m, a] = h;
+    const v = elegir((anio) => ({ desde: null, hasta: fecha(anio, MESES[m!]!, Number(d)) }), a ? Number(a) : null);
+    if (!v) return null;
+    return { desde: pagina.desde && pagina.desde <= v.hasta! ? pagina.desde : null, hasta: v.hasta };
+  }
+  return null;
+}
+
+/**
+ * Lo que va antes de la primera marca de cada oración de un texto, en el
+ * orden de `clausulas`: "Del 31 de agosto al 12 de setiembre, tenés 15% menos…"
+ * → "Del 31 de agosto al 12 de setiembre, tenés". Las fechas que dice valen
+ * para los tramos de esa oración.
+ */
+function introducciones(texto: string): Map<number, string> {
+  const t = texto.replace(/\s+/g, " ").trim();
+  const finales = [...t.matchAll(/\.(?=\s|\d|$)/g)].map((m) => m.index!);
+  const out = new Map<number, string>();
+  for (const m of t.matchAll(MARCA)) {
+    const oracion = finales.filter((f) => f < m.index!).length;
+    if (out.has(oracion)) continue;
+    const inicio = oracion === 0 ? 0 : finales[oracion - 1]! + 1;
+    out.set(oracion, t.slice(inicio, m.index!).trim());
+  }
+  return out;
+}
+
 function candidato(campos: Omit<BeneficioNormalizado, "mecanica" | "compra_minima" | "requiere_activacion" | "como_usarlo">) {
   return { ...campos, mecanica: [], compra_minima: null, requiere_activacion: false, como_usarlo: [] };
 }
@@ -206,6 +299,8 @@ function normalizarLanding(crudo: Crudo, d: DatosItauLanding): Extraido {
     desconocidos.push(...tarjetas.desconocidos);
     const vigencia = vigenciaDeLanding(t.condiciones, t.ubicaciones);
     if (vigencia.ambigua) desconocidos.push(`tramo ${i}: las condiciones dan fechas distintas para ${t.ubicaciones.join(", ")}`);
+    // Las fechas que escribe el encabezado mandan sobre las de las condiciones.
+    const { desde, hasta } = vigenciaDelTramo(t.encabezado, vigencia, crudo.fetched_at) ?? vigencia;
     const topes = topesDelLegal(t.condiciones, (f) => tarjetasDe(f).ids);
     const r = topeDelTramo(topes, { pct: porcentaje, ids: tarjetas.ids });
     if (r.ambiguo) desconocidos.push(`tramo ${i}: los legales publican varios topes y no se puede saber cuál es el de este tramo`);
@@ -218,8 +313,8 @@ function normalizarLanding(crudo: Crudo, d: DatosItauLanding): Extraido {
         cuotas: null,
         tipo: "porcentaje",
         dias_semana: dias,
-        vigencia_desde: vigencia.desde,
-        vigencia_hasta: sinFechaComodin(vigencia.hasta),
+        vigencia_desde: desde,
+        vigencia_hasta: sinFechaComodin(hasta),
         departamentos: departamentosDeUbicaciones(t.ubicaciones),
         productos_elegibles: tarjetas.ids,
         ...topeDevolucion({
@@ -431,6 +526,8 @@ function normalizarFeed(crudo: Crudo, d: DatosItauFeed): Extraido {
   // Las fechas de las bases; si no dan ninguna, las de la descripción.
   const deBases = vigenciaDelLegal(bases);
   const vigencia = deBases.desde || deBases.hasta ? deBases : vigenciaDelLegal(d.descripcion);
+  // Lo que va antes de la primera marca de cada oración del texto de donde salen los tramos.
+  const intro = introducciones(deDescripcion.length > 0 ? d.descripcion : d.titulo);
   const departamentos: BeneficioNormalizado["departamentos"] =
     comercio.departamento ? [comercio.departamento as BeneficioNormalizado["departamentos"][number]] : departamentosDeBases(bases);
   const canal = canalDe(todo);
@@ -477,6 +574,13 @@ function normalizarFeed(crudo: Crudo, d: DatosItauFeed): Extraido {
       tope = r.tope;
       if (r.ambiguo) desconocidos.push(`tramo ${i}: los legales publican varios topes y no se puede saber cuál es el de este tramo`);
     }
+    // Las fechas del tramo ("25% menos en Mosca del 9 al 18 de octubre…", "Del
+    // 31 de agosto al 12 de setiembre, tenés 15% menos…") mandan sobre las de
+    // la página; un tramo que no nombra fechas se queda con las de la página.
+    const propia =
+      vigenciaDelTramo(l.c.texto, vigencia, crudo.fetched_at) ??
+      (l.c.oracion >= 0 ? vigenciaDelTramo(intro.get(l.c.oracion) ?? "", vigencia, crudo.fetched_at) : null);
+    const { desde, hasta } = propia ?? vigencia;
     validar(
       candidato({
         comercio_key: key,
@@ -486,8 +590,8 @@ function normalizarFeed(crudo: Crudo, d: DatosItauFeed): Extraido {
         cuotas: l.c.cuotas,
         tipo: l.c.tipo,
         dias_semana: dias,
-        vigencia_desde: vigencia.desde,
-        vigencia_hasta: sinFechaComodin(vigencia.hasta),
+        vigencia_desde: desde,
+        vigencia_hasta: sinFechaComodin(hasta),
         departamentos,
         productos_elegibles: ids,
         ...topeDevolucion({

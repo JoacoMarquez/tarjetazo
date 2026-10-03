@@ -357,6 +357,27 @@ function nombreNiveles(ids: string[]): string {
   return nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres.at(-1)}`;
 }
 
+/** Lo que restringe los tramos que siguen a unos productos: "Productos con Farmadescuento", "Solo en…". */
+const CALIFICADOR = /^(Productos|Solo|Sólo|Únicamente|Excepto)\b/i;
+
+/**
+ * Los legales del bloque de un calificador: las farmacias los parten en
+ * "PRODUCTOS SIN FARMADESCUENTO" y "PRODUCTOS CON FARMADESCUENTO", cada uno
+ * con sus topes por grupo de tarjetas (y a veces distintos: Farmacia del
+ * Parque devuelve hasta 2000 con débito sin Farmadescuento y 4000 con). Si los
+ * legales no nombran el calificador, null. Exportada para los tests.
+ */
+export function legalesDelCalificador(legales: string, calificador: string): string | null {
+  const lineas = legales.split("\n");
+  const buscado = sinAcentos(calificador).trim();
+  const desde = lineas.findIndex((l) => sinAcentos(l).trim().replace(/:$/, "") === buscado);
+  if (desde < 0) return null;
+  // Termina en el encabezado del bloque siguiente (sin punto: una oración de
+  // los legales que empiece con "Solo…" no corta el bloque).
+  const hasta = lineas.findIndex((l, k) => k > desde && CALIFICADOR.test(l.trim()) && !/[.%]/.test(l));
+  return lineas.slice(desde + 1, hasta < 0 ? undefined : hasta).join("\n");
+}
+
 export function normalizarBbva(crudo: Crudo): Extraido {
   const lineas = crudo.contenido.split("\n").map((l) => l.trim()).filter(Boolean);
   const { detalle, ...comercio } = comercioDeLaFicha(lineas.join("\n"));
@@ -392,7 +413,7 @@ export function normalizarBbva(crudo: Crudo): Extraido {
   for (const [k, l] of lineas.entries()) {
     const enLegales = inicioLegales >= 0 && k >= inicioLegales;
     if ((/^Descuentos?\b/i.test(l) && /:$/.test(l)) || ENCABEZADO_DE_DIAS.test(sinAcentos(l))) { diasActuales = dias(l); continue; }
-    if (/^(Productos|Solo|Sólo|Únicamente|Excepto)\b/i.test(l) && !/% ?Off/i.test(l)) { calificador = l.replace(/:$/, ""); continue; }
+    if (CALIFICADOR.test(l) && !/% ?Off/i.test(l)) { calificador = l.replace(/:$/, ""); continue; }
     // "Hasta 12 cuotas sin interés con Tarjetas…", o "Hasta 12 cuotas sin
     // recargo en pesos y 18 … en dólares" (se toma la primera: la de pesos).
     // Sin tarjeta nombrada vale para las de crédito de los tramos anteriores.
@@ -423,9 +444,16 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     // "Hasta 40% Off…": el porcentaje es un máximo; se guarda y el "hasta"
     // queda en `descuento_raw`.
     const hasta = /^hasta$/i.test(m[1] ?? "");
+    // Las farmacias con Farmadescuento escriben el calificador adelante del
+    // primer tramo de cada bloque ("Productos sin Farmadescuento 20% Off con
+    // Tarjetas de Débito") y no en una línea aparte: vale para ese tramo y los
+    // que lo siguen, igual que si estuviera solo en su línea. No son días.
+    const prefijo = m[1] && !hasta ? m[1] : "";
+    if (CALIFICADOR.test(prefijo)) calificador = prefijo;
     // A veces los días van adelante del tramo: "Martes y Jueves 10% Off con…".
-    const diasDelTramo = m[1] && !hasta ? dias(m[1]) : [];
-    if (m[1] && !hasta && diasDelTramo.length === 0) continue;
+    // Cualquier otro prefijo no es un tramo de la ficha.
+    const diasDelTramo = prefijo && !CALIFICADOR.test(prefijo) ? dias(prefijo) : [];
+    if (prefijo && !CALIFICADOR.test(prefijo) && diasDelTramo.length === 0) continue;
     if (/estados unidos|argentina|brasil|chile|exterior/i.test(m[2]!)) continue;
     const porcentaje = Number(m[2]);
     const { ids, desconocidos: d } = /tarjeta/i.test(m[3]!)
@@ -435,7 +463,11 @@ export function normalizarBbva(crudo: Crudo): Extraido {
     const f = sinAcentos(m[3]!);
     const clave = /platinum|black|infinite/.test(f) ? "alto" : /debito/.test(f) ? "debito" : "credito";
     for (const id of ids) if (id !== "bbva-debito") creditoDeLaPagina.add(id);
-    const topeDelTramo = (tope.has(clave) ? tope.get(clave) : tope.get("general")) ?? null;
+    // Con calificador, los topes de su bloque de los legales, si lo tiene.
+    const delBloque = calificador ? legalesDelCalificador(legales_raw ?? "", calificador) : null;
+    const topesDelTramo = delBloque !== null ? topes(delBloque) : tope;
+    const topeDelTramo =
+      (topesDelTramo.has(clave) ? topesDelTramo.get(clave) : tope.has(clave) ? tope.get(clave) : tope.get("general")) ?? null;
     // Las tarjetas de un club tienen un tope por nivel: si los legales los
     // separan, va un tramo por tope (un beneficio guarda un solo tope).
     const porNivel = ids.every((id) => NIVEL_DE_CLUB.test(id)) ? topesDeClub(legales_raw ?? "") : new Map<string, number>();
@@ -455,7 +487,8 @@ export function normalizarBbva(crudo: Crudo): Extraido {
       // Partido por tope, cada tramo dice de qué nivel es: si no, en la web se
       // ven tres "10% de descuento" iguales que solo cambian el tope.
       titulo: `${hasta ? "Hasta " : ""}${porcentaje}% de descuento${enQue}${grupos.size > 1 ? ` con ${nombreNiveles(idsDelGrupo)}` : ""}${calificador ? ` (${calificador.toLowerCase()})` : ""}`,
-      descuento_raw: calificador ? `${calificador}: ${l}` : l,
+      // Si el calificador ya va adelante del tramo, la línea lo dice.
+      descuento_raw: calificador && calificador !== prefijo ? `${calificador}: ${l}` : l,
       porcentaje,
       cuotas: null,
       tipo: "porcentaje",

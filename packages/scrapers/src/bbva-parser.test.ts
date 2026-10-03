@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PRODUCTOS } from "@tarjetazo/core";
-import { comercioDeLaFicha, diasDeLaPromo, normalizarBbva, productos, topes, topesDeClub } from "./fuentes/bbva-parser.js";
+import { comercioDeLaFicha, diasDeLaPromo, legalesDelCalificador, normalizarBbva, productos, topes, topesDeClub } from "./fuentes/bbva-parser.js";
 
 const ids = (frase: string) => productos(frase).ids.sort();
 const ACTIVOS = new Set(PRODUCTOS.filter((p) => p.activo !== false).map((p) => p.id));
@@ -326,6 +326,111 @@ describe("parser de BBVA: promos de un día", () => {
     ].join("\n")), []);
     // Una calle con nombre de día tampoco (gastronomia-grido).
     assert.deepEqual(diasDeLaPromo("Grido\nAv. José Belloni 4643 Esq. Domingo Arena."), []);
+  });
+});
+
+describe("parser de BBVA: farmacias con Farmadescuento", () => {
+  // Recortes de las fichas reales (pagina_cruda, 2026-10-03). El calificador
+  // va adelante del tramo de débito y vale para los de crédito que lo siguen.
+  const TRAMOS = [
+    "Descuentos todos los días de la semana:",
+    "Productos sin Farmadescuento 20% Off con Tarjetas de Débito",
+    "20% Off con Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas",
+    "30% Off con Tarjetas de Crédito Platinum, Black e Infinite",
+    "Productos con Farmadescuento 12% Off con Tarjetas de Débito",
+    "12% Off con Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas",
+    "18% Off con Tarjetas de Crédito Platinum, Black e Infinite",
+  ];
+  const bloque = (titulo: string, porcentajes: [number, number, number], topes: [number, number, number]) => [
+    titulo,
+    "TARJETAS DE DÉBITO",
+    `El descuento será de un ${porcentajes[0]}%, el cual se verá reflejado en el estado de cuenta, el tope de devolución será de ${topes[0]} pesos uruguayos por cierre de estado de cuenta.`,
+    "TARJETAS DE CRÉDITO",
+    "Tarjetas de crédito Internacionales, Oro, Pymes y Corporativas",
+    `El descuento será de un ${porcentajes[1]}%, el cual se verá reflejado en el estado de cuenta, el tope de devolución será de ${topes[1]} pesos uruguayos por cierre de estado de cuenta.`,
+    "Tarjetas de crédito Infinite, Platinum y Black",
+    `El descuento será de un ${porcentajes[2]}%, el cual se verá reflejado en el estado de cuenta, el tope de devolución será de ${topes[2]} pesos uruguayos por cierre de estado de cuenta.`,
+    "Promoción no válida para tarjetas prepagas y fija (Emitida por Emprendimiento de Valor S.A). Beneficio no acumulable a otras ofertas y/o promociones.",
+  ];
+  const resumen = (r: ReturnType<typeof ficha>) =>
+    r.beneficios.map((b) => [b.titulo, b.productos_elegibles.includes("bbva-debito") ? "debito" : b.productos_elegibles[0], b.tope_monto, b.dias_semana]);
+
+  it("los tramos de débito con el calificador adelante se leen, cada bloque con sus topes (Farmacia Femme)", () => {
+    const r = ficha("cuidado-personal-farmacia-femme", [
+      "Farmacia Femme",
+      "Farmacia en Carmelo, Colonia",
+      "Vigencia: 31 de Agosto 2027",
+      ...TRAMOS,
+      "Locales:",
+      "19 de abril 282, Carmelo ( ir )",
+      "",
+      "Legales:",
+      "Promoción válida del 01 de setiembre de 2026 al 31 de agosto de 2027 para clientes de tarjetas de crédito y débito emitidas por BBVA Uruguay S.A.",
+      ...bloque("PRODUCTOS SIN FARMADESCUENTO", [20, 20, 30], [4000, 4000, 6000]),
+      ...bloque("PRODUCTOS CON FARMADESCUENTO", [12, 12, 18], [2000, 2000, 3000]),
+      "",
+      "Rubro según BBVA: cuidado-personal.",
+    ]);
+    assert.deepEqual(resumen(r), [
+      ["20% de descuento (productos sin farmadescuento)", "debito", 4000, []],
+      ["20% de descuento (productos sin farmadescuento)", "bbva-credito", 4000, []],
+      ["30% de descuento (productos sin farmadescuento)", "bbva-mastercard-platinum", 6000, []],
+      ["12% de descuento (productos con farmadescuento)", "debito", 2000, []],
+      ["12% de descuento (productos con farmadescuento)", "bbva-credito", 2000, []],
+      ["18% de descuento (productos con farmadescuento)", "bbva-mastercard-platinum", 3000, []],
+    ]);
+    // El tramo de débito ya trae el calificador: no se repite.
+    assert.equal(r.beneficios[0]!.descuento_raw, "Productos sin Farmadescuento 20% Off con Tarjetas de Débito");
+    assert.equal(r.beneficios[1]!.descuento_raw, "Productos sin Farmadescuento: 20% Off con Tarjetas de Crédito Internacional, Oro, Pymes y Corporativas");
+  });
+
+  it("el adicional de los martes del Centro de Farmacias no es un tramo (Farmacia París y Notti)", () => {
+    const r = ficha("cuidado-personal-farmacia-paris-notti", [
+      "Farmacia París y Notti",
+      "Farmacias en Montevideo y Canelones",
+      "Vigencia: 30 de Setiembre 2026",
+      ...TRAMOS,
+      "Locales en Montevideo:",
+      "Farmacia Notti: José Batlle y Ordoñez 6621, Sayago ( ir )",
+      "Descuento especial los días Martes",
+      "10% Off adicional con Tarjetas de Crédito BBVA del Centro de Farmacias del Uruguay.",
+      "El descuento de los martes aplica a las compras con Tarjetas de Crédito BBVA Centro de Farmacias del Uruguay Visa y Master Card",
+      "",
+      "Legales:",
+      ...bloque("PRODUCTOS SIN FARMADESCUENTO", [20, 20, 30], [2000, 2000, 3000]),
+      ...bloque("PRODUCTOS CON FARMADESCUENTO", [12, 12, 18], [2000, 2000, 3000]),
+      "",
+      "Rubro según BBVA: cuidado-personal.",
+    ]);
+    assert.deepEqual(resumen(r), [
+      ["20% de descuento (productos sin farmadescuento)", "debito", 2000, []],
+      ["20% de descuento (productos sin farmadescuento)", "bbva-credito", 2000, []],
+      ["30% de descuento (productos sin farmadescuento)", "bbva-mastercard-platinum", 3000, []],
+      ["12% de descuento (productos con farmadescuento)", "debito", 2000, []],
+      ["12% de descuento (productos con farmadescuento)", "bbva-credito", 2000, []],
+      ["18% de descuento (productos con farmadescuento)", "bbva-mastercard-platinum", 3000, []],
+    ]);
+  });
+
+  it("un prefijo que no es calificador ni días sigue sin ser un tramo", () => {
+    const r = ficha("viajes-x", [
+      "Hotel X",
+      "Descuentos todos los días de la semana:",
+      "Socios 10% Off con Tarjetas de Débito",
+      "",
+      "Rubro según BBVA: viajes.",
+    ]);
+    assert.equal(r.beneficios.length, 0);
+  });
+
+  it("legalesDelCalificador: el bloque hasta el calificador siguiente", () => {
+    const legales = [
+      ...bloque("PRODUCTOS SIN FARMADESCUENTO", [20, 20, 30], [4000, 4000, 6000]),
+      ...bloque("PRODUCTOS CON FARMADESCUENTO", [12, 12, 18], [2000, 2000, 3000]),
+    ].join("\n");
+    assert.equal(topes(legalesDelCalificador(legales, "Productos sin Farmadescuento")!).get("debito")?.monto, 4000);
+    assert.equal(topes(legalesDelCalificador(legales, "Productos con Farmadescuento")!).get("debito")?.monto, 2000);
+    assert.equal(legalesDelCalificador(legales, "Productos seleccionados"), null);
   });
 });
 

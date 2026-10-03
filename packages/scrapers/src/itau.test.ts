@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Departamento, PRODUCTOS } from "@tarjetazo/core";
-import { clausulas, comercioDelFeed, normalizarItau, objetoDe, tarjetasDe } from "./fuentes/itau-parser.js";
+import { clausulas, comercioDelFeed, normalizarItau, objetoDe, tarjetasDe, vigenciaDelTramo } from "./fuentes/itau-parser.js";
 import { diasEnTitulo } from "./fuentes/legales.js";
 import type { DatosItauFeed } from "./fuentes/itau.js";
 import type { DatosItauLanding } from "./fuentes/itau-landings.js";
@@ -263,6 +263,32 @@ describe("parser de Itaú: items del feed", () => {
     assert.equal(comercioDelFeed({ titulo: "20% y 15% menos en farmacias El Túnel", descripcion: "", bases: "" })?.nombre, "El Túnel");
   });
 
+  it("las fechas que escribe el tramo mandan sobre las de la página; el que no nombra fechas se queda con las de la página", () => {
+    const e = normalizarItau(crudo("benef-11764", {
+      tipo: "feed",
+      titulo: "25% y 15% menos en Mosca tecnología",
+      descripcion: "25% menos en Mosca del 9 al 18 de octubre en Tecnología con tarjetas débito y crédito Personal Bank. 15% menos pagando con todas las tarjetas de crédito Itaú.",
+      listas: ["tarjeta de débito", "tarjeta de alimentación"],
+      bases: "25% menos en Mosca con tarjetas de débito y crédito Personal Bank, incluye Infinite y Black emitidas por Banco Itaú Uruguay . 15% menos en Mosca pagando con todas las tarjetas de crédito. Descuento aplicado a productos de tecnología en exclusiva. No se acumula con otras campañas vigentes. Vigencia de la campaña: del 01/10/2026 al 31/10/2026.",
+    }));
+    assert.deepEqual(e.beneficios.map((b) => [b.porcentaje, b.vigencia_desde, b.vigencia_hasta]), [
+      [25, "2026-10-09", "2026-10-18"],
+      [15, "2026-10-01", "2026-10-31"],
+    ]);
+  });
+
+  it("fechas al principio de la oración, antes del porcentaje", () => {
+    const e = normalizarItau(crudo("benef-11276", {
+      tipo: "feed",
+      titulo: "25% menos en Boomerang",
+      descripcion: "Del 31 de agosto al 12 de setiembre, tenés 25% menos en Boomerang con tarjetas de crédito Platinum",
+      listas: ["tarjeta de crédito"],
+      // Recortadas: sin la vigencia, las únicas fechas son las de la descripción.
+      bases: "25% de descuento pagando con tarjetas de crédito Platinum de Banco Itaú Uruguay S.A. No se acumula con otras campañas vigentes.",
+    }));
+    assert.deepEqual([e.beneficios[0]!.vigencia_desde, e.beneficios[0]!.vigencia_hasta], ["2026-08-31", "2026-09-12"]);
+  });
+
   it("sin los datos estructurados tira (la página queda fallida y sus beneficios siguen)", () => {
     const c: Crudo = { fuente_id: "itau", external_id: "x", url_fuente: FEED, contenido: "X", fetched_at: "2026-09-28T12:00:00.000Z" };
     assert.throws(() => normalizarItau(c), /no trae los datos/);
@@ -286,5 +312,27 @@ describe("parser de Itaú: piezas", () => {
     assert.deepEqual(cuotas.map((c) => [c.tipo, c.cuotas]), [["cuotas", 24], ["cuotas", 12]]);
     const pegadas = clausulas("25%menos los lunes con Personal Bank (incluye Infinite y Black).15% menos todos los días");
     assert.deepEqual(pegadas.map((c) => [c.porcentaje, c.oracion]), [[25, 0], [15, 1]]);
+  });
+
+  it("fechas del tramo: el año que falta sale de la vigencia de la página", () => {
+    const octubre = { desde: "2026-10-01", hasta: "2026-10-31" };
+    const bajada = "2026-10-03T12:00:00.000Z";
+    assert.deepEqual(vigenciaDelTramo("25% menos en Mosca del 9 al 18 de octubre en Tecnología", octubre, bajada), { desde: "2026-10-09", hasta: "2026-10-18" });
+    assert.deepEqual(vigenciaDelTramo("25% menos del 28 de setiembre al 3 de octubre", octubre, bajada), { desde: "2026-09-28", hasta: "2026-10-03" });
+    assert.deepEqual(vigenciaDelTramo("25% menos con Personal Bank, Infinite y Black del 1 al 31 octubre", octubre, bajada), octubre);
+    // Con año, vale el escrito.
+    assert.deepEqual(vigenciaDelTramo("25% menos del el 1° de julio al 15 de agosto de 2019", octubre, bajada), { desde: "2019-07-01", hasta: "2019-08-15" });
+    // Cruza el año: el fin es del siguiente; el año es el que deja el rango dentro de la página.
+    const verano = { desde: "2026-12-01", hasta: "2027-01-31" };
+    assert.deepEqual(vigenciaDelTramo("20% menos del 28 de diciembre al 3 de enero", verano, bajada), { desde: "2026-12-28", hasta: "2027-01-03" });
+    assert.deepEqual(vigenciaDelTramo("20% menos del 5 al 10 de enero", verano, bajada), { desde: "2027-01-05", hasta: "2027-01-10" });
+    // Solo el fin: el inicio es el de la página.
+    assert.deepEqual(vigenciaDelTramo("Hasta el 10 de octubre tenés", octubre, bajada), { desde: "2026-10-01", hasta: "2026-10-10" });
+    // Sin vigencia de la página, la fecha de la bajada.
+    assert.deepEqual(vigenciaDelTramo("del 9 al 18 de octubre", { desde: null, hasta: null }, bajada), { desde: "2026-10-09", hasta: "2026-10-18" });
+    // Sin fechas, o con días de la semana o porcentajes que no son fechas: nada.
+    assert.equal(vigenciaDelTramo("15% menos pagando con todas las tarjetas de crédito Itaú.", octubre, bajada), null);
+    assert.equal(vigenciaDelTramo("2X1 de lunes a miércoles con tarjetas de débito", octubre, bajada), null);
+    assert.equal(vigenciaDelTramo("10% adicional al 18,03% de Centro Comercial Carrasco", octubre, bajada), null);
   });
 });
