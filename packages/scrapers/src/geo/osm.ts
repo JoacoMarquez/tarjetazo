@@ -1,6 +1,7 @@
 import { leerJson } from "@tarjetazo/core/red";
 import { fetchPublicoNode } from "@tarjetazo/core/red-node";
 import { CADENAS, type Cadena } from "./cadenas.js";
+import { dentroDeUruguay } from "./tipos.js";
 
 /**
  * Las instancias públicas de Overpass devuelven 504 seguido cuando están
@@ -114,7 +115,7 @@ export async function localesDeCadenas(
 
     const lat = e.lat ?? e.center?.lat;
     const lng = e.lon ?? e.center?.lon;
-    if (lat === undefined || lng === undefined) continue;
+    if (typeof lat !== "number" || typeof lng !== "number" || !dentroDeUruguay(lat, lng)) continue;
 
     const osm_id = `${e.type}/${e.id}`;
     if (vistos.has(osm_id)) continue;

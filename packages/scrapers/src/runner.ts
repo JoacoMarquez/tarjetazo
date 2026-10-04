@@ -6,6 +6,7 @@ import { hash } from "./http.js";
 import { normalizar, usarReglasDb } from "./normalizador.js";
 import { cargarReglasDb } from "./reglas-db.js";
 import { aRestaurar } from "./restaurar.js";
+import { urlFuenteConfiable } from "./url-fuente.js";
 import {
   abrirCorrida,
   asegurarComercio,
@@ -35,8 +36,12 @@ import { reversaIde } from "./geo/ide.js";
 import { geocodificar } from "./geo/index.js";
 import { limpiarDireccion, puntoConfiable } from "./geo/direccion.js";
 import { slugDepartamento } from "./geo/departamentos.js";
+import { dentroDeUruguay } from "./geo/tipos.js";
 import type { BeneficioNormalizado, UsoModelo } from "@tarjetazo/core";
 import { PaginaPendiente, type Crudo, type DireccionDeFuente, type Extraido, type SucursalDeFuente } from "./tipos.js";
+
+/** Debajo de esto una fuente puede crecer sin que el tope de páginas la frene. */
+const TOPE_MINIMO_PAGINAS = 300;
 
 /**
  * El modelo no responde por falta de saldo ("Your credit balance is too low").
@@ -189,7 +194,14 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
     const crudos = (await fetch()).slice(0, limite ?? Infinity);
     reporte.paginas = crudos.length;
 
-    const previos = await hashesGuardados(db, fuenteId);
+    const { normalizadas: previos, guardados: hashesCrudos } = await hashesGuardados(db, fuenteId);
+    // El simétrico del freno de abajo: si un día el listado trae muchas más
+    // páginas que las conocidas, algo raro pasa en la fuente y no se guarda
+    // nada. Una fuente nueva (sin páginas guardadas) no tiene contra qué compararse.
+    const tope = Math.max(TOPE_MINIMO_PAGINAS, hashesCrudos.size * 3);
+    if (hashesCrudos.size > 0 && crudos.length > tope) {
+      throw new Error(`el fetch trajo ${crudos.length} páginas contra ${hashesCrudos.size} conocidas (tope ${tope}): no se procesa`);
+    }
     const existentes = await idsDeBeneficios(db, fuenteId);
     const descartados = await idsDescartados(db, fuenteId);
     const tramosPrevios = await tramosGuardados(db, fuenteId);
@@ -261,6 +273,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
           }
           continue;
         }
+        if (!Number.isFinite(s.lat) || !Number.isFinite(s.lng) || !dentroDeUruguay(s.lat, s.lng)) continue;
         const r = await reversaIde(s.lat, s.lng);
         const departamento = slugDepartamento(r?.departamento ?? null);
         locales.set(clave, departamento);
@@ -325,7 +338,9 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       return guardarSucursalesDeFuente(db, comercioKey, filas);
     }
 
-    async function procesarPagina(crudo: Crudo) {
+    async function procesarPagina(original: Crudo) {
+      const crudo = { ...original, url_fuente: urlFuenteConfiable(fuenteId, original.url_fuente) };
+      if (crudo.url_fuente !== original.url_fuente) console.error(`  ${crudo.external_id}: url_fuente fuera de la fuente (${original.url_fuente})`);
       const h = await hash(crudo.contenido);
       const sinCambios = previos.get(crudo.external_id) === h;
 
@@ -433,6 +448,7 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
       // fecha del pie) y dejar los mismos beneficios. Solo lo nuevo o distinto
       // queda marcado con esta corrida (#19).
       const antes = await tramosDePagina(db, fuenteId, crudo.external_id);
+      const mismoContenido = hashesCrudos.get(crudo.external_id) === h;
       const filas = extraido.beneficios.map((b, n) => {
         const id = idBeneficio(fuenteId, crudo.external_id, n);
         const base = {
@@ -445,9 +461,14 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         };
         const previo = antes.get(id);
         // Lo que ocultó el admin sigue oculto mientras el banco publique lo
-        // mismo (volver a normalizar la página no alcanza para mostrarlo).
+        // mismo (volver a normalizar la página no alcanza para mostrarlo). Si
+        // el contenido de la página es el de antes, sigue oculto aunque cambien
+        // los campos que salen de las reglas del backoffice (tarjetas asignadas,
+        // departamentos de los locales).
         const fila =
-          previo && previo.firma === firmaTramo({ ...base, estado_revision: "oculto" })
+          previo &&
+          (previo.firma === firmaTramo({ ...base, estado_revision: "oculto" }) ||
+            (previo.oculto && mismoContenido))
             ? { ...base, estado_revision: "oculto" as const }
             : base;
         const cambio = !previo
