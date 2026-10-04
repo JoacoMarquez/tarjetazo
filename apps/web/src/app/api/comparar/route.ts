@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorInterno } from "@/lib/error-interno";
 import { CATEGORIAS, Departamento } from "@tarjetazo/core";
 import { comparar } from "@/lib/comparar";
 
@@ -18,6 +19,6 @@ export async function GET(request: Request) {
       { headers: { "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400" } },
     );
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return errorInterno("/api/comparar", e);
   }
 }

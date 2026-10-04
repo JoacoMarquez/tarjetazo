@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorInterno } from "@/lib/error-interno";
 import { listarBeneficios, type BeneficioListado } from "@/lib/consultas";
 import { FILTROS_VACIOS } from "@/lib/filtros";
 import { createSupabaseClient } from "@/lib/supabase";
@@ -16,6 +17,7 @@ export interface ComercioFavorito {
 }
 
 const MAXIMO = 60;
+const EN_PARALELO = 6;
 const KEY = /^[a-z0-9-]{1,120}$/;
 
 /**
@@ -45,14 +47,18 @@ export async function GET(request: Request) {
       (filas ?? []).map((c) => [c.key as string, c as { key: string; nombre: string; categoria: string; logo_url: string | null }]),
     );
 
-    const beneficios = new Map(
+    // Una consulta por comercio, pero de a `EN_PARALELO`: con 60 favoritos no
+    // salen 60 juntas.
+    const keys = [...porKey.keys()];
+    const beneficios = new Map<string, BeneficioListado[]>();
+    for (let i = 0; i < keys.length; i += EN_PARALELO) {
       await Promise.all(
-        [...porKey.keys()].map(async (key) => {
+        keys.slice(i, i + EN_PARALELO).map(async (key) => {
           const r = await listarBeneficios({ ...FILTROS_VACIOS, comercio: key }, 0, 20);
-          return [key, r.beneficios] as const;
+          beneficios.set(key, r.beneficios);
         }),
-      ),
-    );
+      );
+    }
 
     const comercios: ComercioFavorito[] = [];
     for (const guardada of guardadas) {
@@ -72,6 +78,6 @@ export async function GET(request: Request) {
       { headers: { "cache-control": "public, s-maxage=300, stale-while-revalidate=3600" } },
     );
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return errorInterno("/api/favoritos", e);
   }
 }

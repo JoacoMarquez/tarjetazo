@@ -25,6 +25,8 @@ const ORIGEN: Record<string, string> = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  // Corre aparte del layout: sin esto, la lectura con service role no tiene guardia.
+  await exigirAdmin();
   const key = decodeURIComponent((await params).key);
   const { data } = await createSupabaseAdmin().from("comercio").select("nombre").eq("key", key).maybeSingle<{ nombre: string }>();
   return { title: data?.nombre ?? key };

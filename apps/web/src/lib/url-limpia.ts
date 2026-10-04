@@ -38,10 +38,38 @@ export function urlSinTokens(valor: string): string {
   return cambio ? url.toString() : valor;
 }
 
-/** Aplica `urlSinTokens` a todas las propiedades de texto de un evento. */
+/** Las rutas internas no deben salir en las métricas del sitio público. */
+export function esRutaAdmin(valor: string): boolean {
+  try {
+    const pathname = new URL(valor, "https://tarjetazo.uy").pathname;
+    return pathname === "/admin" || pathname.startsWith("/admin/");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Deja un evento listo para la analítica: `urlSinTokens` en todas las
+ * propiedades de texto y nada de /admin en las que arrastran la página
+ * anterior. Los mapas de calor se juntan en el navegador y salen con el
+ * próximo evento, con las URLs como claves: un rato en /admin y la vuelta a una
+ * página pública alcanzan para que viajen.
+ */
 export function propiedadesSinTokens<T extends Record<string, unknown>>(props: T): T {
-  for (const [k, v] of Object.entries(props)) {
-    if (typeof v === "string" && /^https?:\/\//.test(v)) (props as Record<string, unknown>)[k] = urlSinTokens(v);
+  const p = props as Record<string, unknown>;
+  for (const [k, v] of Object.entries(p)) {
+    if (typeof v === "string" && /^https?:\/\//.test(v)) p[k] = urlSinTokens(v);
+  }
+  const anterior = p.$prev_pageview_pathname;
+  if (typeof anterior === "string" && esRutaAdmin(anterior)) {
+    for (const k of Object.keys(p)) if (k.startsWith("$prev_pageview_")) delete p[k];
+  }
+  const calor = p.$heatmap_data;
+  if (calor && typeof calor === "object" && !Array.isArray(calor)) {
+    const limpio: Record<string, unknown> = {};
+    for (const [url, datos] of Object.entries(calor)) if (!esRutaAdmin(url)) limpio[urlSinTokens(url)] = datos;
+    if (Object.keys(limpio).length > 0) p.$heatmap_data = limpio;
+    else delete p.$heatmap_data;
   }
   return props;
 }
