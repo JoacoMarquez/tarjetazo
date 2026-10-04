@@ -124,7 +124,7 @@ export async function sugerirInfoDeOsm(
     const porTipo = new Map<string, string[]>();
     for (const l of lote) {
       const [tipo, id] = l.osm_id.split("/");
-      if (!tipo || !id || !/^\d+$/.test(id)) continue;
+      if (!tipo || !/^(node|way|relation)$/.test(tipo) || !id || !/^\d+$/.test(id)) continue;
       porTipo.set(tipo, [...(porTipo.get(tipo) ?? []), id]);
     }
     const partes = [...porTipo].map(([tipo, ids]) => `${tipo}(id:${ids.join(",")});`).join("");

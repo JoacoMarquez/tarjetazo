@@ -35,30 +35,58 @@ export function crearCliente(): SupabaseClient {
   return createClient(origenSupabase(url), key, { auth: { persistSession: false } });
 }
 
+/**
+ * Todas las filas de una consulta, de a 1.000: PostgREST corta ahí y una
+ * lectura que se queda corta hace que las páginas parezcan cambiadas en cada
+ * corrida y que lo que falta nunca se dé de baja. `consulta` recibe el rango y
+ * tiene que ordenar por una columna única.
+ */
+async function todasLasFilas<T>(
+  descripcion: string,
+  consulta: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await consulta(desde, desde + 999);
+    if (error) throw new Error(`${descripcion}: ${error.message}`);
+    out.push(...(data ?? []));
+    if ((data ?? []).length < 1000) return out;
+  }
+}
+
 
 /**
  * Hashes de las páginas que ya pasaron por el normalizador. Una página que
  * solo se bajó (`--solo-fetch`) o que se marcó para re-normalizar tiene
  * `normalizada_en` en null y no cuenta: si contara, la corrida siguiente la
  * vería "sin cambios" y no la normalizaría nunca.
+ *
+ * `guardados` sí las incluye: es el contenido que el banco publicaba la última
+ * vez, haya pasado o no por el normalizador.
  */
 export async function hashesGuardados(
   db: SupabaseClient,
   fuenteId: string,
-): Promise<Map<string, string>> {
-  const { data, error } = await db
-    .from("pagina_cruda")
-    .select("external_id, hash, normalizada_en")
-    .eq("fuente_id", fuenteId);
-  if (error) throw new Error(`leyendo pagina_cruda: ${error.message}`);
+): Promise<{ normalizadas: Map<string, string>; guardados: Map<string, string> }> {
+  const data = await todasLasFilas("leyendo pagina_cruda", (desde, hasta) =>
+    db
+      .from("pagina_cruda")
+      .select("external_id, hash, normalizada_en")
+      .eq("fuente_id", fuenteId)
+      .order("external_id")
+      .range(desde, hasta),
+  );
   // Sin atajos: no hay forma de distinguir "falta el backfill" de páginas que
   // están legítimamente pendientes (una fuente nueva bajada con --solo-fetch).
   // El backfill de las filas viejas es la migración 20260924120000.
-  return new Map(
-    (data ?? [])
-      .filter((r) => r.normalizada_en !== null)
-      .map((r) => [r.external_id as string, r.hash as string]),
-  );
+  return {
+    normalizadas: new Map(
+      data
+        .filter((r) => r.normalizada_en !== null)
+        .map((r) => [r.external_id as string, r.hash as string]),
+    ),
+    guardados: new Map(data.map((r) => [r.external_id as string, r.hash as string])),
+  };
 }
 
 export async function guardarPagina(
@@ -132,16 +160,19 @@ export async function idsDeBeneficios(
   db: SupabaseClient,
   fuenteId: string,
 ): Promise<Set<string>> {
-  const { data, error } = await db
-    .from("beneficio")
-    .select("id")
-    .eq("fuente_id", fuenteId)
-    // Ni lo ya dado de baja ni lo que ocultó el admin: no son bajas nuevas.
-    .not("estado_revision", "in", "(descartado,oculto)")
-    // Los cargados a mano no son de ninguna página: el runner no los da de baja.
-    .eq("origen", "scraper");
-  if (error) throw new Error(`leyendo beneficios: ${error.message}`);
-  return new Set((data ?? []).map((r) => r.id as string));
+  const data = await todasLasFilas("leyendo beneficios", (desde, hasta) =>
+    db
+      .from("beneficio")
+      .select("id")
+      .eq("fuente_id", fuenteId)
+      // Ni lo ya dado de baja ni lo que ocultó el admin: no son bajas nuevas.
+      .not("estado_revision", "in", "(descartado,oculto)")
+      // Los cargados a mano no son de ninguna página: el runner no los da de baja.
+      .eq("origen", "scraper")
+      .order("id")
+      .range(desde, hasta),
+  );
+  return new Set(data.map((r) => r.id as string));
 }
 
 /**
@@ -210,14 +241,17 @@ export async function idsDescartados(db: SupabaseClient, fuenteId: string): Prom
  * los de índice menor a este número.
  */
 export async function tramosGuardados(db: SupabaseClient, fuenteId: string): Promise<Map<string, number>> {
-  const { data, error } = await db
-    .from("pagina_cruda")
-    .select("external_id, tramos")
-    .eq("fuente_id", fuenteId)
-    .eq("resultado", "beneficios")
-    .not("tramos", "is", null);
-  if (error) throw new Error(`leyendo tramos: ${error.message}`);
-  return new Map((data ?? []).map((r) => [r.external_id as string, Number(r.tramos)]));
+  const data = await todasLasFilas("leyendo tramos", (desde, hasta) =>
+    db
+      .from("pagina_cruda")
+      .select("external_id, tramos")
+      .eq("fuente_id", fuenteId)
+      .eq("resultado", "beneficios")
+      .not("tramos", "is", null)
+      .order("external_id")
+      .range(desde, hasta),
+  );
+  return new Map(data.map((r) => [r.external_id as string, Number(r.tramos)]));
 }
 
 /** Vuelve a publicar beneficios que se habían dado de baja (ver `aRestaurar`). */
@@ -255,7 +289,7 @@ export function firmaTramo(b: Record<string, unknown>): string {
   );
 }
 
-export type TramoGuardado = { firma: string; corrida_id: string | null; cambio: string | null };
+export type TramoGuardado = { firma: string; corrida_id: string | null; cambio: string | null; oculto: boolean };
 
 /** Los tramos que tiene hoy una página, para comparar con los que salen de normalizarla. */
 export async function tramosDePagina(
@@ -276,7 +310,12 @@ export async function tramosDePagina(
       const fila = r as unknown as Record<string, unknown>;
       return [
         fila.id as string,
-        { firma: firmaTramo(fila), corrida_id: (fila.corrida_id as string) ?? null, cambio: (fila.cambio as string) ?? null },
+        {
+          firma: firmaTramo(fila),
+          corrida_id: (fila.corrida_id as string) ?? null,
+          cambio: (fila.cambio as string) ?? null,
+          oculto: fila.estado_revision === "oculto",
+        },
       ];
     }),
   );
