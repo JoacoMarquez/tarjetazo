@@ -48,12 +48,18 @@ async function main() {
       continue;
     }
     // Lo que la página tenía y ya no está se da de baja, como en una corrida.
+    // Lo oculto por el admin no se toca: pasado a descartado, la restauración
+    // de #48 lo volvería a publicar.
+    // `_` y `%` son comodines de LIKE: sin escaparlos se mezclan páginas vecinas.
+    const esc = (t: string) => t.replace(/[\\%_]/g, (c) => `\\${c}`);
     const { data: antes } = await db
-      .from("beneficio").select("id")
-      .like("id", `${p.fuente_id}:${p.external_id}:%`)
+      .from("beneficio").select("id, estado_revision")
+      .eq("fuente_id", p.fuente_id)
+      .like("id", `${esc(p.fuente_id)}:${esc(p.external_id)}:%`)
       .neq("estado_revision", "descartado");
+    const ocultos = new Set((antes ?? []).filter((b) => b.estado_revision === "oculto").map((b) => b.id as string));
     const darDeBaja = async (quedan: Set<string>) => {
-      const ids = (antes ?? []).map((b) => b.id as string).filter((id) => !quedan.has(id));
+      const ids = (antes ?? []).map((b) => b.id as string).filter((id) => !quedan.has(id) && !ocultos.has(id));
       if (ids.length === 0) return;
       await db.from("beneficio")
         .update({ estado_revision: "descartado", cambio: "baja", updated_at: new Date().toISOString() })
@@ -68,7 +74,11 @@ async function main() {
       await marcar("no_es_beneficio", 0);
       continue;
     }
-    const comercio_key = slugificar(p.comercio.nombre);
+    // Un comercio fusionado desde el backoffice se escribe en el que quedó,
+    // como en una corrida (#25).
+    const slug = slugificar(p.comercio.nombre);
+    const { data: alias } = await db.from("comercio_alias").select("comercio_key").eq("alias_key", slug).maybeSingle();
+    const comercio_key = (alias?.comercio_key as string | undefined) ?? slug;
     const filas = [];
     for (const [n, t] of p.tramos.entries()) {
       const parsed = BeneficioNormalizadoSchema.safeParse({ ...t, comercio_key: t.comercio_key ?? comercio_key, url_fuente: p.url_fuente });
@@ -77,12 +87,13 @@ async function main() {
         console.error(`  ${p.external_id} tramo ${n}: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
         continue;
       }
+      const id = `${p.fuente_id}:${p.external_id}:${n}`;
       filas.push({
         ...parsed.data,
-        id: `${p.fuente_id}:${p.external_id}:${n}`,
+        id,
         fuente_id: p.fuente_id,
         fetched_at: new Date().toISOString(),
-        estado_revision: "ok" as const,
+        estado_revision: ocultos.has(id) ? ("oculto" as const) : ("ok" as const),
         updated_at: new Date().toISOString(),
       });
     }
