@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorInterno } from "@/lib/error-interno";
 import { buscarComercios } from "@/lib/consultas";
 import { FILTROS_VACIOS, leerFiltros } from "@/lib/filtros";
 import { createSupabaseServicio } from "@/lib/supabase-servicio";
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
     if (resultados.length === 0) await anotarSiFalta(q, filtros);
     return NextResponse.json({ resultados });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return errorInterno("/api/buscar", e);
   }
 }
 

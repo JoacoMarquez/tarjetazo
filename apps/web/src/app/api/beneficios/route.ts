@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorInterno } from "@/lib/error-interno";
 import { leerFiltros } from "@/lib/filtros";
 import { listarBeneficios } from "@/lib/consultas";
 
@@ -11,6 +12,6 @@ export async function GET(request: Request) {
       headers: { "cache-control": "public, s-maxage=300, stale-while-revalidate=3600" },
     });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return errorInterno("/api/beneficios", e);
   }
 }
