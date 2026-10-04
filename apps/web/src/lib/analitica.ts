@@ -1,19 +1,11 @@
 "use client";
 
 import posthog from "posthog-js";
-import { propiedadesSinTokens } from "./url-limpia";
+import { esRutaAdmin, propiedadesSinTokens } from "./url-limpia";
+
+export { esRutaAdmin };
 
 let iniciado = false;
-
-/** Las rutas internas no deben salir en las métricas del sitio público. */
-export function esRutaAdmin(valor: string): boolean {
-  try {
-    const pathname = new URL(valor, "https://tarjetazo.uy").pathname;
-    return pathname === "/admin" || pathname.startsWith("/admin/");
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Métricas anónimas (#114): visitas, de dónde vienen, clicks, embudos, mapas de
@@ -22,8 +14,9 @@ export function esRutaAdmin(valor: string): boolean {
  * rota cada día (`cookieless_mode`), así que no hace falta pedir consentimiento.
  * Se respeta "Do Not Track". Si no hay clave configurada, todo esto es un no-op.
  *
- * Los pedidos salen por `/ingest` (un rewrite a PostHog en `next.config.ts`):
- * los bloqueadores de anuncios cortan los dominios de PostHog y sin esto
+ * Los pedidos salen por `/ingest` (el proxy de `app/ingest/[...ruta]/route.ts`,
+ * que además saca las cookies; no reemplazarlo por un rewrite): los
+ * bloqueadores de anuncios cortan los dominios de PostHog y sin esto
  * perderíamos buena parte del tráfico.
  */
 export function iniciarAnalitica() {
@@ -56,7 +49,8 @@ export function iniciarAnalitica() {
     before_send: (captura) => {
       const url = captura?.properties.$current_url;
       if (typeof url === "string" && esRutaAdmin(url)) return null;
-      // Un link de login o recuperación trae ?code= o #access_token=: no se manda.
+      // Un link de login o recuperación trae ?code= o #access_token=: no se
+      // manda. Tampoco lo de /admin que arrastran los mapas de calor.
       if (captura?.properties) propiedadesSinTokens(captura.properties);
       return captura;
     },

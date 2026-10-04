@@ -21,4 +21,19 @@ describe("URLs sin tokens para la analítica", () => {
     const p = propiedadesSinTokens({ $current_url: "https://a.uy/?code=1", $referrer: "https://a.uy/login?error=e", n: 3 });
     assert.deepEqual(p, { $current_url: "https://a.uy/", $referrer: "https://a.uy/login", n: 3 });
   });
+
+  it("no deja /admin en la página anterior ni en los mapas de calor", () => {
+    const p = propiedadesSinTokens({
+      $current_url: "https://a.uy/",
+      $prev_pageview_pathname: "/admin/beneficios",
+      $prev_pageview_duration: 12,
+      $heatmap_data: { "https://a.uy/admin/beneficios?q=x": [1], "https://a.uy/?code=1": [2] },
+    });
+    assert.deepEqual(p, { $current_url: "https://a.uy/", $heatmap_data: { "https://a.uy/": [2] } });
+  });
+
+  it("si los mapas de calor eran todos de /admin, no viajan", () => {
+    const p = propiedadesSinTokens({ $prev_pageview_pathname: "/comparar", $heatmap_data: { "https://a.uy/admin": [1] } });
+    assert.deepEqual(p, { $prev_pageview_pathname: "/comparar" });
+  });
 });

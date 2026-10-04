@@ -49,6 +49,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** El dominio para mostrar; un valor cargado a mano que no es URL no rompe la página. */
+function dominio(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
 function diasLegibles(dias: number[]) {
   if (dias.length === 0 || dias.length === 7) return "todos los días";
   return dias.map((d) => NOMBRES_DIA[d]!.slice(0, 3)).join(", ");
@@ -101,6 +110,7 @@ export default async function PaginaComercio({ params }: Props) {
   const conGemelos =
     mejorHoy != null &&
     hoy.some((b) => b !== mejorHoy && b.fuente_id === mejorHoy.fuente_id && cifra(b) === cifra(mejorHoy) && b.titulo !== mejorHoy.titulo);
+  const sitio = comercio.sitio_web ? dominio(comercio.sitio_web) : null;
   const porFuente = new Map<string, BeneficioFicha[]>();
   for (const b of beneficios) porFuente.set(b.fuente_id, [...(porFuente.get(b.fuente_id) ?? []), b]);
   const [relacionados, delRubro] = await Promise.all([
@@ -163,11 +173,11 @@ export default async function PaginaComercio({ params }: Props) {
                 {porFuente.size} {porFuente.size === 1 ? "fuente" : "fuentes"}
                 {sucursales.length > 0 && ` · ${sucursales.length} ${sucursales.length === 1 ? "local" : "locales"}`}
               </p>
-              {(comercio.sitio_web || comercio.instagram) && (
+              {(sitio || comercio.instagram) && (
                 <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                  {comercio.sitio_web && (
-                    <LinkSaliente href={comercio.sitio_web} fuente="comercio" desde="comercio" className="text-cielo inline-flex items-center gap-1 hover:underline">
-                      <Globe className="size-3.5" /> {new URL(comercio.sitio_web).hostname.replace(/^www\./, "")}
+                  {sitio && (
+                    <LinkSaliente href={comercio.sitio_web!} fuente="comercio" desde="comercio" className="text-cielo inline-flex items-center gap-1 hover:underline">
+                      <Globe className="size-3.5" /> {sitio}
                     </LinkSaliente>
                   )}
                   {comercio.instagram && (
