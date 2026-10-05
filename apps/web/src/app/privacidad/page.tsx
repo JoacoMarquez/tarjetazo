@@ -37,7 +37,8 @@ export default function Privacidad() {
         <h2>Métricas de uso</h2>
         <p className="mt-2">
           Para saber qué mejorar medimos cómo se usa el sitio: cuántas visitas tiene cada página,
-          de qué sitio o campaña llegan, en qué dispositivo y país, dónde se hace clic, qué
+          de qué sitio o campaña llegan, en qué dispositivo, desde qué país y ciudad (aproximados,
+          sin guardar tu dirección IP), dónde se hace clic, qué
           filtros se aplican y qué tarjetas se agregan. También grabamos algunas visitas para ver
           dónde la gente se traba; en esas grabaciones lo que escribís (por ejemplo, en el
           buscador) aparece tapado.

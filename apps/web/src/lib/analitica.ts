@@ -2,10 +2,35 @@
 
 import posthog from "posthog-js";
 import { esRutaAdmin, propiedadesSinTokens } from "./url-limpia";
+import { propiedadesDeUbicacion, type Ubicacion } from "./ubicacion";
 
 export { esRutaAdmin };
 
 let iniciado = false;
+let arrancando = false;
+let ubicacion: Record<string, string> = {};
+
+/**
+ * País y ciudad aproximados (`/api/ubicacion`, de las cabeceras de Vercel):
+ * PostHog descarta la IP y sin ella no puede ubicar la visita. Uno por
+ * pestaña; si tarda o falla, se mide igual sin ubicación.
+ */
+async function leerUbicacion(): Promise<Record<string, string>> {
+  try {
+    const guardada = sessionStorage.getItem("tz-ubicacion");
+    if (guardada) return JSON.parse(guardada) as Record<string, string>;
+  } catch {}
+  try {
+    const r = await fetch("/api/ubicacion", { signal: AbortSignal.timeout(1500) });
+    const props = propiedadesDeUbicacion((await r.json()) as Ubicacion);
+    try {
+      sessionStorage.setItem("tz-ubicacion", JSON.stringify(props));
+    } catch {}
+    return props;
+  } catch {
+    return {};
+  }
+}
 
 /**
  * Métricas anónimas (#114): visitas, de dónde vienen, clicks, embudos, mapas de
@@ -19,8 +44,8 @@ let iniciado = false;
  * bloqueadores de anuncios cortan los dominios de PostHog y sin esto
  * perderíamos buena parte del tráfico.
  */
-export function iniciarAnalitica() {
-  if (iniciado || typeof window === "undefined") return;
+export async function iniciarAnalitica() {
+  if (iniciado || arrancando || typeof window === "undefined") return;
   const clave = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   if (!clave) return;
   // `window.doNotTrack` es la variante vieja de la señal y no está en los tipos
@@ -28,6 +53,10 @@ export function iniciarAnalitica() {
   const dnt =
     navigator.doNotTrack ?? (window as { doNotTrack?: string }).doNotTrack ?? null;
   if (dnt === "1" || dnt === "yes") return;
+
+  // Antes de iniciar, para que la primera página vista ya la lleve.
+  arrancando = true;
+  ubicacion = await leerUbicacion();
 
   posthog.init(clave, {
     api_host: "/ingest",
@@ -51,7 +80,10 @@ export function iniciarAnalitica() {
       if (typeof url === "string" && esRutaAdmin(url)) return null;
       // Un link de login o recuperación trae ?code= o #access_token=: no se
       // manda. Tampoco lo de /admin que arrastran los mapas de calor.
-      if (captura?.properties) propiedadesSinTokens(captura.properties);
+      if (captura?.properties) {
+        propiedadesSinTokens(captura.properties);
+        Object.assign(captura.properties, ubicacion);
+      }
       return captura;
     },
   });
