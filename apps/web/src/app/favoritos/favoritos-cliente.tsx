@@ -87,6 +87,8 @@ export function FavoritosCliente() {
   return (
     <div className="mt-8 flex flex-col gap-4">
       {comercios.map((c) => {
+        // Una respuesta cacheada de antes del deploy no trae `total`.
+        const total = c.total ?? c.beneficios.length;
         const beneficios = [...c.beneficios].sort((a, b) => Number(esParaVos(b)) - Number(esParaVos(a)));
         return (
           <section key={c.key} className="border-linea bg-card rounded-2xl border p-4">
@@ -99,7 +101,7 @@ export function FavoritosCliente() {
                   </Link>
                 </h2>
                 <p className="text-humo text-xs">
-                  {LABEL_CATEGORIA.get(c.categoria) ?? c.categoria} · {beneficios.length === 0 ? "sin descuentos vigentes" : `${beneficios.length} ${beneficios.length === 1 ? "descuento" : "descuentos"}`}
+                  {LABEL_CATEGORIA.get(c.categoria) ?? c.categoria} · {total === 0 ? "sin descuentos vigentes" : `${total} ${total === 1 ? "descuento" : "descuentos"}`}
                 </p>
               </div>
               <BotonFavorito comercioKey={c.guardada} nombre={c.nombre} compacto />
@@ -131,9 +133,9 @@ export function FavoritosCliente() {
                 })}
               </ul>
             )}
-            {beneficios.length > POR_COMERCIO && (
+            {total > POR_COMERCIO && (
               <Link href={`/comercio/${c.key}`} className="text-cielo mt-2 inline-block text-sm hover:underline">
-                Ver los {beneficios.length} descuentos
+                Ver los {total} descuentos
               </Link>
             )}
           </section>

@@ -85,6 +85,13 @@ const INSTRUMENTOS: Record<Instrumento, string> = {
   membresia: "Socio",
 };
 
+/** "Santander · Crédito": de qué banco es y qué tipo de tarjeta. */
+export function bancoYTipo(p: Producto): string {
+  const banco = FUENTE_POR_ID[p.fuente_id]?.nombre;
+  const tipo = INSTRUMENTOS[p.instrumento];
+  return banco ? `${banco} · ${tipo}` : tipo;
+}
+
 /** "Visa · Crédito"; con red propia queda el nombre de la fuente ("OCA · Crédito"). */
 export function pieDeTarjeta(p: Producto): string {
   const red = REDES[p.red] || FUENTE_POR_ID[p.fuente_id]?.nombre || "";

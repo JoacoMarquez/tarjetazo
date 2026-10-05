@@ -95,7 +95,7 @@ export default async function PaginaRubro({ params }: Props) {
             <ul className="divide-linea border-linea bg-card mt-3 divide-y rounded-md border">
               {fuentes.map((r) => (
                 <li key={r.fuente_id}>
-                  <Link href={`/app?bancos=${r.fuente_id}&cat=${slug}`} className="hover:bg-secondary flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <Link href={`/app?bancos=${r.fuente_id}&cat=${slug}`} className="hover:bg-secondary flex flex-col gap-0.5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <span className="font-medium">{r.fuente_nombre}</span>
                     <span className="text-humo">
                       {r.n_beneficios} {r.n_beneficios === 1 ? "beneficio" : "beneficios"} en {r.n_comercios} {r.n_comercios === 1 ? "comercio" : "comercios"}

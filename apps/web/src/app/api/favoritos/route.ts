@@ -14,6 +14,8 @@ export interface ComercioFavorito {
   categoria: string;
   logo_url: string | null;
   beneficios: BeneficioListado[];
+  /** Cuántos tiene vigentes; `beneficios` trae solo los primeros. */
+  total: number;
 }
 
 const MAXIMO = 60;
@@ -50,12 +52,12 @@ export async function GET(request: Request) {
     // Una consulta por comercio, pero de a `EN_PARALELO`: con 60 favoritos no
     // salen 60 juntas.
     const keys = [...porKey.keys()];
-    const beneficios = new Map<string, BeneficioListado[]>();
+    const beneficios = new Map<string, { beneficios: BeneficioListado[]; total: number }>();
     for (let i = 0; i < keys.length; i += EN_PARALELO) {
       await Promise.all(
         keys.slice(i, i + EN_PARALELO).map(async (key) => {
           const r = await listarBeneficios({ ...FILTROS_VACIOS, comercio: key }, 0, 20);
-          beneficios.set(key, r.beneficios);
+          beneficios.set(key, { beneficios: r.beneficios, total: Number(r.total) });
         }),
       );
     }
@@ -70,7 +72,8 @@ export async function GET(request: Request) {
         nombre: c.nombre,
         categoria: c.categoria,
         logo_url: c.logo_url,
-        beneficios: beneficios.get(c.key) ?? [],
+        beneficios: beneficios.get(c.key)?.beneficios ?? [],
+        total: beneficios.get(c.key)?.total ?? 0,
       });
     }
     return NextResponse.json(

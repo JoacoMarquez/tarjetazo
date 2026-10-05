@@ -175,9 +175,8 @@ export default async function PaginaTarjeta({ params }: Props) {
       <JsonLd datos={jsonLd} />
       <main className="mx-auto max-w-4xl px-5 pt-8 pb-24 md:pb-12">
         <nav aria-label="Migas" className="text-humo text-xs">
-          <Link href={`/banco/${fuente.id}`} className="hover:underline">{fuente.nombre}</Link>
-          <span aria-hidden> / </span>
-          <span>Tarjetas</span>
+          <Link href="/tarjetas" className="hover:underline">Tarjetas</Link>{" › "}
+          <Link href={`/tarjetas?banco=${fuente.id}`} className="hover:underline">{fuente.nombre}</Link>
         </nav>
 
         <div className="mt-4 grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">

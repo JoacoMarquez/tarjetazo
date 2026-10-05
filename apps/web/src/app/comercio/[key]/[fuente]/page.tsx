@@ -179,7 +179,7 @@ export default async function PaginaBeneficio({ params }: Props) {
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-8 md:pb-12">
         <nav aria-label="Migas" className="text-humo text-xs">
           <Link href="/app" className="hover:underline">Beneficios</Link>{" › "}
-          <Link href={`/app?cat=${comercio.categoria}`} className="hover:underline">{labelCategoria(comercio.categoria)}</Link>{" › "}
+          <Link href={comercio.categoria === "otros" ? "/app?cat=otros" : `/rubro/${comercio.categoria}`} className="hover:underline">{labelCategoria(comercio.categoria)}</Link>{" › "}
           <Link href={`/comercio/${key}`} className="hover:underline">{comercio.nombre}</Link>
         </nav>
 
