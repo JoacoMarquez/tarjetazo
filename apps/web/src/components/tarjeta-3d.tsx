@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FotoTarjeta } from "@/components/foto-tarjeta";
 import { cn } from "@/lib/utils";
 
 /** Proporción de una tarjeta ISO/IEC 7810 ID-1: 85,60 × 53,98 mm. */
@@ -81,10 +82,9 @@ function Cara({ src, alt, brillo, className }: { src: string | null; alt: string
       )}
     >
       {src ? (
-        // Fotos del bucket de Supabase: sin optimizador de Next. Ya vienen
-        // horizontales y recortadas a la tarjeta (#72).
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} className="size-full object-cover" draggable={false} />
+        // Ya vienen horizontales y recortadas a la tarjeta (#72). Es la foto
+        // grande de la ficha: hasta ~384 px de ancho.
+        <FotoTarjeta src={src} alt={alt} sizes="(max-width: 640px) 90vw, 400px" prioritaria />
       ) : (
         <span className="text-humo-oscuro grid size-full place-items-center text-sm">Sin foto</span>
       )}

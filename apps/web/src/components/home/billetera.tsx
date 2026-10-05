@@ -2,6 +2,7 @@
 
 import { FUENTES, familiaDe, type Producto } from "@tarjetazo/core";
 import { useBilletera } from "@/lib/billetera";
+import { FotoTarjeta } from "@/components/foto-tarjeta";
 import {
   FUENTE_POR_ID,
   GRADIENTE,
@@ -23,14 +24,7 @@ const SUAVE = "cubic-bezier(.2,.8,.2,1)";
  */
 function Foto({ src, alt }: { src: string; alt: string }) {
   return (
-    // Fotos del bucket de Supabase: sin optimizador de Next.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      draggable={false}
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }}
-    />
+    <FotoTarjeta src={src} alt={alt} sizes="320px" style={{ borderRadius: "inherit" }} />
   );
 }
 

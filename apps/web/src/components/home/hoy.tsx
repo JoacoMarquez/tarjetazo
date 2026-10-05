@@ -7,6 +7,7 @@ import { useBilletera } from "@/lib/billetera";
 import { alcanceCorto, cifraBeneficio, tarjetaSugerida } from "@/lib/formato";
 import { colorFuente } from "@/lib/marca";
 import { Hasta } from "@/components/hasta";
+import { FotoTarjeta } from "@/components/foto-tarjeta";
 
 /**
  * "Hoy sábado, pagá así": el mejor beneficio del día en cada rubro. Las cards
@@ -61,16 +62,14 @@ export function Hoy({ rubros, fotos, dia }: { rubros: MejorDelRubro[]; fotos: Re
               <div className="flex min-w-0 items-center gap-2.5">
                 {foto ? (
                   // La foto real; apagada si no la tenés, como el punteado del resto del sitio.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={foto}
-                    alt=""
-                    width={44}
-                    height={28}
-                    loading="lazy"
-                    className="h-[28px] w-[44px] flex-none rounded-[4px] object-cover"
-                    style={laTengo ? undefined : { filter: "grayscale(1)", opacity: 0.6 }}
-                  />
+                  <span className="relative h-[28px] w-[44px] flex-none overflow-hidden rounded-[4px]">
+                    <FotoTarjeta
+                      src={foto}
+                      alt=""
+                      sizes="88px"
+                      style={laTengo ? undefined : { filter: "grayscale(1)", opacity: 0.6 }}
+                    />
+                  </span>
                 ) : (
                   <span
                     className="h-[22px] w-[34px] flex-none rounded"

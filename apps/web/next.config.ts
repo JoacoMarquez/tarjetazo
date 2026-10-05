@@ -56,6 +56,16 @@ const CABECERAS = [
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@tarjetazo/core"],
+  images: {
+    // Solo las fotos de tarjeta del bucket público (components/foto-tarjeta.tsx).
+    remotePatterns: [
+      { protocol: "https", hostname: new URL(supabase).hostname, pathname: "/storage/v1/object/public/tarjetas/**" },
+    ],
+    // Cada foto se sube con un nombre nuevo (frente-<hash>): nunca cambia.
+    minimumCacheTTL: 60 * 60 * 24 * 31,
+    // Solo webp: cada formato cuenta como una transformación aparte en Vercel.
+    formats: ["image/webp"],
+  },
   poweredByHeader: false,
   async headers() {
     return [
