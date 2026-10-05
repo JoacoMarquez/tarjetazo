@@ -2,7 +2,7 @@ import { RUBROS_ENTEROS, keyDeRubro, type BeneficioNormalizado } from "@tarjetaz
 import { bajarTexto } from "../http.js";
 import { contenidoPrincipal, htmlATexto } from "../texto.js";
 import { slugificar } from "../slug.js";
-import type { Crudo, Extraido } from "../tipos.js";
+import { PaginaPendiente, type Crudo, type Extraido } from "../tipos.js";
 
 /**
  * Nativa (red Cabal, #10). El índice trae todas las promociones server-rendered
@@ -19,7 +19,8 @@ import type { Crudo, Extraido } from "../tipos.js";
  * Varias tarjetas no son de un comercio sino de un rubro ("Farmacias y
  * perfumerías", "Transporte", "Cine"): van al comercio canónico del rubro
  * entero (`todo-farmacias`) o, si no hay rubro entero que les corresponda, no
- * se publican (ver PSEUDO_COMERCIOS).
+ * se publican (ver PSEUDO_COMERCIOS). Otras son un listado de marcas ("12
+ * cuotas", "Aire Acondicionado"): un tramo por marca (ver LISTADOS).
  */
 
 const BASE = "https://www.nativacabal.com.uy";
@@ -134,8 +135,7 @@ const DEPARTAMENTOS: [RegExp, string][] = [
  * Tarjetas cuyo título es un rubro o un listado, no un comercio. Las que
  * corresponden a un rubro entero van a su comercio canónico; las que nombran
  * un solo comercio real, a ese; el resto (rubros sin comercio canónico,
- * listados de marcas, pagos de facturas o tributos, el combustible de
- * frontera) no se publican: un comercio "Zapaterías" o "12 cuotas" sale en los
+ * pagos de facturas o tributos, el combustible de frontera) no se publican: un comercio "Zapaterías" o "12 cuotas" sale en los
  * listados y el mapa como si fuera un local.
  */
 type Destino = { rubro: string } | { nombre: string; categoria: string } | null;
@@ -161,10 +161,9 @@ const PSEUDO_COMERCIOS: [RegExp, Destino][] = [
   [/^mutualistas\b/, { rubro: "mutualistas" }],
   // "Barracas, Ferreterías y Pinturerías".
   [/^pinta, repara y renova tu casa$/, { rubro: "ferreterias" }],
-  // Listados de marcas: "12 cuotas" (Zara, GAP, Farmashop…), "Aire
-  // Acondicionado" (cinco comercios), "Promo 12-1" (el índice filtrado por
-  // "última cuota gratis": cada comercio tiene su tarjeta).
-  [/^(\d+ cuotas|aire acondicionado|promo 12[-+ ]1)$/, null],
+  // "Promo 12-1" es el índice filtrado por "última cuota gratis": cada
+  // comercio tiene su tarjeta.
+  [/^promo 12[-+ ]1$/, null],
   // Facturas y tributos pagados en Abitab o Redpagos: un servicio de la
   // tarjeta, como los débitos automáticos.
   [/^(pago de facturas\b.*|contribucion inmobiliaria)$/, null],
@@ -177,6 +176,65 @@ const PSEUDO_COMERCIOS: [RegExp, Destino][] = [
 
 function destinoDe(titulo: string): Destino | undefined {
   return PSEUDO_COMERCIOS.find(([re]) => re.test(sinAcentos(titulo).trim()))?.[1];
+}
+
+/**
+ * Listados de marcas: "12 cuotas" (Zara, GAP, Farmashop…) y "Aire
+ * Acondicionado" (Tugentman, Ta-Ta…) son la misma promo en cada comercio de la
+ * lista que sigue a "Comercios adheridos:". Va un tramo por comercio, con su
+ * `comercio_key`, y la página no tiene comercio propio. `en` es lo que entra
+ * en cuotas, si no es cualquier compra.
+ */
+const LISTADOS: [RegExp, { en: string | null }][] = [
+  [/^\d+ cuotas$/, { en: null }],
+  [/^aire acondicionado$/, { en: "aire acondicionado" }],
+];
+
+/** Títulos de sección del listado ("VESTIMENTA", "OTROS"): no son comercios. */
+const SECCIONES = /^(vestimenta|indumentaria|calzado|hogar|tecnologia|electrodomesticos|deportes|otros|otras|varios)$/;
+
+/**
+ * Marcas del listado que ya están en el catálogo con otro nombre. Las que
+ * cambian solo en la escritura ("ZonaTecno", "Macro Mercado", "Ta-Ta") las
+ * resuelven los alias del backoffice.
+ */
+const MARCAS: Record<string, { key: string; nombre: string }> = {
+  fama: { key: "fama-hogar", nombre: "Fama Hogar" },
+  "ingeniero-tugentman": { key: "ing-tugentman", nombre: "Ing. Tugentman" },
+  "multi-ahorro": { key: "multiahorro-hogar", nombre: "Multi Ahorro Hogar" },
+};
+
+/**
+ * Los comercios que siguen a "Comercios adheridos:". Una línea que no parece
+ * una marca (un título de sección que no conocemos, una oración) deja la
+ * página pendiente: sus tramos de antes siguen, en vez de publicar un
+ * comercio "JUGUETERÍA".
+ */
+export function comerciosDelListado(detalle: string): { key: string; nombre: string; categoria: string }[] {
+  const lineas = detalle.split("\n").map((l) => l.trim()).filter(Boolean);
+  const i = lineas.findIndex((l) => /^comercios adheridos:?$/.test(sinAcentos(l)));
+  if (i < 0) throw new PaginaPendiente("listado de marcas sin \"Comercios adheridos:\"");
+  let seccion: string | null = null;
+  const out = new Map<string, { key: string; nombre: string; categoria: string }>();
+  for (const l of lineas.slice(i + 1)) {
+    const s = sinAcentos(l);
+    if (SECCIONES.test(s)) {
+      seccion = s;
+      continue;
+    }
+    // "BAS", "CAT", "LOI" son marcas; una palabra larga en mayúsculas, no.
+    if (/\p{Lu}{4}/u.test(l) && l === l.toUpperCase() || l.length > 40 || /[:!?]|\.\s/.test(l)) {
+      throw new PaginaPendiente(`línea dudosa en el listado de marcas: "${l}"`);
+    }
+    const marca = MARCAS[slugificar(l)];
+    const key = marca?.key ?? slugificar(l);
+    if (!key || out.has(key)) continue;
+    const categoria = (seccion && RUBRO.find(([re]) => re.test(seccion!))?.[1]) ??
+      RUBRO.find(([re, c]) => c !== "servicios" && re.test(s))?.[1] ?? "otros";
+    out.set(key, { key, nombre: marca?.nombre ?? l, categoria });
+  }
+  if (out.size === 0) throw new PaginaPendiente("listado de marcas vacío");
+  return [...out.values()];
 }
 
 /** "$2,000", "$ 1.200": el sitio usa coma o punto para los miles. */
@@ -205,6 +263,7 @@ export function normalizarNativa(crudo: Crudo): Extraido {
   const categoria = RUBRO.find(([re]) => re.test(sinAcentos(`${titulo} ${descripcion}`)))?.[1] ??
     RUBRO.find(([re, c]) => c !== "servicios" && re.test(todo))?.[1] ?? "otros";
   const destino = destinoDe(titulo);
+  const listado = LISTADOS.find(([re]) => re.test(sinAcentos(titulo).trim()))?.[1];
   const rubro = destino && "rubro" in destino ? RUBROS_ENTEROS.find((r) => r.id === destino.rubro)! : null;
   const real = destino && "nombre" in destino ? destino : null;
   const comercio =
@@ -218,7 +277,7 @@ export function normalizarNativa(crudo: Crudo): Extraido {
   // Préstamos, retiros, asistencia al viajero: servicios de la tarjeta, no
   // beneficios en un comercio.
   const soloServicios = tipos.length > 0 && tipos.every((t) => t === "productos-y-servicios");
-  if (!comercio || soloServicios || esIndice) {
+  if ((!comercio && !listado) || soloServicios || esIndice) {
     return { crudo, comercio, beneficios: [], productos_desconocidos: [], es_beneficio: false };
   }
 
@@ -235,7 +294,8 @@ export function normalizarNativa(crudo: Crudo): Extraido {
   const tUltima = tope(iUltima > 0 ? detalle.slice(iUltima) : detalle);
   const canal: BeneficioNormalizado["canal"] = /tienda cabal|online|web/.test(sinAcentos(titulo)) ? "online" : "presencial";
   const base = {
-    comercio_key: comercio.key,
+    // El listado pone el de cada marca.
+    comercio_key: comercio?.key ?? "",
     dias_semana: [] as number[],
     vigencia_desde: null,
     vigencia_hasta: null,
@@ -258,6 +318,37 @@ export function normalizarNativa(crudo: Crudo): Extraido {
   const cuotasFicha = sinAcentos(detalle).match(/hasta (?:en )?(\d{1,2}) cuotas/);
   // "50% + 6 CUOTAS": el porcentaje no es un número de cuotas.
   const cuotasPromo = [...p.replace(/\d+(?:[.,]\d+)?\s*%/g, "").matchAll(/\d{1,2}/g)].map((m) => Number(m[0]));
+
+  if (listado) {
+    const comercios = comerciosDelListado(detalle);
+    const n = cuotasPromo.length > 0 ? Math.max(...cuotasPromo) : cuotasFicha ? Number(cuotasFicha[1]) : null;
+    if (!n || n < 2 || n > 36) throw new PaginaPendiente(`listado de marcas sin número de cuotas ("${promo}")`);
+    // "desde 12 hasta 24 cuotas sin recargo": en aire acondicionado, el plan más corto también cuenta.
+    const desde = sinAcentos(detalle).match(/desde (\d{1,2}) hasta (?:en )?\d{1,2} cuotas/)?.[1];
+    const en = listado.en ? ` en ${listado.en}` : "";
+    const tramo = {
+      ...base,
+      titulo: listado.en ? `Hasta ${n} cuotas sin recargo${en}` : `${n} cuotas sin recargo`,
+      descuento_raw: `${desde ? `Desde ${desde} hasta` : "Hasta"} ${n} cuotas sin recargo${en}`,
+      porcentaje: null,
+      cuotas: n,
+      tipo: "cuotas",
+      tope_monto: null,
+      tope_periodo: null,
+      tope_moneda: "UYU",
+      como_usarlo: /verificar la vigencia del plan/.test(sinAcentos(detalle))
+        ? ["Verificá en el comercio la vigencia del plan de cuotas antes de pagar."]
+        : [],
+    } as BeneficioNormalizado;
+    return {
+      crudo,
+      comercio: null,
+      comercios,
+      beneficios: comercios.map((c) => ({ ...tramo, comercio_key: c.key })),
+      productos_desconocidos: [],
+      es_beneficio: true,
+    };
+  }
 
   if (porcentaje && tipos.some((x) => x === "descuentos-y-promos" || x === "acuerdos-nativa")) {
     const pct = porcentaje[1]!.replace(",", ".");
