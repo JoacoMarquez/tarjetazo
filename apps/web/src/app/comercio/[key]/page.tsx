@@ -21,6 +21,7 @@ import {
 import { NOMBRES_DIA, diaEnUruguay } from "@/lib/filtros";
 import { horarioLegible } from "@/lib/horario";
 import { topeCorto } from "@/lib/tope";
+import { direccionConLocalidad, nombreDeLugar } from "@/lib/direccion";
 import { JsonLd } from "@/components/json-ld";
 
 // El cron corre una vez por día; una hora de caché por página es de sobra y
@@ -131,7 +132,7 @@ export default async function PaginaComercio({ params }: Props) {
       location: sucursales.slice(0, 20).map((s) => ({
         "@type": "Place",
         name: s.nombre ?? comercio.nombre,
-        address: { "@type": "PostalAddress", streetAddress: s.direccion, addressLocality: s.localidad ?? undefined, addressRegion: s.departamento, addressCountry: "UY" },
+        address: { "@type": "PostalAddress", streetAddress: s.direccion, addressLocality: s.localidad ? nombreDeLugar(s.localidad) : undefined, addressRegion: s.departamento, addressCountry: "UY" },
         geo: { "@type": "GeoCoordinates", latitude: s.lat, longitude: s.lng },
       })),
     }),
@@ -264,7 +265,7 @@ export default async function PaginaComercio({ params }: Props) {
               {sucursales.slice(0, 24).map((s) => (
                 <li key={s.id} className="border-linea bg-card rounded-lg border p-3 text-sm">
                   <p className="font-medium">{s.nombre ?? comercio.nombre}</p>
-                  <p className="text-humo">{s.direccion}{s.localidad ? `, ${s.localidad}` : ""}</p>
+                  <p className="text-humo">{direccionConLocalidad(s.direccion, s.localidad)}</p>
                   {s.telefono && (
                     <a className="text-humo hover:text-cielo inline-flex items-center gap-1 py-1.5 text-xs" href={`tel:${s.telefono.replace(/[^\d+]/g, "")}`}>
                       <Phone className="size-3" /> {s.telefono}

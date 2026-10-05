@@ -77,7 +77,7 @@ export function Hero() {
         </div>
 
         <p className="mt-4 text-sm" style={{ color: "#b9c3cf" }}>
-          Sin cuenta · sin pedirte el número · {FUENTES.length} bancos y billeteras
+          Sin cuenta · sin pedirte el número · {FUENTES.length} bancos, emisores y billeteras
         </p>
       </div>
     </section>

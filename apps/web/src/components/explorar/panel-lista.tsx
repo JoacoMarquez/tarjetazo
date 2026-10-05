@@ -107,7 +107,7 @@ export function PanelLista({
           onClick={() => onAbrir(!abierta)}
           className={cn("font-display min-w-0 flex-1 text-left font-bold", abajo ? "text-[16px] leading-tight" : "text-[18px]")}
         >
-          {cargando ? "Buscando…" : abajo ? `${n} de ${total}` : `${n} de ${total} locales`}
+          {cargando ? "Buscando…" : abajo ? `${n} de ${total}` : `${n} de ${total} descuentos`}
         </button>
         <select
           value={orden}
@@ -181,7 +181,7 @@ export function PanelLista({
                   className={cn(
                     "flex shrink-0 cursor-pointer items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-left transition-[transform,box-shadow,opacity] focus-visible:outline-2 focus-visible:outline-offset-2",
                     "hover:-translate-y-px",
-                    seleccion === b.id && "ring-2",
+                    seleccion === b.comercio_key && "ring-2",
                   )}
                   style={{
                     boxShadow: "0 4px 14px rgba(20,32,44,.06)",
@@ -192,7 +192,7 @@ export function PanelLista({
                     transitionDelay: abierta
                       ? `${0.1 + i * 0.05}s`
                       : `${(n - i) * 0.04}s`,
-                    ...(seleccion === b.id
+                    ...(seleccion === b.comercio_key
                       ? { boxShadow: `0 10px 28px rgba(20,32,44,.12)` }
                       : {}),
                   }}

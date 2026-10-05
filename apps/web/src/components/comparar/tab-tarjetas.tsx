@@ -9,7 +9,7 @@ import {
   fmt,
   type Matriz,
 } from "@/lib/comparar-tarjetas";
-import { PRODUCTO_POR_ID, colorFuente, nombreCorto } from "@/lib/marca";
+import { PRODUCTO_POR_ID, bancoYTipo, colorFuente, nombreCorto } from "@/lib/marca";
 import { ColumnaGasto } from "./columna-gasto";
 
 const SUAVE = "cubic-bezier(.2,.8,.2,1)";
@@ -132,7 +132,7 @@ function ColumnaTarjeta({
         <div className="flex items-center gap-2">
           <MiniTarjeta fuenteId={p.fuente_id} tuya={tuya} />
           <span className="text-humo min-w-0 flex-1 truncate text-[12px]">
-            {tuya ? "La tuya" : `${p.instrumento} · no la tenés`}
+            {tuya ? `La tuya · ${bancoYTipo(p)}` : bancoYTipo(p)}
           </span>
           {mejor && (
             <span className="bg-sol text-tinta shrink-0 rounded-[4px] px-1 text-[10px] font-bold tracking-[.06em] uppercase">

@@ -23,6 +23,14 @@ export function generateStaticParams() {
 
 type Props = { params: Promise<{ id: string }> };
 
+/** El pie sin lo que ya dice el nombre: "OCA Mastercard" va con "Crédito", no con "Mastercard · Crédito". */
+function pieSinRepetir(fam: Parameters<typeof pieDeFamilia>[0]): string {
+  const partes = pieDeFamilia(fam).split(" · ");
+  const nombre = fam.nombre.toLowerCase();
+  const quedan = partes.filter((p, i) => i === partes.length - 1 || !nombre.includes(p.toLowerCase()));
+  return quedan.join(" · ");
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const f = fuente(id);
@@ -107,13 +115,13 @@ export default async function PaginaBanco({ params }: Props) {
                   {esTarjeta(fam) ? (
                     <Link href={`/tarjeta/${fam.id}`} className="border-linea bg-card hover:bg-secondary rounded-pill inline-block border px-3 py-1 text-sm">
                       {fam.nombre}
-                      <span className="text-humo ml-1 text-xs">{pieDeFamilia(fam)}</span>
+                      <span className="text-humo ml-1 text-xs">{pieSinRepetir(fam)}</span>
                     </Link>
                   ) : (
                     // El saldo o una app de pagos: tiene beneficios pero no página de tarjeta.
                     <span className="border-linea bg-card rounded-pill inline-block border px-3 py-1 text-sm">
                       {fam.nombre}
-                      <span className="text-humo ml-1 text-xs">{pieDeFamilia(fam)}</span>
+                      <span className="text-humo ml-1 text-xs">{pieSinRepetir(fam)}</span>
                     </span>
                   )}
                 </li>

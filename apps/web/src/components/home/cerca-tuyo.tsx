@@ -104,8 +104,8 @@ export function CercaTuyo() {
           Cerca tuyo
         </h2>
         <span className="text-sm text-tinta">
-          {propia ? "Tu zona" : "Montevideo centro"} · {puntos.length}
-          {recortado ? "+" : ""} locales con descuento hoy
+          {propia ? "Tu zona" : "Montevideo centro"} ·{" "}
+          {cargando ? "buscando locales…" : `${puntos.length}${recortado ? "+" : ""} locales con descuento hoy`}
         </span>
       </div>
 

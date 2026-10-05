@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import dynamic from "next/dynamic";
 import {
   Suspense,
@@ -272,9 +273,14 @@ function Pantalla() {
           onOrden={setOrden}
           seleccion={sel}
           onElegir={(b) => {
-            setSel(b.comercio_key);
             const p = puntos.find((x) => x.comercio_key === b.comercio_key);
-            if (p) setIrA([p.lat, p.lng]);
+            // Sin local en esta zona del mapa no hay popup que abrir: va a su ficha.
+            if (!p) {
+              router.push(`/comercio/${b.comercio_key}` as Route);
+              return;
+            }
+            setSel(b.comercio_key);
+            setIrA([p.lat, p.lng]);
           }}
           esParaVos={esParaVos}
           tieneTarjetas={mis.length > 0}
