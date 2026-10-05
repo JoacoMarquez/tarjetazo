@@ -53,7 +53,7 @@ export function FooterHome() {
           <Eyebrow>Rubros</Eyebrow>
           <nav className="mt-4 flex flex-col gap-3">
             {RUBROS.map((r) => (
-              <Link key={r.slug} href={`/app?cat=${r.slug}`} className="text-white">
+              <Link key={r.slug} href={`/rubro/${r.slug}`} className="text-white">
                 {r.label}
               </Link>
             ))}
