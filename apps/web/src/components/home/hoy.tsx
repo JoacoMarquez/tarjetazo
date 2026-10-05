@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { familiaDe } from "@tarjetazo/core";
 import type { MejorDelRubro } from "@/lib/stats";
 import { useBilletera } from "@/lib/billetera";
 import { alcanceCorto, cifraBeneficio, tarjetaSugerida } from "@/lib/formato";
@@ -12,7 +13,7 @@ import { Hasta } from "@/components/hasta";
  * de tarjetas que el usuario no tiene se apagan y ofrecen agregarla, con el
  * banco ya elegido en el panel de alta.
  */
-export function Hoy({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
+export function Hoy({ rubros, fotos, dia }: { rubros: MejorDelRubro[]; fotos: Record<string, string>; dia: string }) {
   const { mis, abrir } = useBilletera();
   if (rubros.length === 0) return null;
 
@@ -36,6 +37,7 @@ export function Hoy({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
           // La tarjeta de la card es una sugerencia: el alcance dice con cuáles vale.
           const alcance = alcanceCorto(beneficio.fuente_id, beneficio.productos_elegibles);
           const c = colorFuente(beneficio.fuente_id);
+          const foto = producto ? fotos[familiaDe(producto)] : undefined;
           const donde =
             beneficio.n_sucursales > 1
               ? `${beneficio.comercio} · ${beneficio.n_sucursales} locales`
@@ -57,14 +59,28 @@ export function Hoy({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
                 {cifraBeneficio(beneficio)}
               </span>
               <div className="flex min-w-0 items-center gap-2.5">
-                <span
-                  className="h-[22px] w-[34px] flex-none rounded"
-                  style={{
-                    background: laTengo ? c.color : "transparent",
-                    border: `1.5px dashed ${laTengo ? "transparent" : c.color}`,
-                    boxSizing: "border-box",
-                  }}
-                />
+                {foto ? (
+                  // La foto real; apagada si no la tenés, como el punteado del resto del sitio.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={foto}
+                    alt=""
+                    width={44}
+                    height={28}
+                    loading="lazy"
+                    className="h-[28px] w-[44px] flex-none rounded-[4px] object-cover"
+                    style={laTengo ? undefined : { filter: "grayscale(1)", opacity: 0.6 }}
+                  />
+                ) : (
+                  <span
+                    className="h-[22px] w-[34px] flex-none rounded"
+                    style={{
+                      background: laTengo ? c.color : "transparent",
+                      border: `1.5px dashed ${laTengo ? "transparent" : c.color}`,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                )}
                 <span className="font-display min-w-0 break-words text-[17px] font-bold leading-[1.15]">
                   {producto?.nombre ?? beneficio.fuente_nombre}
                 </span>

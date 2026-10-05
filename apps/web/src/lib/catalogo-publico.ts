@@ -200,7 +200,9 @@ export function ordenarCatalogo(tarjetas: TarjetaCatalogo[], orden: OrdenCatalog
     case "ingreso":
       return xs.sort((a, b) => ascendente(a.ingreso_minimo, b.ingreso_minimo) || porBeneficios(a, b));
     default:
-      return xs.sort(porBeneficios);
+      // Con foto primero: las de cara genérica al principio hacían que el
+      // catálogo pareciera vacío. Dentro de cada grupo, por beneficios.
+      return xs.sort((a, b) => Number(!a.frente) - Number(!b.frente) || porBeneficios(a, b));
   }
 }
 

@@ -98,7 +98,9 @@ export default async function PaginaRubro({ params }: Props) {
                   <Link href={`/app?bancos=${r.fuente_id}&cat=${slug}`} className="hover:bg-secondary flex flex-col gap-0.5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <span className="font-medium">{r.fuente_nombre}</span>
                     <span className="text-humo">
-                      {r.n_beneficios} {r.n_beneficios === 1 ? "beneficio" : "beneficios"} en {r.n_comercios} {r.n_comercios === 1 ? "comercio" : "comercios"}
+                      {/* Por comercio y no por beneficio: un banco con un tramo por tarjeta
+                          ("13 beneficios en 2 comercios") parecía tener más de lo que tiene. */}
+                      {r.n_comercios} {r.n_comercios === 1 ? "comercio" : "comercios"}
                       {r.mejor_pct != null && <> · hasta <span className="num text-cielo font-semibold">{r.mejor_pct}%</span></>}
                     </span>
                   </Link>

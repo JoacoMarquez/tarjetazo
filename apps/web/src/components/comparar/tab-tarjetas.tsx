@@ -237,6 +237,11 @@ export function TabTarjetas({
   onTarjetero: (pid: string) => void;
 }) {
   const [plegada, setPlegada] = useState(false);
+  // En el celular el gasto arranca plegado: abierto ocupa más de la mitad del
+  // ancho y tapa la primera tarjeta.
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 639px)").matches) setPlegada(true);
+  }, []);
   const columnas = construirColumnas(matriz, seleccion, dias, gasto);
   const orden = columnas.map((c) => c.pid);
   const refFlip = useFlip(orden);
