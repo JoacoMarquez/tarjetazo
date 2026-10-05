@@ -22,7 +22,8 @@ export const Slug = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "debe ser kebab-case sin acentos");
 
 const fechaISO = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "formato YYYY-MM-DD");
-const url = z.url();
+// Solo http(s): `z.url()` acepta también javascript: y data:.
+const url = z.url({ protocol: /^https?$/ });
 
 export const FuenteSchema = z.object({
   id: Slug,
@@ -48,7 +49,7 @@ export const ProductoSchema = z.object({
   familia: Slug.nullable().optional(),
   /** Un producto dado de baja no se borra: los beneficios viejos lo referencian. */
   activo: z.boolean().optional(),
-  url_oficial: z.string().url().nullable().optional(),
+  url_oficial: url.nullable().optional(),
 });
 
 export const CategoriaSchema = z.object({

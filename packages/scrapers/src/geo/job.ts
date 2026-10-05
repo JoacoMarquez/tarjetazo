@@ -15,14 +15,27 @@ export interface ReporteGeo {
   sin_departamento: number;
 }
 
+/** Todas las filas de una columna, de a 1.000 (PostgREST corta ahí). */
+async function columna(db: SupabaseClient, tabla: string, col: string): Promise<string[]> {
+  const out: string[] = [];
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await db.from(tabla).select(col).not(col, "is", null).order(col).range(desde, desde + 999);
+    if (error) throw new Error(`leyendo ${tabla}: ${error.message}`);
+    const filas = (data ?? []) as unknown as Record<string, string>[];
+    out.push(...filas.map((f) => f[col]!));
+    if (filas.length < 1000) return out;
+  }
+}
+
 /**
- * Trae de OSM las sucursales de las cadenas conocidas. Es la única fuente de
- * direcciones que tenemos hoy: los bancos publican "locales adheridos" sin
- * decir cuáles.
+ * Trae de OSM los locales de las cadenas conocidas y los deja como sugerencias
+ * para /admin/comercios, como `geo sugerir`: cualquiera puede editar OSM, así
+ * que nada entra al mapa sin que el admin lo acepte. Los que ya son una
+ * sucursal (mismo `osm_id`) no se vuelven a sugerir.
  */
 export async function importarDeOsm(db: SupabaseClient): Promise<ReporteGeo> {
-  const { data: comercios } = await db.from("comercio").select("key");
-  const existentes = new Set((comercios ?? []).map((c) => c.key as string));
+  const existentes = new Set(await columna(db, "comercio", "key"));
+  const yaCargados = new Set(await columna(db, "sucursal", "osm_id"));
 
   const locales = await localesDeCadenas();
   const reporte: ReporteGeo = { encontrados: locales.length, guardados: 0, sin_departamento: 0 };
@@ -30,7 +43,7 @@ export async function importarDeOsm(db: SupabaseClient): Promise<ReporteGeo> {
 
   for (const l of locales) {
     // Solo importamos locales de comercios que algún beneficio menciona.
-    if (!existentes.has(l.comercio_key)) continue;
+    if (!existentes.has(l.comercio_key) || yaCargados.has(l.osm_id)) continue;
 
     let departamento = slugDepartamento(l.estado);
     let direccion = [l.calle, l.numero].filter(Boolean).join(" ");
@@ -51,22 +64,25 @@ export async function importarDeOsm(db: SupabaseClient): Promise<ReporteGeo> {
 
     filas.push({
       comercio_key: l.comercio_key,
+      fuente: "osm",
+      osm_id: l.osm_id,
       nombre: l.nombre,
       direccion: direccion || (localidad ?? "sin dirección"),
       localidad,
       departamento,
-      geom: punto(l.lat, l.lng),
-      precision: l.calle ? "exacta" : "aproximada",
-      fuente_direccion: "osm",
-      osm_id: l.osm_id,
-      geocoded_at: new Date().toISOString(),
+      lat: l.lat,
+      lng: l.lng,
+      tipo: "cadena",
+      consulta: `cadena ${l.comercio_key} en OSM`,
     });
   }
 
   for (let i = 0; i < filas.length; i += 200) {
     const lote = filas.slice(i, i + 200);
-    const { error } = await db.from("sucursal").upsert(lote, { onConflict: "osm_id" });
-    if (error) throw new Error(`guardando sucursales: ${error.message}`);
+    const { error } = await db
+      .from("sucursal_sugerencia")
+      .upsert(lote, { onConflict: "comercio_key,osm_id", ignoreDuplicates: true });
+    if (error) throw new Error(`guardando sugerencias: ${error.message}`);
     reporte.guardados += lote.length;
   }
   return reporte;
