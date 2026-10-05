@@ -30,11 +30,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/ayuda`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE}/terminos`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/privacidad`, changeFrequency: "yearly", priority: 0.2 },
-    ...CATEGORIAS.map((c) => ({
-      url: `${BASE}/app?cat=${c.slug}`,
+    // Las páginas de rubro: `/app?cat=` se arma en el navegador y para un
+    // buscador es la home con otro título.
+    ...CATEGORIAS.filter((c) => c.slug !== "otros").map((c) => ({
+      url: `${BASE}/rubro/${c.slug}`,
       lastModified: hoy,
       changeFrequency: "daily" as const,
-      priority: 0.6,
+      priority: 0.8,
     })),
   ];
 

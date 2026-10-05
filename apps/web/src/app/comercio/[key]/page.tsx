@@ -158,7 +158,7 @@ export default async function PaginaComercio({ params }: Props) {
         <nav aria-label="Migas" className="text-humo text-xs">
           <Link href="/app" className="hover:underline">Beneficios</Link>
           {" › "}
-          <Link href={`/app?cat=${comercio.categoria}`} className="hover:underline">
+          <Link href={comercio.categoria === "otros" ? "/app?cat=otros" : `/rubro/${comercio.categoria}`} className="hover:underline">
             {labelCategoria(comercio.categoria)}
           </Link>
         </nav>
