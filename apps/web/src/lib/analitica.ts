@@ -1,12 +1,14 @@
 "use client";
 
-import posthog from "posthog-js";
+import type { PostHog } from "posthog-js";
 import { esRutaAdmin, propiedadesSinTokens } from "./url-limpia";
 import { propiedadesDeUbicacion, type Ubicacion } from "./ubicacion";
 
 export { esRutaAdmin };
 
 let iniciado = false;
+/** posthog-js (con la grabación de sesiones) pesa ~270 KB: se carga después de la página. */
+let posthog: PostHog | null = null;
 let arrancando = false;
 let ubicacion: Record<string, string> = {};
 
@@ -58,6 +60,7 @@ export async function iniciarAnalitica() {
   arrancando = true;
   ubicacion = await leerUbicacion();
 
+  posthog = (await import("posthog-js")).default;
   posthog.init(clave, {
     api_host: "/ingest",
     ui_host: "https://eu.posthog.com",
@@ -106,5 +109,5 @@ export type Evento =
 
 export function capturar(evento: Evento, props?: Record<string, unknown>) {
   if (!iniciado) return;
-  posthog.capture(evento, props);
+  posthog?.capture(evento, props);
 }

@@ -1,6 +1,5 @@
 import { PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
 import type { BeneficioListado } from "./consultas";
-import { listarBeneficios } from "./consultas";
 import { FILTROS_VACIOS } from "./filtros";
 import { topeCorto, topeEnPesos } from "./tope";
 
@@ -64,6 +63,9 @@ for (const p of PRODUCTOS_ACTIVOS) {
  * oferta por tarjeta, rubro y día, que es todo lo que la pantalla dibuja.
  */
 export async function matrizComparar(): Promise<Matriz> {
+  // Import diferido: los componentes de Comparar usan este módulo y el cliente
+  // de Supabase (que trae consultas.ts) no tiene que viajar en su JS.
+  const { listarBeneficios } = await import("./consultas");
   const { beneficios } = await listarBeneficios(
     { ...FILTROS_VACIOS, categorias: RUBROS_COMPARAR.map((r) => r.slug) },
     0,
