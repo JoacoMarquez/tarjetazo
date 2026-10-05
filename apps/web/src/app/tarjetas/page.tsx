@@ -73,7 +73,7 @@ export default async function PaginaTarjetas() {
         <Suspense
           fallback={
             <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {ordenadas.map((t) => <li key={t.id}><TarjetaCatalogoCard t={t} /></li>)}
+              {ordenadas.map((t, i) => <li key={t.id}><TarjetaCatalogoCard t={t} prioritaria={i < 3} /></li>)}
             </ul>
           }
         >

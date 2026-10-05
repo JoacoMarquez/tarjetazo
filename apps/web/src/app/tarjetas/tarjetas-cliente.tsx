@@ -157,7 +157,7 @@ export function TarjetasCliente({ tarjetas }: { tarjetas: TarjetaCatalogo[] }) {
         </p>
       ) : (
         <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {visibles.map((t) => <li key={t.id}><TarjetaCatalogoCard t={t} /></li>)}
+          {visibles.map((t, i) => <li key={t.id}><TarjetaCatalogoCard t={t} prioritaria={i < 3} /></li>)}
         </ul>
       )}
     </>

@@ -262,30 +262,34 @@ function Pantalla() {
           compacto={compacto}
         />
 
-        <PanelLista
-          beneficios={visibles}
-          total={total}
-          cargando={cargandoLista}
-          izquierda={izquierdaPanel}
-          abierta={lista}
-          onAbrir={setLista}
-          orden={orden}
-          onOrden={setOrden}
-          seleccion={sel}
-          onElegir={(b) => {
-            const p = puntos.find((x) => x.comercio_key === b.comercio_key);
-            // Sin local en esta zona del mapa no hay popup que abrir: va a su ficha.
-            if (!p) {
-              router.push(`/comercio/${b.comercio_key}` as Route);
-              return;
-            }
-            setSel(b.comercio_key);
-            setIrA([p.lat, p.lng]);
-          }}
-          esParaVos={esParaVos}
-          tieneTarjetas={mis.length > 0}
-          abajo={compacto}
-        />
+        {/* Hasta medir el área no se sabe si la lista va en columna o abajo:
+            dibujarla antes la hacía saltar al cargar (CLS 0,65 en el celular). */}
+        {area.ancho > 0 && (
+          <PanelLista
+            beneficios={visibles}
+            total={total}
+            cargando={cargandoLista}
+            izquierda={izquierdaPanel}
+            abierta={lista}
+            onAbrir={setLista}
+            orden={orden}
+            onOrden={setOrden}
+            seleccion={sel}
+            onElegir={(b) => {
+              const p = puntos.find((x) => x.comercio_key === b.comercio_key);
+              // Sin local en esta zona del mapa no hay popup que abrir: va a su ficha.
+              if (!p) {
+                router.push(`/comercio/${b.comercio_key}` as Route);
+                return;
+              }
+              setSel(b.comercio_key);
+              setIrA([p.lat, p.lng]);
+            }}
+            esParaVos={esParaVos}
+            tieneTarjetas={mis.length > 0}
+            abajo={compacto}
+          />
+        )}
 
         {/* "Buscar en esta zona": centrado sobre el área libre del mapa */}
         <button

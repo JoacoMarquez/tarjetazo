@@ -10,7 +10,7 @@ import { colorFuente } from "@/lib/marca";
  * datos. La foto va plana (la 3D queda para la ficha: 80 tarjetas inclinándose
  * a la vez marean); ya viene horizontal y recortada a la tarjeta (#72).
  */
-export function TarjetaCatalogoCard({ t }: { t: TarjetaCatalogo }) {
+export function TarjetaCatalogoCard({ t, prioritaria = false }: { t: TarjetaCatalogo; prioritaria?: boolean }) {
   const costo = costoAnual(t);
   const c = colorFuente(t.fuente_id);
   return (
@@ -25,7 +25,9 @@ export function TarjetaCatalogoCard({ t }: { t: TarjetaCatalogo }) {
           <img
             src={t.frente}
             alt={`${t.nombre} de ${t.banco}`}
-            loading="lazy"
+            // Las primeras se ven al cargar: diferirlas atrasaba el LCP.
+            loading={prioritaria ? "eager" : "lazy"}
+            fetchPriority={prioritaria ? "high" : "auto"}
             draggable={false}
             className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
           />
@@ -40,7 +42,7 @@ export function TarjetaCatalogoCard({ t }: { t: TarjetaCatalogo }) {
         </span>
         <span className="text-humo truncate text-xs">{t.pie}</span>
       </div>
-      <h3 className="mt-1 leading-tight font-semibold">{t.nombre}</h3>
+      <h2 className="mt-1 leading-tight font-semibold">{t.nombre}</h2>
 
       <dl className="mt-auto grid grid-cols-2 gap-2 pt-3 text-sm">
         <div>
