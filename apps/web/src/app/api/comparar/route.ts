@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { errorInterno } from "@/lib/error-interno";
-import { CATEGORIAS, Departamento } from "@tarjetazo/core";
+import { CATEGORIAS, DEPARTAMENTOS } from "@tarjetazo/core";
 import { comparar } from "@/lib/comparar";
 
 const CATS = new Set(CATEGORIAS.map((c) => c.slug));
-const DEPTOS = new Set<string>(Departamento.options);
+const DEPTOS = new Set<string>(DEPARTAMENTOS);
 
 function lista(v: string | null, valido: Set<string>) {
   return (v ?? "").split(",").map((x) => x.trim()).filter((x) => valido.has(x));

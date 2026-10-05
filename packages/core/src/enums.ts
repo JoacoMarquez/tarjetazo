@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { DEPARTAMENTOS, TIPOS_BENEFICIO } from "./valores";
 
 export const TipoFuente = z.enum(["banco", "emisor", "billetera", "club"]);
 export const Instrumento = z.enum(["credito", "debito", "prepaga", "saldo", "membresia"]);
 export const Red = z.enum(["visa", "mastercard", "amex", "cabal", "propia"]);
 export const Tier = z.enum(["gold", "platinum", "black", "signature", "infinite", "world", "world_elite"]);
-export const TipoBeneficio = z.enum(["porcentaje", "cuotas", "reintegro", "2x1"]);
+export const TipoBeneficio = z.enum(TIPOS_BENEFICIO);
 export const Canal = z.enum(["presencial", "online", "ambos"]);
 export const Mecanica = z.enum(["qr", "nfc", "app"]);
 export const TopePeriodo = z.enum(["dia", "semana", "mes", "compra", "beneficio"]);
@@ -15,27 +16,7 @@ export const EstadoRevision = z.enum(["ok", "revisar", "descartado", "oculto"]);
 /** 0 = domingo … 6 = sábado (mismo criterio que Date#getDay). */
 export const DiaSemana = z.number().int().min(0).max(6);
 
-export const Departamento = z.enum([
-  "artigas",
-  "canelones",
-  "cerro-largo",
-  "colonia",
-  "durazno",
-  "flores",
-  "florida",
-  "lavalleja",
-  "maldonado",
-  "montevideo",
-  "paysandu",
-  "rio-negro",
-  "rivera",
-  "rocha",
-  "salto",
-  "san-jose",
-  "soriano",
-  "tacuarembo",
-  "treinta-y-tres",
-]);
+export const Departamento = z.enum(DEPARTAMENTOS);
 
 export type TipoFuente = z.infer<typeof TipoFuente>;
 export type Instrumento = z.infer<typeof Instrumento>;

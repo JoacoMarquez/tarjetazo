@@ -1,4 +1,4 @@
-import { CATEGORIAS, Departamento, FUENTES, TipoBeneficio, expandirProductos } from "@tarjetazo/core";
+import { CATEGORIAS, DEPARTAMENTOS, FUENTES, TIPOS_BENEFICIO, expandirProductos } from "@tarjetazo/core";
 
 export type Orden = "relevancia" | "porcentaje" | "cuotas";
 /** "hoy" y "manana" se resuelven en el cliente contra la fecha de Uruguay. */
@@ -36,8 +36,8 @@ const DIAS: Exclude<Dia, null>[] = ["hoy", "manana", "0", "1", "2", "3", "4", "5
 
 const BANCOS = new Set(FUENTES.map((f) => f.id));
 const CATS = new Set(CATEGORIAS.map((c) => c.slug));
-const DEPTOS = new Set<string>(Departamento.options);
-const TIPOS = new Set<string>(TipoBeneficio.options);
+const DEPTOS = new Set<string>(DEPARTAMENTOS);
+const TIPOS = new Set<string>(TIPOS_BENEFICIO);
 
 function lista(v: string | null, valido?: Set<string>): string[] {
   if (!v) return [];

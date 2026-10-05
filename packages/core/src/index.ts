@@ -1,4 +1,5 @@
 export * from "./enums";
+export { DEPARTAMENTOS, TIPOS_BENEFICIO } from "./valores";
 export * from "./schema";
 export { CATEGORIAS, SLUGS_CATEGORIAS } from "./categorias";
 export { FUENTES, PRODUCTOS } from "./fuentes";

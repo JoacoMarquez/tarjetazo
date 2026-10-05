@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ExternalLink, Info } from "lucide-react";
-import { Departamento } from "@tarjetazo/core";
+import { DEPARTAMENTOS } from "@tarjetazo/core";
 import { LinkSaliente } from "@/components/link-saliente";
 import { RUBROS, type Ranking } from "@/lib/comparar";
 import { capturar } from "@/lib/analitica";
 import { cn } from "@/lib/utils";
 
 const LABEL_RUBRO = new Map(RUBROS.map((r) => [r.slug, r.label]));
-const DEPTOS = Departamento.options;
+const DEPTOS = DEPARTAMENTOS;
 
 function alternar(xs: string[], x: string) {
   return xs.includes(x) ? xs.filter((y) => y !== x) : [...xs, x];
