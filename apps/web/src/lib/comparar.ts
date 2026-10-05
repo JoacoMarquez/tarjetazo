@@ -1,5 +1,4 @@
 import { CATEGORIAS, FUENTES, PRODUCTOS_ACTIVOS } from "@tarjetazo/core";
-import { createSupabaseClient } from "./supabase";
 
 /** Una fila por fuente y rubro, con los componentes del puntaje. */
 export interface FilaComparacion {
@@ -31,6 +30,9 @@ export interface Ranking {
 const URL_FUENTE = new Map(FUENTES.map((f) => [f.id, f.url]));
 
 export async function comparar(categorias: string[], departamentos: string[]): Promise<Ranking[]> {
+  // Import diferido: este módulo también lo usan componentes de cliente, y
+  // el cliente de Supabase no tiene que viajar en su JS.
+  const { createSupabaseClient } = await import("./supabase");
   const db = createSupabaseClient();
   const { data, error } = await db.rpc("comparar_fuentes", {
     p_categorias: categorias.length ? categorias : null,

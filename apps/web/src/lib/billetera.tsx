@@ -13,7 +13,6 @@ import { FAMILIA_POR_ID, expandirProductos } from "@tarjetazo/core";
 import { capturar } from "./analitica";
 import { urlImagen } from "./fichas";
 import { bancosDe, familiasEnBilletera } from "./marca";
-import { createSupabaseClient } from "./supabase";
 
 const CLAVE = "tarjetazo:mis-tarjetas";
 
@@ -55,6 +54,8 @@ let fotosCargadas: Promise<Record<string, string>> | null = null;
 function cargarFotos(): Promise<Record<string, string>> {
   fotosCargadas ??= (async () => {
     try {
+      // Import diferido: el cliente de Supabase no entra en el JS de cada página.
+      const { createSupabaseClient } = await import("./supabase");
       const { data } = await createSupabaseClient()
         .from("producto_ficha")
         .select("familia_id, imagen_frente")

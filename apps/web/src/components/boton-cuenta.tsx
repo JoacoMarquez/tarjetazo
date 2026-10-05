@@ -6,7 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { KeyRound, LogOut, User } from "lucide-react";
 import { GRADIENTE } from "@/lib/marca";
-import { createSupabaseBrowser, credencialesAuth } from "@/lib/supabase-auth";
+
+/** El cliente de Supabase Auth (~250 KB) se carga aparte, después de la página. */
+const clienteAuth = () => import("@/lib/supabase-auth").then((m) => (m.credencialesAuth() ? m.createSupabaseBrowser() : null));
 
 const PIZARRA = "#2b3a4a";
 
@@ -34,13 +36,20 @@ export function BotonCuenta() {
   const caja = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!credencialesAuth()) return;
-    const supabase = createSupabaseBrowser();
-    // Avisa la sesión guardada al arrancar (INITIAL_SESSION) y cada cambio.
-    const { data } = supabase.auth.onAuthStateChange((_evento, sesion) => {
-      setUsuario(sesion?.user ?? null);
+    let cancelar: (() => void) | null = null;
+    let desmontado = false;
+    void clienteAuth().then((supabase) => {
+      if (!supabase || desmontado) return;
+      // Avisa la sesión guardada al arrancar (INITIAL_SESSION) y cada cambio.
+      const { data } = supabase.auth.onAuthStateChange((_evento, sesion) => {
+        setUsuario(sesion?.user ?? null);
+      });
+      cancelar = () => data.subscription.unsubscribe();
     });
-    return () => data.subscription.unsubscribe();
+    return () => {
+      desmontado = true;
+      cancelar?.();
+    };
   }, []);
 
   useEffect(() => {
@@ -77,8 +86,10 @@ export function BotonCuenta() {
     setErrorSalir(false);
     // Revoca la sesión en Supabase y borra las cookies; el evento SIGNED_OUT
     // vuelve el botón a "Ingresar". signOut devuelve el error, no lo lanza.
-    const { error } = await createSupabaseBrowser()
-      .auth.signOut({ scope: "local" })
+    const { error } = await clienteAuth()
+      .then(async (supabase): Promise<{ error: unknown }> =>
+        supabase ? supabase.auth.signOut({ scope: "local" }) : { error: new Error("sin credenciales") },
+      )
       .catch((e: unknown) => ({ error: e }));
     setSaliendo(false);
     if (error) {

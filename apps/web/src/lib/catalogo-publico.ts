@@ -7,7 +7,6 @@
 import { FAMILIAS_TARJETA, FUENTES, type Familia, type Red } from "@tarjetazo/core";
 import { COLUMNAS_FICHA, urlImagen, type Ficha } from "@/lib/fichas";
 import { pieDeFamilia } from "@/lib/marca";
-import { createSupabaseClient } from "@/lib/supabase";
 
 export type TipoTarjeta = "credito" | "debito" | "prepaga";
 export type Programa = "millas" | "puntos";
@@ -250,6 +249,9 @@ function armar(f: Familia, ficha: Ficha | undefined, conteo: { vigentes: number;
  */
 export async function leerCatalogo(): Promise<{ tarjetas: TarjetaCatalogo[]; conDatos: boolean }> {
   try {
+    // Import diferido: este módulo también lo usan componentes de cliente, y
+    // el cliente de Supabase no tiene que viajar en su JS.
+    const { createSupabaseClient } = await import("@/lib/supabase");
     const db = createSupabaseClient();
     const [fichas, conteos] = await Promise.all([
       db.from("producto_ficha").select(COLUMNAS_FICHA).returns<Ficha[]>(),
