@@ -415,6 +415,16 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
         extraido.comercio = { ...extraido.comercio, key: destino };
         extraido.beneficios = extraido.beneficios.map((b) => ({ ...b, comercio_key: destino }));
       }
+      // Un listado de marcas: cada tramo es de su comercio, con su alias
+      // ("ZonaTecno" → zona-tecno). Dos nombres que van al mismo comercio
+      // quedan en uno.
+      if (extraido.comercios?.length) {
+        const aKey = (k: string) => reglas.comercios.get(k) ?? k;
+        extraido.comercios = [
+          ...new Map(extraido.comercios.map((c) => [aKey(c.key), { ...c, key: aKey(c.key) }])).values(),
+        ];
+        extraido.beneficios = extraido.beneficios.map((b) => ({ ...b, comercio_key: aKey(b.comercio_key) }));
+      }
       if (extraido.uso) {
         reporte.tokens.entrada += extraido.uso.entrada;
         reporte.tokens.cache_escritura += extraido.uso.cache_escritura;
@@ -442,6 +452,9 @@ export async function correr(opciones: OpcionesCorrida): Promise<Reporte> {
             );
           }
         }
+      }
+      for (const c of extraido.comercios ?? []) {
+        if (extraido.beneficios.some((b) => b.comercio_key === c.key)) await asegurarComercio(db, c);
       }
 
       // Qué tramos cambiaron de verdad: una página puede cambiar (un banner, la

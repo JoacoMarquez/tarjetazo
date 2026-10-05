@@ -1,10 +1,10 @@
-// Nativa (red Cabal): tarjetas de rubro o de listado, combustible de frontera,
+// Nativa (red Cabal): tarjetas de rubro, listados de marcas, combustible de frontera,
 // CAUTE y planes de "última cuota gratis". Texto real recortado del sitio.
 // Correr con `pnpm --filter @tarjetazo/scrapers test`.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { crudoDeTarjeta, normalizarNativa, tarjetasDelIndice } from "./fuentes/nativa.js";
-import type { Crudo } from "./tipos.js";
+import { PaginaPendiente, type Crudo } from "./tipos.js";
 
 function crudo(external_id: string, lineas: string[], url = `https://www.nativacabal.com.uy/services/${external_id}/`): Crudo {
   return { fuente_id: "nativa", external_id, url_fuente: url, contenido: lineas.join("\n"), fetched_at: "" };
@@ -84,11 +84,76 @@ describe("Nativa", () => {
     }
   });
 
-  it("los listados de marcas y los servicios de la tarjeta no se publican", () => {
+  it("\"12 cuotas\": un tramo por marca del listado, sin los títulos de sección", () => {
     const marcas = crudo("12-cuotas", [
       "12 cuotas", "Promoción: 12 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo.", "Las mejores marcas en 12 cuotas sin recargo.", "Detalles:",
-      "Comercios adheridos:", "VESTIMENTA", "Allie", "Zara", "OTROS", "Farmashop", "ZonaTecno",
+      "Las mejores marcas", "en 12 cuotas sin recargo", "Promoción válida con tu tarjeta Nativa, hasta en 12 cuotas sin recargo.",
+      "Recuerda que previo a tu compra, debes verificar la vigencia del plan de pagos en el comercio.",
+      "Comercios adheridos:", "VESTIMENTA", "Allie", "BAS", "Clarks", "CAT", "Espacio b.a.", "Zara",
+      "OTROS", "Fama", "Farmashop", "Ingeniero Tugentman", "Multi Ahorro", "Re sueños", "ZonaTecno",
     ]);
+    const e = normalizarNativa(marcas);
+    assert.equal(e.comercio, null);
+    assert.equal(e.es_beneficio, true);
+    assert.deepEqual(e.comercios!.map((c) => [c.key, c.nombre, c.categoria]), [
+      ["allie", "Allie", "indumentaria"],
+      ["bas", "BAS", "indumentaria"],
+      ["clarks", "Clarks", "indumentaria"],
+      ["cat", "CAT", "indumentaria"],
+      ["espacio-b-a", "Espacio b.a.", "indumentaria"],
+      ["zara", "Zara", "indumentaria"],
+      // Las que ya están en el catálogo con otro nombre.
+      ["fama-hogar", "Fama Hogar", "otros"],
+      ["farmashop", "Farmashop", "farmacias"],
+      ["ing-tugentman", "Ing. Tugentman", "otros"],
+      ["multiahorro-hogar", "Multi Ahorro Hogar", "otros"],
+      ["re-suenos", "Re sueños", "otros"],
+      // A zona-tecno lo lleva el alias del backoffice, en el runner.
+      ["zonatecno", "ZonaTecno", "electro-tecnologia"],
+    ]);
+    assert.deepEqual(resumen(marcas).tramos.map((t) => t[0]), e.comercios!.map((c) => c.key));
+    const [b] = e.beneficios;
+    assert.deepEqual(
+      [b!.titulo, b!.descuento_raw, b!.tipo, b!.cuotas, b!.productos_elegibles, b!.como_usarlo],
+      ["12 cuotas sin recargo", "Hasta 12 cuotas sin recargo", "cuotas", 12, ["nativa-cabal"],
+        ["Verificá en el comercio la vigencia del plan de cuotas antes de pagar."]],
+    );
+  });
+
+  it("\"Aire Acondicionado\": de 12 a 24 cuotas, solo en aire acondicionado", () => {
+    const aire = crudo("aire-acondicionado", [
+      "Aire Acondicionado", "Promoción: 24 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo.", "Para el calor o el frío Nativa tiene la solución.", "Detalles:",
+      "Para el calor o el frío Nativa tiene la solución.", "Promoción válida con tu tarjeta Nativa, desde 12 hasta 24 cuotas sin recargo.",
+      "Recuerda que previo a tu compra, debes verificar la vigencia del plan de pagos en el comercio.",
+      "Comercios adheridos:", "Ingeniero Tugentman", "Via Confort", "Magic Center", "Macro Mercado", "Tienda Inglesa", "Ta-Ta", "LOI", "Woow", "Multiahorro Hogar",
+    ]);
+    const titulo = "Hasta 24 cuotas sin recargo en aire acondicionado";
+    assert.deepEqual(resumen(aire), {
+      comercio: null,
+      es_beneficio: true,
+      tramos: ["ing-tugentman", "via-confort", "magic-center", "macro-mercado", "tienda-inglesa", "ta-ta", "loi", "woow", "multiahorro-hogar"]
+        .map((k) => [k, titulo, null, 24, null, null]),
+    });
+    assert.equal(normalizarNativa(aire).beneficios[0]!.descuento_raw, "Desde 12 hasta 24 cuotas sin recargo en aire acondicionado");
+  });
+
+  it("un listado de marcas que no se entiende queda pendiente", () => {
+    const listado = (...adheridos: string[]) => crudo("12-cuotas", [
+      "12 cuotas", "Promoción: 12 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo.", "Las mejores marcas en 12 cuotas sin recargo.", "Detalles:",
+      "Promoción válida con tu tarjeta Nativa, hasta en 12 cuotas sin recargo.", ...adheridos,
+    ]);
+    // Sin "Comercios adheridos:", una sección que no conocemos o una oración.
+    for (const c of [
+      listado("Allie", "Zara"),
+      listado("Comercios adheridos:"),
+      listado("Comercios adheridos:", "JUGUETERÍA", "Mundo Mágico"),
+      listado("Comercios adheridos:", "Zara", "Consultá las bases y condiciones en nuestra web. Vigencia hasta agotar stock."),
+    ]) {
+      assert.throws(() => normalizarNativa(c), PaginaPendiente);
+    }
+  });
+
+  it("el índice (\"Promo 12-1\") y los servicios de la tarjeta no se publican", () => {
     const promo121 = crudo("beneficios", [
       "Promo 12-1", "Promoción: 24 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo, descuentos-y-promos.", "En todo el país, la última cuota es gratis!", "Detalles:",
       "Comprá en cuotas y llevate la última de regalo.", "6 CUOTAS", "Renner",
@@ -97,7 +162,7 @@ describe("Nativa", () => {
       "Pago de Facturas de Servicios", "Promoción: 3 CUOTAS", "Tipo según Nativa: cuotas-sin-recargo.",
       "Públicos y privados en redes de cobranza hasta en 3 cuotas sin recargo.", "Detalles:",
     ], "https://www.nativacabal.com.uy/pago-por-servicios/");
-    for (const c of [marcas, promo121, facturas]) {
+    for (const c of [promo121, facturas]) {
       assert.deepEqual(resumen(c), { comercio: null, es_beneficio: false, tramos: [] }, c.external_id);
     }
   });

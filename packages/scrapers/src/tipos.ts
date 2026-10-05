@@ -61,6 +61,13 @@ export interface SucursalDeFuente {
 export interface Extraido {
   crudo: Crudo;
   comercio: { key: string; nombre: string; categoria: string } | null;
+  /**
+   * Los comercios de una página que es un listado de marcas (Nativa: "12
+   * cuotas" en Zara, GAP, Farmashop…): un tramo por comercio, cada uno con su
+   * `comercio_key`, y `comercio` en null. El runner los crea como a `comercio`
+   * y les aplica los alias del backoffice uno por uno.
+   */
+  comercios?: { key: string; nombre: string; categoria: string }[];
   beneficios: BeneficioNormalizado[];
   /** Productos que el normalizador nombró pero no supimos mapear. */
   productos_desconocidos: string[];
