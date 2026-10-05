@@ -36,7 +36,8 @@
   --tinta: #14202c;
   --pizarra: #2b3a4a;
   --pizarra-2: #34455a;
-  --humo: #6b7683;
+  /* 4,5:1 sobre el papel más oscuro (#eeebe3): el gris anterior no llegaba al AA. */
+  --humo: #5f6a77;
   --humo-oscuro: #8a97a6;
   --humo-claro: #b9c3cf;
   --linea: #e4e0d6;

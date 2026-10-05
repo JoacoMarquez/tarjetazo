@@ -86,7 +86,11 @@ export function PanelLista({
   const n = beneficios.length;
   return (
     <div
-      className={cn("absolute z-20 flex flex-col gap-2", abajo ? "right-3 bottom-3 left-3 max-h-[46%]" : "top-4 bottom-4")}
+      className={cn("absolute z-20 flex flex-col gap-2", abajo
+          // Abierta, alto fijo: con max-h la hoja crecía al llegar la lista y
+          // el encabezado saltaba hacia arriba (CLS).
+          ? cn("right-3 bottom-3 left-3", abierta ? "h-[46%]" : "max-h-[46%]")
+          : "top-4 bottom-4")}
       style={
         abajo
           ? undefined
