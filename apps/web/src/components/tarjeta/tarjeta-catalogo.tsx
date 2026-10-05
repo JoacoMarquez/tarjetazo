@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PROPORCION_TARJETA } from "@/components/tarjeta-3d";
 import { CaraGenerica } from "@/components/tarjeta/cara-generica";
+import { FotoTarjeta } from "@/components/foto-tarjeta";
 import type { TarjetaCatalogo } from "@/lib/catalogo-publico";
 import { costoAnual } from "@/lib/fichas";
 import { colorFuente } from "@/lib/marca";
@@ -18,18 +19,16 @@ export function TarjetaCatalogoCard({ t, prioritaria = false }: { t: TarjetaCata
       href={`/tarjeta/${t.id}`}
       className="group border-linea bg-card hover:bg-secondary focus-visible:ring-ring flex h-full flex-col rounded-xl border p-3 transition-colors outline-none focus-visible:ring-2"
     >
-      <div className="bg-papel-2 overflow-hidden rounded-[4%/6.3%]" style={{ aspectRatio: PROPORCION_TARJETA }}>
+      <div className="bg-papel-2 relative overflow-hidden rounded-[4%/6.3%]" style={{ aspectRatio: PROPORCION_TARJETA }}>
         {t.frente ? (
-          // Fotos del bucket de Supabase: sin optimizador de Next.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <FotoTarjeta
             src={t.frente}
             alt={`${t.nombre} de ${t.banco}`}
+            // Grilla de 1, 2 o 3 columnas dentro de un contenedor de ~1100 px.
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
             // Las primeras se ven al cargar: diferirlas atrasaba el LCP.
-            loading={prioritaria ? "eager" : "lazy"}
-            fetchPriority={prioritaria ? "high" : "auto"}
-            draggable={false}
-            className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+            prioritaria={prioritaria}
+            className="transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
           />
         ) : (
           <CaraGenerica fuenteId={t.fuente_id} banco={t.banco} nombre={t.nombre} pie={t.pie} />
