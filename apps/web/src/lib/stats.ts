@@ -1,4 +1,5 @@
 import { createSupabaseClient } from "./supabase";
+import { urlImagen } from "./fichas";
 import { diaEnUruguay } from "./filtros";
 import type { BeneficioListado } from "./consultas";
 
@@ -85,4 +86,19 @@ export async function mejorPorRubro(): Promise<MejorDelRubro[]> {
     }),
   );
   return filas.filter((f): f is MejorDelRubro => f !== null);
+}
+
+/** Foto del frente de cada familia que tiene, por id de familia (unas 60 filas). */
+export async function fotosDeFamilias(): Promise<Record<string, string>> {
+  const { data, error } = await createSupabaseClient()
+    .from("producto_ficha")
+    .select("familia_id, imagen_frente")
+    .not("imagen_frente", "is", null);
+  if (error) throw new Error(error.message);
+  const out: Record<string, string> = {};
+  for (const f of data ?? []) {
+    const url = urlImagen(f.imagen_frente as string | null);
+    if (url) out[f.familia_id as string] = url;
+  }
+  return out;
 }

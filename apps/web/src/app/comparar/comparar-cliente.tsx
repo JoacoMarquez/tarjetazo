@@ -10,6 +10,7 @@ import { TabPorDia } from "@/components/comparar/tab-por-dia";
 import { TabTarjetas } from "@/components/comparar/tab-tarjetas";
 import { TabValeLaPena } from "@/components/comparar/tab-vale-la-pena";
 import { useBilletera } from "@/lib/billetera";
+import { PRODUCTO_POR_ID } from "@/lib/marca";
 import {
   GASTO_DEF,
   RUBROS_COMPARAR,
@@ -67,12 +68,20 @@ export function CompararCliente({ matriz }: { matriz: Matriz }) {
     setCargado(true);
   }, []);
 
-  // Sin selección guardada: tus tarjetas más las dos que más sumarían.
+  // Sin selección guardada: tus tarjetas más las dos que más sumarían, de
+  // bancos distintos (dos del mismo banco suelen tener los mismos beneficios
+  // y la comparación no muestra nada).
   useEffect(() => {
     if (!cargado || sel.length > 0) return;
-    const sugeridas = candidatas(matriz, mis, dias, gasto)
-      .slice(0, 2)
-      .map((c) => c.pid);
+    const bancos = new Set<string>();
+    const sugeridas: string[] = [];
+    for (const c of candidatas(matriz, mis, dias, gasto)) {
+      const banco = PRODUCTO_POR_ID[c.pid]?.fuente_id ?? c.pid;
+      if (bancos.has(banco)) continue;
+      bancos.add(banco);
+      sugeridas.push(c.pid);
+      if (sugeridas.length === 2) break;
+    }
     setSel([...mis, ...sugeridas]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargado, mis]);

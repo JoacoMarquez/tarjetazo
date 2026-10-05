@@ -16,13 +16,13 @@ import { ProximaTarjeta } from "./proxima-tarjeta";
  * las páginas. Acá solo se arma la home; los datos llegan ya resueltos desde
  * el servidor.
  */
-export function HomeCliente({ rubros, dia }: { rubros: MejorDelRubro[]; dia: string }) {
+export function HomeCliente({ rubros, fotos, dia }: { rubros: MejorDelRubro[]; fotos: Record<string, string>; dia: string }) {
   return (
     <>
       <EncabezadoSitio />
       <Hero />
       <main className="mx-auto max-w-[1120px] px-5 pb-20">
-        <Hoy rubros={rubros} dia={dia} />
+        <Hoy rubros={rubros} fotos={fotos} dia={dia} />
         <ComoFunciona rubros={rubros} />
         <ProximaTarjeta />
         <CercaTuyo />
