@@ -1,6 +1,6 @@
 "use client";
 
-import { CATEGORIAS, Departamento } from "@tarjetazo/core";
+import { CATEGORIAS, DEPARTAMENTOS } from "@tarjetazo/core";
 import { CreditCard, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -115,7 +115,7 @@ export function FiltrosBarra({
           onCambiar={(v) => onCambiar({ departamentos: v ? [v] : [] })}
           opciones={[
             { valor: "", label: "Todo el país" },
-            ...Departamento.options.map((d) => ({
+            ...DEPARTAMENTOS.map((d) => ({
               valor: d,
               label: d.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
             })),
