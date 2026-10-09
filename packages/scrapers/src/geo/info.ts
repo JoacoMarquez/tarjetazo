@@ -116,10 +116,15 @@ async function infoDeComercios(db: SupabaseClient, keys: string[]): Promise<Map<
  */
 export async function sugerirInfoDeOsm(
   db: SupabaseClient,
-): Promise<{ locales: number; telefonos: number; horarios: number; sitios: number; instagrams: number }> {
+): Promise<{ locales: number; lotes_fallidos: number; telefonos: number; horarios: number; sitios: number; instagrams: number }> {
   const locales = await localesVinculados(db);
   const porId = new Map<string, Elemento>();
+  // Un lote que Overpass no contesta se saltea: sus locales quedan para la
+  // corrida de la semana que viene, y el resto se sugiere igual.
+  let lotes = 0;
+  let lotesFallidos = 0;
   for (let i = 0; i < locales.length; i += LOTE) {
+    lotes++;
     const lote = locales.slice(i, i + LOTE);
     const porTipo = new Map<string, string[]>();
     for (const l of lote) {
@@ -128,8 +133,14 @@ export async function sugerirInfoDeOsm(
       porTipo.set(tipo, [...(porTipo.get(tipo) ?? []), id]);
     }
     const partes = [...porTipo].map(([tipo, ids]) => `${tipo}(id:${ids.join(",")});`).join("");
-    for (const e of await preguntar(`[out:json][timeout:120];(${partes});out tags;`)) porId.set(`${e.type}/${e.id}`, e);
+    try {
+      for (const e of await preguntar(`[out:json][timeout:120];(${partes});out tags;`)) porId.set(`${e.type}/${e.id}`, e);
+    } catch (e) {
+      lotesFallidos++;
+      console.error(`::warning::lote ${lotes} (${lote.length} locales) sin respuesta: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
+  if (lotes > 0 && lotesFallidos === lotes) throw new Error("Overpass no contestó ningún lote");
 
   const sugerencias: Sugerencia[] = [];
   const porComercio = new Map<string, { sitios: (string | null)[]; instagrams: (string | null)[]; osm: string[] }>();
@@ -174,5 +185,5 @@ export async function sugerirInfoDeOsm(
       else nuevas.instagrams++;
     }
   }
-  return { locales: locales.length, ...nuevas };
+  return { locales: locales.length, lotes_fallidos: lotesFallidos, ...nuevas };
 }

@@ -6,11 +6,13 @@ import { dentroDeUruguay } from "./tipos.js";
 /**
  * Las instancias públicas de Overpass devuelven 504 seguido cuando están
  * cargadas, así que rotamos entre mirrors antes de darnos por vencidos.
+ * Solo mirrors con el planeta entero: overpass.osm.ch tiene nada más Suiza y
+ * para Uruguay contesta 200 vacío.
  */
 const OVERPASS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.osm.ch/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ];
 /** Todo Uruguay entra holgado; más que esto no es una respuesta de Overpass. */
 const MAX_RESPUESTA = 50 * 1024 * 1024;
@@ -89,7 +91,9 @@ export async function preguntar(query: string): Promise<Elemento[]> {
       if (elementos.length > 0) return elementos;
       vacios++;
     } catch (e) {
-      ultimoError = `${new URL(url).host}: ${String(e)}`;
+      // El corte por tiempo llega como un AbortError genérico de node:http.
+      const motivo = e instanceof Error && e.name === "AbortError" ? "no contestó en 180 s" : String(e);
+      ultimoError = `${new URL(url).host}: ${motivo}`;
       await new Promise((r) => setTimeout(r, 5000 * (intento + 1)));
     }
   }

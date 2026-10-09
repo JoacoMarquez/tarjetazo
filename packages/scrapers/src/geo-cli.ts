@@ -23,7 +23,7 @@ async function main() {
     // como sugerencias para /admin/comercios.
     const r = await sugerirInfoDeOsm(crearCliente());
     console.log(
-      [`locales:     ${r.locales}`, "sugerencias nuevas:", `  teléfonos:  ${r.telefonos}`, `  horarios:   ${r.horarios}`, `  sitios:     ${r.sitios}`, `  instagrams: ${r.instagrams}`].join("\n"),
+      [`locales:     ${r.locales}`, `sin respuesta: ${r.lotes_fallidos} lotes`, "sugerencias nuevas:", `  teléfonos:  ${r.telefonos}`, `  horarios:   ${r.horarios}`, `  sitios:     ${r.sitios}`, `  instagrams: ${r.instagrams}`].join("\n"),
     );
     return;
   }
